@@ -4,96 +4,132 @@ import Link from 'next/link';
 import React, { useState } from 'react';
 import { Transition } from '@headlessui/react';
 import { HiOutlineXMark, HiBars3 } from 'react-icons/hi2';
-import { FaFingerprint } from 'react-icons/fa';
 
 import Container from './Container';
 import { siteDetails } from '@/data/siteDetails';
-import { menuItems } from '@/data/menuItems';
+import { menuItems as rawMenuItems } from '@/data/menuItems';
+
+type RawMenuItem = { text?: string; label?: string; href?: string; url?: string };
+type MenuItem = { text: string; href: string };
 
 const Header: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const toggleMenu = () => setIsOpen((o) => !o);
 
-    const toggleMenu = () => {
-        setIsOpen(!isOpen);
-    };
+  // Normaliza para evitar href undefined
+  const menuItems: MenuItem[] = Array.isArray(rawMenuItems)
+    ? (rawMenuItems as RawMenuItem[])
+        .map((i) => ({
+          text: i?.text ?? i?.label ?? '',
+          href: i?.href ?? i?.url ?? '#',
+        }))
+        .filter((i) => i.text && i.href)
+    : [];
 
-    return (
-        <header className="bg-transparent fixed top-0 left-0 right-0 md:absolute z-50 mx-auto w-full">
-            <Container className="!px-0">
-                <nav className="shadow-md md:shadow-none bg-white md:bg-transparent mx-auto flex justify-between items-center py-2 px-5 md:py-10">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2">
-                        <FaFingerprint className="text-foreground min-w-fit w-7 h-7" />
-                        <span className="manrope text-xl font-semibold text-foreground cursor-pointer">
-                            {siteDetails.siteName}
-                        </span>
-                    </Link>
+  return (
+    <header className="bg-transparent fixed top-0 left-0 right-0 md:absolute z-50 mx-auto w-full">
+      <Container className="!px-0">
+        <nav className="shadow-md md:shadow-none bg-white md:bg-transparent mx-auto flex justify-between items-center py-2 px-5 md:py-10">
+          {/* Logo PMG: wordmark móvil 28px, desktop 40px */}
+          <Link href="/" className="flex items-center gap-2" aria-label="Ir al inicio">
+            {/* Móvil */}
+            <img
+              src="/images/Logos/pmg-logo-wordmark-movil.svg"
+              alt="PMG Metales"
+              className="block md:hidden h-7 w-auto" /* 28px */
+            />
+            {/* Desktop */}
+            <img
+              src="/images/Logos/pmg-logo-wordmark-desktop.svg"
+              alt="PMG Metales"
+              className="hidden md:block h-10 w-auto" /* 40px */
+            />
+            <span className="sr-only">{siteDetails.siteName}</span>
+          </Link>
 
-                    {/* Desktop Menu */}
-                    <ul className="hidden md:flex space-x-6">
-                        {menuItems.map(item => (
-                            <li key={item.text}>
-                                <Link href={item.url} className="text-foreground hover:text-foreground-accent transition-colors">
-                                    {item.text}
-                                </Link>
-                            </li>
-                        ))}
-                        <li>
-                            <Link href="#cta" className="text-black bg-primary hover:bg-primary-accent px-8 py-3 rounded-full transition-colors">
-                                Download
-                            </Link>
-                        </li>
-                    </ul>
+          {/* Desktop Menu */}
+          <ul className="hidden md:flex space-x-6">
+            {menuItems.map((item) => (
+              <li key={item.text}>
+                <Link
+                  href={item.href}
+                  className="text-foreground hover:text-foreground-accent transition-colors"
+                >
+                  {item.text}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link
+                href="#"
+                role="button"
+                aria-label="Ingresar"
+                className="text-white bg-[#234c4b] hover:bg-[#1e3f3e] px-8 py-3 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#234c4b]"
+              >
+                Ingresar
+              </Link>
+            </li>
+          </ul>
 
-                    {/* Mobile Menu Button */}
-                    <div className="md:hidden flex items-center">
-                        <button
-                            onClick={toggleMenu}
-                            type="button"
-                            className="bg-primary text-black focus:outline-none rounded-full w-10 h-10 flex items-center justify-center"
-                            aria-controls="mobile-menu"
-                            aria-expanded={isOpen}
-                        >
-                            {isOpen ? (
-                                <HiOutlineXMark className="h-6 w-6" aria-hidden="true" />
-                            ) : (
-                                <HiBars3 className="h-6 w-6" aria-hidden="true" />
-                            )}
-                            <span className="sr-only">Toggle navigation</span>
-                        </button>
-                    </div>
-                </nav>
-            </Container>
-
-            {/* Mobile Menu with Transition */}
-            <Transition
-                show={isOpen}
-                enter="transition ease-out duration-200 transform"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="transition ease-in duration-75 transform"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={toggleMenu}
+              type="button"
+              className="bg-primary text-black focus:outline-none rounded-full w-10 h-10 flex items-center justify-center"
+              aria-controls="mobile-menu"
+              aria-expanded={isOpen}
             >
-                <div id="mobile-menu" className="md:hidden bg-white shadow-lg">
-                    <ul className="flex flex-col space-y-4 pt-1 pb-6 px-6">
-                        {menuItems.map(item => (
-                            <li key={item.text}>
-                                <Link href={item.url} className="text-foreground hover:text-primary block" onClick={toggleMenu}>
-                                    {item.text}
-                                </Link>
-                            </li>
-                        ))}
-                        <li>
-                            <Link href="#cta" className="text-black bg-primary hover:bg-primary-accent px-5 py-2 rounded-full block w-fit" onClick={toggleMenu}>
-                                Get Started
-                            </Link>
-                        </li>
-                    </ul>
-                </div>
-            </Transition>
-        </header>
-    );
+              {isOpen ? (
+                <HiOutlineXMark className="h-6 w-6" aria-hidden="true" />
+              ) : (
+                <HiBars3 className="h-6 w-6" aria-hidden="true" />
+              )}
+              <span className="sr-only">Toggle navigation</span>
+            </button>
+          </div>
+        </nav>
+      </Container>
+
+      {/* Mobile Menu */}
+      <Transition
+        show={isOpen}
+        enter="transition ease-out duration-200 transform"
+        enterFrom="opacity-0 scale-95"
+        enterTo="opacity-100 scale-100"
+        leave="transition ease-in duration-75 transform"
+        leaveFrom="opacity-100 scale-100"
+        leaveTo="opacity-0 scale-95"
+      >
+        <div id="mobile-menu" className="md:hidden bg-white shadow-lg">
+          <ul className="flex flex-col space-y-4 pt-1 pb-6 px-6">
+            {menuItems.map((item) => (
+              <li key={item.text}>
+                <Link
+                  href={item.href}
+                  className="text-foreground hover:text-primary block"
+                  onClick={toggleMenu}
+                >
+                  {item.text}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link
+                href="#"
+                role="button"
+                aria-label="Ingresar"
+                className="text-white bg-[#234c4b] hover:bg-[#1e3f3e] px-5 py-2 rounded-full block w-fit transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#234c4b]"
+                onClick={toggleMenu}
+              >
+                Ingresar
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </Transition>
+    </header>
+  );
 };
 
 export default Header;

@@ -1,12 +1,14 @@
+// src/data/siteDetails.ts
 export const siteDetails = {
-    siteName: 'Finwise',
-    siteUrl: 'https://finwise-omega.vercel.app/',
-    metadata: {
-        title: 'Finwise - Next.js and Tailwind CSS Landing Page Template',
-        description: 'Finwise empowers businesses with cutting-edge technology solutions to drive success and efficiency.',
-    },
-    language: 'en-us',
-    locale: 'en-US',
-    siteLogo: `${process.env.BASE_PATH || ''}/images/logo.png`, // or use a string for the logo e.g. "TechStartup"
-    googleAnalyticsId: '', // e.g. G-XXXXXXX,
-}
+  siteName: "PMG Metales",
+  siteUrl:
+    "https://landing-pgmmetales-cdsd8hubl-anfetiranos-projects.vercel.app", // cámbialo cuando tengas dominio
+  metadata: {
+    title: "PMG Metales — Soluciones en metales",
+    description:
+      "Reciclaje de metales preciosos (platino, paladio y rodio) de catalizadores. Mejor precio gracias a contrato de exclusividad con refinería.",
+  },
+  googleAnalyticsId: "", // si no tienes GA, déjalo vacío
+};
+
+export default siteDetails;
