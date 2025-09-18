@@ -1,37 +1,36 @@
-import { IPricing } from "@/types";
+export type StepIconKey = "quote" | "collection" | "payment" | "certificate";
 
-export const tiers: IPricing[] = [
-    {
-        name: 'Starter',
-        price: 29,
-        features: [
-            'Basic cloud integration',
-            'Up to 5 team members',
-            '20GB storage',
-            'Email support',
-        ],
-    },
-    {
-        name: 'Pro',
-        price: 99,
-        features: [
-            'Advanced cloud integration',
-            'Up to 20 team members',
-            '100GB storage',
-            'Priority email & phone support',
-            'Advanced analytics',
-        ],
-    },
-    {
-        name: 'Enterprise',
-        price: 'Custom',
-        features: [
-            'Full cloud integration',
-            'Unlimited team members',
-            'Unlimited storage',
-            '24/7 dedicated support',
-            'Custom solutions',
-            'On-site training',
-        ],
-    },
-]
+export interface ProcessStep {
+  name: string;
+  description: string;
+  icon: StepIconKey;
+}
+
+export const steps: ProcessStep[] = [
+  {
+    name: "Cotiza tu material",
+    description:
+      "Envíanos fotos del catalizador (y código si lo tiene). Estimamos con base en Pt, Pd y Rh.",
+    icon: "quote",
+  },
+  {
+    name: "Recolección/entrega",
+    description:
+      "Coordinamos recolección en tu taller o recibimos en punto acordado, con trazabilidad.",
+    icon: "collection",
+  },
+  {
+    name: "Pago",
+    description:
+      "Validación rápida y pago superior gracias a nuestro acuerdo exclusivo con refinería.",
+    icon: "payment",
+  },
+  {
+    name: "Certificado de compra",
+    description:
+      "Emitimos comprobantes y/o certificados para tu control y respaldo.",
+    icon: "certificate",
+  },
+];
+
+export default steps;

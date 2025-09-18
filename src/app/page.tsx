@@ -17,18 +17,19 @@ const HomePage: React.FC = () => {
       <Container>
         <Benefits />
 
+        {/* Antes era "pricing" con planes. Ahora es el proceso */}
         <Section
-          id="pricing"
-          title="Pricing"
-          description="Simple, transparent pricing. No surprises."
+          id="proceso"
+          title="Nuestro proceso de compra"
+          description="Así de fácil: cotizas, recolectamos, pagamos y te entregamos certificado."
         >
           <Pricing />
         </Section>
 
         <Section
-          id="testimonials"
-          title="What Our Clients Say"
-          description="Hear from those who have partnered with us."
+          id="testimonios"
+          title="Lo que dicen nuestros clientes"
+          description="Opiniones de talleres aliados: pagos inmediatos, atención y cumplimiento."
         >
           <Testimonials />
         </Section>
@@ -36,7 +37,7 @@ const HomePage: React.FC = () => {
         <FAQ />
 
         <Stats />
-        
+
         <CTA />
       </Container>
     </>

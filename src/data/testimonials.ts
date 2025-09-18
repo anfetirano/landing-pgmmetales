@@ -2,22 +2,30 @@ import { ITestimonial } from "@/types";
 import { siteDetails } from "./siteDetails";
 
 export const testimonials: ITestimonial[] = [
-    {
-        name: 'John Smith',
-        role: 'CEO at Company',
-        message: `${siteDetails.siteName}'s AI-driven insights have transformed how we approach financial planning for our clients. It's an invaluable resource in the modern financial landscape.`,
-        avatar: '/images/testimonial-1.webp',
-    },
-    {
-        name: 'Jane Doe',
-        role: 'CTO at Startup',
-        message: `As a CTO, I'm impressed by ${siteDetails.siteName}'s robust security measures and seamless integrations. It's rare to find an app that balances user-friendliness with such advanced technology.`,
-        avatar: '/images/testimonial-2.webp',
-    },
-    {
-        name: 'Emily Johnson',
-        role: 'Product Manager',
-        message: `${siteDetails.siteName} is revolutionizing personal finance management. Its intuitive design and powerful features make it an indispensable tool for anyone serious about financial growth.`,
-        avatar: '/images/testimonial-3.webp',
-    },
+  {
+    name: "Taller La 80",
+    role: "Taller aliado",
+    message: `Pagos inmediatos y buen precio. ${siteDetails.siteName} nos recibe la pieza o la cerámica y liquida sin demoras.`,
+    avatar: "/images/Logos/pmg-logo-isotipo-movil.svg",
+  },
+  {
+    name: "Taller La 65",
+    role: "Taller aliado",
+    message: `Excelente atención por WhatsApp y recolección a tiempo. Confianza total con ${siteDetails.siteName}.`,
+    avatar: "/images/Logos/pmg-logo-isotipo-movil.svg",
+  },
+  {
+    name: "Taller Solomofles",
+    role: "Taller aliado",
+    message: `Cumplimiento en lo acordado y reporte claro del contenido (Pt, Pd, Rh). Recomendados.`,
+    avatar: "/images/Logos/pmg-logo-isotipo-movil.svg",
+  },
+  {
+    name: "Taller Soldamos",
+    role: "Taller aliado",
+    message: `Proceso transparente y certificado de compra. Volvimos porque siempre cumplen.`,
+    avatar: "/images/Logos/pmg-logo-isotipo-movil.svg",
+  },
 ];
+
+export default testimonials;

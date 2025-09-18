@@ -1,44 +1,46 @@
-import clsx from "clsx";
-import { BsFillCheckCircleFill } from "react-icons/bs";
+import React from "react";
+import { FiMessageSquare, FiTruck, FiCreditCard, FiFileText } from "react-icons/fi";
+import type { ProcessStep } from "@/data/pricing";
 
-import { IPricing } from "@/types";
+const ICONS: Record<ProcessStep["icon"], React.ComponentType<{ className?: string }>> = {
+  quote: FiMessageSquare,
+  collection: FiTruck,
+  payment: FiCreditCard,
+  certificate: FiFileText,
+};
 
 interface Props {
-    tier: IPricing;
-    highlight?: boolean;
+  step: ProcessStep;
+  index: number;
 }
 
-const PricingColumn: React.FC<Props> = ({ tier, highlight }: Props) => {
-    const { name, price, features } = tier;
+const PricingColumn: React.FC<Props> = ({ step, index }) => {
+  const Icon = ICONS[step.icon];
+  const num = String(index + 1).padStart(2, "0");
 
-    return (
-        <div className={clsx("w-full max-w-sm mx-auto bg-white rounded-xl border border-gray-200 lg:max-w-full", { "shadow-lg": highlight })}>
-            <div className="p-6 border-b border-gray-200 rounded-t-xl">
-                <h3 className="text-2xl font-semibold mb-4">{name}</h3>
-                <p className="text-3xl md:text-5xl font-bold mb-6">
-                    <span className={clsx({ "text-secondary": highlight })}>
-                        {typeof price === 'number' ? `$${price}` : price}
-                    </span>
-                    {typeof price === 'number' && <span className="text-lg font-normal text-gray-600">/mo</span>}
-                </p>
-                <button className={clsx("w-full py-3 px-4 rounded-full transition-colors", { "bg-primary hover:bg-primary-accent": highlight, "bg-hero-background hover:bg-gray-200": !highlight })}>
-                    Get Started
-                </button>
-            </div>
-            <div className="p-6 mt-1">
-                <p className="font-bold mb-0">FEATURES</p>
-                <p className="text-foreground-accent mb-5">Everything in basic, plus...</p>
-                <ul className="space-y-4 mb-8">
-                    {features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                            <BsFillCheckCircleFill className="h-5 w-5 text-secondary mr-2" />
-                            <span className="text-foreground-accent">{feature}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+  return (
+    <div className="relative mx-auto w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 lg:max-w-full">
+      {/* punto conector (desktop) */}
+      <div className="pointer-events-none absolute left-1/2 top-0 hidden -translate-x-1/2 -translate-y-1/2 lg:block">
+        <span className="block h-3 w-3 rounded-full border border-[#234c4b]/30 bg-white shadow" />
+      </div>
+
+      {/* encabezado con icono y número */}
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#234c4b]/20 bg-[#234c4b]/5">
+          <Icon className="h-6 w-6 text-[#234c4b]" />
         </div>
-    )
-}
+        <div>
+          <p className="text-xs tracking-widest text-[#234c4b]/70">PASO</p>
+          <p className="text-xl font-extrabold text-[#234c4b]">{num}</p>
+        </div>
+      </div>
 
-export default PricingColumn
+      {/* contenido */}
+      <h3 className="mt-4 text-xl font-semibold text-foreground">{step.name}</h3>
+      <p className="mt-2 leading-relaxed text-foreground/80">{step.description}</p>
+    </div>
+  );
+};
+
+export default PricingColumn;
