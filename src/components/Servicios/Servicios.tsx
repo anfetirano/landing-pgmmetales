@@ -1,16 +1,19 @@
-import BenefitSection from "./BenefitSection";
+import ServicioSection from "./ServicioSection";
+import { benefits } from "@/data/servicios";
 
-import { benefits } from "@/data/benefits";
-
-const Benefits: React.FC = () => {
+const Servicios: React.FC = () => {
   return (
-    <div id="features">
-      <h2 className="sr-only">Features</h2>
-      {benefits.map((item, index) => {
-        return <BenefitSection key={index} benefit={item} imageAtRight={index % 2 !== 0} />;
-      })}
+    <div id="servicios">
+      <h2 className="sr-only">Servicios</h2>
+      {benefits.map((item, index) => (
+        <ServicioSection
+          key={index}
+          benefit={item}
+          imageAtRight={index % 2 !== 0}
+        />
+      ))}
     </div>
   );
 };
 
-export default Benefits;
+export default Servicios;

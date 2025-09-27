@@ -3,7 +3,7 @@ import Image from "next/image";
 import clsx from "clsx";
 import { motion, Variants } from "framer-motion";
 
-import BenefitBullet from "./BenefitBullet";
+import ServicioBullet from "./ServicioBullet";
 import SectionTitle from "../SectionTitle";
 import { IBenefit } from "@/types";
 
@@ -25,10 +25,10 @@ export const childVariants = {
   onscreen: {
     opacity: 1, x: 0,
     transition: { type: "spring", bounce: 0.2, duration: 1 }
-  },
+  }
 };
 
-const BenefitSection: React.FC<Props> = ({ benefit, imageAtRight }: Props) => {
+const ServicioSection: React.FC<Props> = ({ benefit, imageAtRight }: Props) => {
   const { title, description, imageSrc, bullets } = benefit;
 
   return (
@@ -40,6 +40,7 @@ const BenefitSection: React.FC<Props> = ({ benefit, imageAtRight }: Props) => {
         whileInView="onscreen"
         viewport={{ once: true }}
       >
+        {/* Texto */}
         <div
           className={clsx(
             "flex flex-wrap items-center w-full max-w-lg",
@@ -49,19 +50,19 @@ const BenefitSection: React.FC<Props> = ({ benefit, imageAtRight }: Props) => {
           <div className="w-full text-center lg:text-left">
             <motion.div className="flex flex-col w-full" variants={childVariants}>
               <SectionTitle>
-                <h3 className="lg:max-w-2xl text-[#234c4b] font-extrabold text-2xl md:text-3xl">
+                <h3 className="lg:max-w-2xl !text-[#234c4b] font-extrabold">
                   {title}
                 </h3>
               </SectionTitle>
 
-              <p className="mt-1.5 mx-auto lg:ml-0 leading-relaxed text-foreground/80">
+              <p className="mt-1.5 mx-auto lg:ml-0 leading-normal text-foreground/85">
                 {description}
               </p>
             </motion.div>
 
             <div className="mx-auto lg:ml-0 w-full">
               {bullets.map((item, index) => (
-                <BenefitBullet
+                <ServicioBullet
                   key={index}
                   title={item.title}
                   icon={item.icon}
@@ -72,29 +73,21 @@ const BenefitSection: React.FC<Props> = ({ benefit, imageAtRight }: Props) => {
           </div>
         </div>
 
+        {/* Imagen / placeholder */}
         <div className={clsx("mt-5 lg:mt-0", { "lg:order-2": imageAtRight })}>
-          <div className={clsx("w-full max-w-xl flex", { "justify-start": imageAtRight, "justify-end": !imageAtRight })}>
-            {/* Si hay imageSrc, mostramos la imagen; si no, placeholder 16:9 */}
+          <div className={clsx("w-fit flex", { "justify-start": imageAtRight, "justify-end": !imageAtRight })}>
             {imageSrc ? (
               <Image
                 src={imageSrc}
                 alt={title}
-                width={960}
-                height={540}
+                width={384}
+                height={216}
                 quality={90}
-                sizes="(max-width: 1024px) 90vw, 560px"
-                unoptimized
-                className="w-full aspect-[16/9] object-cover rounded-2xl border border-[#234c4b]/15 bg-white/60 shadow-sm"
+                className="lg:ml-0 rounded-2xl border border-[#234c4b]/15 bg-white shadow"
               />
             ) : (
-              <div className="w-full max-w-xl">
-                <div
-                  role="img"
-                  aria-label={`Espacio de imagen para ${title}`}
-                  className="aspect-[16/9] rounded-2xl border-2 border-dashed border-gray-300 bg-white/60 flex items-center justify-center text-gray-500"
-                >
-                  Imagen pendiente (16:9)
-                </div>
+              <div className="w-[384px] h-[216px] rounded-2xl border-2 border-dashed border-gray-300 bg-white/60 flex items-center justify-center text-gray-500">
+                Imagen del servicio
               </div>
             )}
           </div>
@@ -104,4 +97,4 @@ const BenefitSection: React.FC<Props> = ({ benefit, imageAtRight }: Props) => {
   );
 };
 
-export default BenefitSection;
+export default ServicioSection;

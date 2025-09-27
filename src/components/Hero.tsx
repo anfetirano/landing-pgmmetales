@@ -1,5 +1,4 @@
 import React from "react";
-import Link from "next/link";
 
 import { heroDetails, type HeroDetails } from "@/data/hero";
 import { footerDetails } from "@/data/footer";
@@ -7,7 +6,6 @@ import { footerDetails } from "@/data/footer";
 const Hero: React.FC = () => {
   const details: HeroDetails = heroDetails;
 
-  const showStoreButtons = details.showStoreButtons ?? false;
   const showCenterImage = details.showCenterImage ?? true;
 
   // WhatsApp desde el teléfono del footer
@@ -44,19 +42,17 @@ const Hero: React.FC = () => {
         </p>
 
         {/* CTA a WhatsApp */}
-        {!showStoreButtons && (
-          <div className="mt-8 md:mt-10 w-fit mx-auto">
-            <Link
-              href={waHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Cotizar en línea por WhatsApp"
-              className="inline-flex items-center justify-center bg-[#234c4b] hover:bg-[#1e3f3e] text-white px-8 md:px-10 py-3 md:py-4 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#234c4b]"
-            >
-              {details.ctaText ?? "Cotizar en línea"}
-            </Link>
-          </div>
-        )}
+        <div className="mt-8 md:mt-10 w-fit mx-auto">
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Cotizar en línea por WhatsApp"
+            className="inline-flex items-center justify-center bg-[#234c4b] hover:bg-[#1e3f3e] text-white px-8 md:px-10 py-3 md:py-4 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#234c4b]"
+          >
+            {details.ctaText ?? "Cotizar en línea"}
+          </a>
+        </div>
 
         {/* Placeholder en lugar de la imagen */}
         {showCenterImage && (

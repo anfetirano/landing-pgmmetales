@@ -1,6 +1,6 @@
 import React from "react";
 import { FiMessageSquare, FiTruck, FiCreditCard, FiFileText } from "react-icons/fi";
-import type { ProcessStep } from "@/data/pricing";
+import type { ProcessStep } from "@/data/proceso";
 
 const ICONS: Record<ProcessStep["icon"], React.ComponentType<{ className?: string }>> = {
   quote: FiMessageSquare,
@@ -14,12 +14,18 @@ interface Props {
   index: number;
 }
 
-const PricingColumn: React.FC<Props> = ({ step, index }) => {
+const PasoCard: React.FC<Props> = ({ step, index }) => {
   const Icon = ICONS[step.icon];
   const num = String(index + 1).padStart(2, "0");
 
   return (
-    <div className="relative mx-auto w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 lg:max-w-full">
+    <div
+      className="
+        relative mx-auto w-full max-w-sm lg:max-w-full
+        rounded-2xl border border-[#234c4b]/15 bg-white/90 backdrop-blur-sm
+        p-6 shadow-sm hover:shadow-md transition-shadow
+      "
+    >
       {/* punto conector (desktop) */}
       <div className="pointer-events-none absolute left-1/2 top-0 hidden -translate-x-1/2 -translate-y-1/2 lg:block">
         <span className="block h-3 w-3 rounded-full border border-[#234c4b]/30 bg-white shadow" />
@@ -37,10 +43,14 @@ const PricingColumn: React.FC<Props> = ({ step, index }) => {
       </div>
 
       {/* contenido */}
-      <h3 className="mt-4 text-xl font-semibold text-foreground">{step.name}</h3>
-      <p className="mt-2 leading-relaxed text-foreground/80">{step.description}</p>
+      <h3 className="mt-4 text-lg md:text-xl font-semibold text-[#234c4b]">
+        {step.name}
+      </h3>
+      <p className="mt-2 leading-relaxed text-foreground/80">
+        {step.description}
+      </p>
     </div>
   );
 };
 
-export default PricingColumn;
+export default PasoCard;

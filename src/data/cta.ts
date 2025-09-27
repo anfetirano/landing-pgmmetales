@@ -1,6 +1,7 @@
 export const ctaDetails = {
-    heading: 'Join Over 1 Million Users To Transform Your Finances',
-    subheading: 'Your journey to financial freedom starts here. Download Finwise today and take the first step towards a brighter financial future!',
-    appStoreUrl: '#',
-    googlePlayUrl: '#'
-}
+  heading: '¿Listo para cotizar al instante?',
+  subheading:
+    'Adjunta una foto del catalizador y déjanos tu nombre y WhatsApp. Te contactaremos con una cotización basada en Pt, Pd y Rh.',
+};
+
+export default ctaDetails;

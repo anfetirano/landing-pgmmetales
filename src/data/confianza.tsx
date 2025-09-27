@@ -1,22 +1,33 @@
-import { BsBarChartFill, BsFillStarFill } from "react-icons/bs";
-import { PiGlobeFill } from "react-icons/pi";
+import { BsAwardFill, BsLightningChargeFill } from "react-icons/bs";
+import { PiFlaskBold } from "react-icons/pi";
 
 import { IStats } from "@/types";
 
+/**
+ * Mensajes enfocados en confianza:
+ * - Experiencia comprobada
+ * - Valoración precisa (XRF)
+ * - Pago inmediato
+ */
 export const stats: IStats[] = [
-    {
-        title: "20M+",
-        icon: <BsBarChartFill size={34} className="text-blue-500" />,
-        description: "Transactions processed securely every day, providing real-time insights."
-    },
-    {
-        title: "5.0",
-        icon: <BsFillStarFill size={34} className="text-yellow-500" />,
-        description: "Star rating, consistently maintained across app stores."
-    },
-    {
-        title: "200+ ",
-        icon: <PiGlobeFill size={34} className="text-green-600" />,
-        description: "Financial Institutions, seamlessly integrated, so you can manage all accounts."
-    }
+  {
+    title: "10+ años de experiencia",
+    icon: <BsAwardFill size={20} />,
+    description:
+      "Trayectoria en la compra y valorización de catalizadores en LATAM. Procesos claros y soporte permanente.",
+  },
+  {
+    title: "Análisis XRF preciso",
+    icon: <PiFlaskBold size={22} />,
+    description:
+      "Tecnología de fluorescencia de rayos X para estimar contenidos de Pt, Pd y Rh con rapidez y confiabilidad.",
+  },
+  {
+    title: "Pago inmediato",
+    icon: <BsLightningChargeFill size={20} />,
+    description:
+      "Transferimos al recibir y validar el material. Acuerdos con refinería para ofrecer mejores condiciones.",
+  },
 ];
+
+export default stats;
