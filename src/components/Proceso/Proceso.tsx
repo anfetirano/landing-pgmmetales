@@ -1,7 +1,7 @@
-import PricingColumn from "./PricingColumn";
-import { steps } from "@/data/pricing";
+import PasoCard from "./PasoCard";
+import { steps, type ProcessStep } from "@/data/proceso";
 
-const Pricing: React.FC = () => {
+const Proceso: React.FC = () => {
   return (
     <section id="proceso" className="relative">
       {/* línea conectora (solo desktop) */}
@@ -10,12 +10,12 @@ const Pricing: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-        {steps.map((step, index) => (
-          <PricingColumn key={step.name} step={step} index={index} />
+        {steps.map((step: ProcessStep, index: number) => (
+          <PasoCard key={step.name} step={step} index={index} />
         ))}
       </div>
     </section>
   );
 };
 
-export default Pricing;
+export default Proceso;
