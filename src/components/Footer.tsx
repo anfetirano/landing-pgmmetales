@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import React from "react";
 import { footerDetails, type FooterDetails } from "@/data/footer";
 
@@ -30,14 +31,21 @@ const Footer: React.FC = () => {
           <div className="mx-auto max-w-7xl px-5 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Col 1: Marca */}
             <div>
-              <img
+              {/* Móvil */}
+              <Image
                 src="/images/Logos/pmg-logo-wordmark-movil.svg"
                 alt="PMG Metales"
+                width={160}
+                height={28}
+                priority
                 className="h-7 w-auto md:hidden"
               />
-              <img
+              {/* Desktop */}
+              <Image
                 src="/images/Logos/pmg-logo-wordmark-desktop.svg"
                 alt="PMG Metales"
+                width={200}
+                height={32}
                 className="hidden md:block h-8 w-auto"
               />
               <p className="mt-4 text-sm text-gray-700">{details.subheading}</p>

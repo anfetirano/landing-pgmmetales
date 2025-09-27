@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import React, { useState } from 'react';
-import { Transition } from '@headlessui/react';
-import { HiOutlineXMark, HiBars3 } from 'react-icons/hi2';
+import Link from "next/link";
+import Image from "next/image";
+import React, { useState } from "react";
+import { Transition } from "@headlessui/react";
+import { HiOutlineXMark, HiBars3 } from "react-icons/hi2";
 
-import Container from './Container';
-import { siteDetails } from '@/data/siteDetails';
-import { menuItems as rawMenuItems } from '@/data/menuItems';
+import Container from "./Container";
+import { siteDetails } from "@/data/siteDetails";
+import { menuItems as rawMenuItems } from "@/data/menuItems";
 
 type RawMenuItem = { text?: string; label?: string; href?: string; url?: string };
 type MenuItem = { text: string; href: string };
@@ -20,8 +21,8 @@ const Header: React.FC = () => {
   const menuItems: MenuItem[] = Array.isArray(rawMenuItems)
     ? (rawMenuItems as RawMenuItem[])
         .map((i) => ({
-          text: i?.text ?? i?.label ?? '',
-          href: i?.href ?? i?.url ?? '#',
+          text: i?.text ?? i?.label ?? "",
+          href: i?.href ?? i?.url ?? "#",
         }))
         .filter((i) => i.text && i.href)
     : [];
@@ -30,19 +31,24 @@ const Header: React.FC = () => {
     <header className="bg-transparent fixed top-0 left-0 right-0 md:absolute z-50 mx-auto w-full">
       <Container className="!px-0">
         <nav className="shadow-md md:shadow-none bg-white md:bg-transparent mx-auto flex justify-between items-center py-2 px-5 md:py-10">
-          {/* Logo PMG: wordmark móvil 28px, desktop 40px */}
+          {/* Logo PMG */}
           <Link href="/" className="flex items-center gap-2" aria-label="Ir al inicio">
             {/* Móvil */}
-            <img
+            <Image
               src="/images/Logos/pmg-logo-wordmark-movil.svg"
               alt="PMG Metales"
-              className="block md:hidden h-7 w-auto" /* 28px */
+              width={160}
+              height={28}
+              priority
+              className="block md:hidden h-7 w-auto"
             />
             {/* Desktop */}
-            <img
+            <Image
               src="/images/Logos/pmg-logo-wordmark-desktop.svg"
               alt="PMG Metales"
-              className="hidden md:block h-10 w-auto" /* 40px */
+              width={200}
+              height={40}
+              className="hidden md:block h-10 w-auto"
             />
             <span className="sr-only">{siteDetails.siteName}</span>
           </Link>
