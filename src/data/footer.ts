@@ -10,10 +10,10 @@ export interface FooterDetails {
 export const footerDetails: FooterDetails = {
   subheading: "PMG Metales — Tu socio en soluciones metálicas.",
   quickLinks: [
-    { text: "Servicios",    url: "#features"    },
+    { text: "Servicios",    url: "#servicios"   },
     { text: "Proceso",      url: "#proceso"     },
     { text: "Testimonios",  url: "#testimonios" },
-    { text: "Contacto",     url: "#contacto"    },
+    { text: "Contacto",     url: "#cta"         },
   ],
   email: "info@pmgmetales.com",
   telephone: "+57 323 710 7051",

@@ -15,6 +15,12 @@ const QuoteModal: React.FC<Props> = ({ open, onClose }) => {
     setPreview(f ? URL.createObjectURL(f) : null);
   };
 
+  React.useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) {
@@ -72,7 +78,7 @@ const QuoteModal: React.FC<Props> = ({ open, onClose }) => {
                       </label>
                       <input
                         type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required
-                        pattern="^\+?\d{8,15}$" title="Ingresa un número válido (8 a 15 dígitos, opcional +)"
+                        pattern="^\+?[\d\s-]{8,15}$" title="Ingresa un número válido (8 a 15 dígitos, permite espacios o guiones)"
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-[#234c4b]"
                         placeholder="+57 3001234567"
                       />

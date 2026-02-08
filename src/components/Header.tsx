@@ -67,7 +67,7 @@ const Header: React.FC = () => {
             ))}
             <li>
               <Link
-                href="#"
+                href="#cta"
                 role="button"
                 aria-label="Ingresar"
                 className="text-white bg-[#234c4b] hover:bg-[#1e3f3e] px-8 py-3 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#234c4b]"
@@ -122,7 +122,7 @@ const Header: React.FC = () => {
             ))}
             <li>
               <Link
-                href="#"
+                href="#cta"
                 role="button"
                 aria-label="Ingresar"
                 className="text-white bg-[#234c4b] hover:bg-[#1e3f3e] px-5 py-2 rounded-full block w-fit transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#234c4b]"

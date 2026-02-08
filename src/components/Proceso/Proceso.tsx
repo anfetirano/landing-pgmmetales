@@ -3,7 +3,7 @@ import { steps, type ProcessStep } from "@/data/proceso";
 
 const Proceso: React.FC = () => {
   return (
-    <section id="proceso" className="relative">
+    <section className="relative">
       {/* línea conectora (solo desktop) */}
       <div className="pointer-events-none absolute inset-x-0 top-1/2 hidden -translate-y-1/2 lg:block">
         <div className="mx-auto h-px w-full max-w-6xl bg-[#234c4b]/10" />

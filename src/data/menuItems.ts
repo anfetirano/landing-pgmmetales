@@ -1,8 +1,8 @@
 export const menuItems = [
-  { label: "Servicios",   href: "#features"     }, // antes #servicios
-  { label: "Proceso",     href: "#proceso"      }, // nuevo: reemplaza "Proyectos"
-  { label: "Testimonios", href: "#testimonios"  }, // nuevo
-  { label: "Contacto",    href: "#contacto"     },
+  { label: "Servicios",   href: "#servicios"    },
+  { label: "Proceso",     href: "#proceso"      },
+  { label: "Testimonios", href: "#testimonios"  },
+  { label: "Contacto",    href: "#cta"          },
 ];
 
 export default menuItems;

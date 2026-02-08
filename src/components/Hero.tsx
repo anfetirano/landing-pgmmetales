@@ -10,9 +10,10 @@ const Hero: React.FC = () => {
 
   // WhatsApp desde el teléfono del footer
   const tel = (footerDetails.telephone ?? "").replace(/\D/g, "");
-  const waHref =
-    `https://wa.me/${tel}?text=` +
-    encodeURIComponent("Hola, quiero cotizar mi catalizador. (Pt, Pd, Rh)");
+  const waHref = tel
+    ? `https://wa.me/${tel}?text=` +
+      encodeURIComponent("Hola, quiero cotizar mi catalizador. (Pt, Pd, Rh)")
+    : (footerDetails.email ? `mailto:${footerDetails.email}` : "#");
 
   return (
     <section
@@ -45,9 +46,9 @@ const Hero: React.FC = () => {
         <div className="mt-8 md:mt-10 w-fit mx-auto">
           <a
             href={waHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Cotizar en línea por WhatsApp"
+            target={tel ? "_blank" : undefined}
+            rel={tel ? "noopener noreferrer" : undefined}
+            aria-label={tel ? "Cotizar en línea por WhatsApp" : "Solicitar cotización"}
             className="inline-flex items-center justify-center bg-[#234c4b] hover:bg-[#1e3f3e] text-white px-8 md:px-10 py-3 md:py-4 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#234c4b]"
           >
             {details.ctaText ?? "Cotizar en línea"}
