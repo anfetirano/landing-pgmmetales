@@ -18,13 +18,19 @@ export default function ComprasPage() {
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const activeLot = useQuery(api.lots.getActiveLot);
 
+  const clients =
+    useQuery(api.clients.listByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
+
   const createClient = useMutation(api.clients.createClient);
   const createPurchase = useMutation(api.purchases.createPurchase);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
   const [type, setType] = useState<"pieza" | "suelto">("pieza");
-  const [cliente, setCliente] = useState("");
+  const [taller, setTaller] = useState("");
+  const [contactName, setContactName] = useState("");
   const [cedula, setCedula] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [gramos, setGramos] = useState("");
@@ -56,7 +62,7 @@ export default function ComprasPage() {
       alert("No hay lote activo. Pídele al admin abrir un lote.");
       return;
     }
-    if (!cliente || !marca || !valorPagado || !comision) {
+    if (!taller || !marca || !valorPagado || !comision) {
       alert("Completa los campos obligatorios.");
       return;
     }
@@ -68,7 +74,8 @@ export default function ComprasPage() {
     setLoading(true);
     try {
       const clientId = await createClient({
-        name: cliente,
+        name: taller,
+        contactName: contactName || undefined,
         cedula: cedula || undefined,
         buyerId: dbUser._id,
       });
@@ -101,8 +108,10 @@ export default function ComprasPage() {
       });
 
       // reset
-      setCliente("");
+      setTaller("");
+      setContactName("");
       setCedula("");
+      setSelectedClientId("");
       setMarca("");
       setModelo("");
       setGramos("");
@@ -176,9 +185,42 @@ export default function ComprasPage() {
               </Select>
             </div>
 
+            {/* Selector de clientes guardados (autocompleta) */}
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Cliente</label>
-              <Input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nombre del taller" />
+              <label className="text-sm font-medium">Seleccionar cliente</label>
+              <Select
+                value={selectedClientId}
+                onValueChange={(id) => {
+                  setSelectedClientId(id);
+                  const c = clients.find((x) => x._id === id);
+                  if (c) {
+                    setTaller(c.name ?? "");
+                    setContactName(c.contactName ?? "");
+                    setCedula(c.cedula ?? "");
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name}{c.contactName ? ` — ${c.contactName}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Taller / Cliente</label>
+              <Input value={taller} onChange={(e) => setTaller(e.target.value)} placeholder="Nombre del taller" />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Nombre de contacto (opcional)</label>
+              <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Ej: Juan Pérez" />
             </div>
 
             <div className="grid gap-2">

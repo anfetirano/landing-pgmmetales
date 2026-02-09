@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ReactNode, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut, User, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -105,6 +105,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 flex flex-col">
+                <SheetTitle className="sr-only">Menú</SheetTitle>
                 <div className="mb-6">
                   <h2 className="text-lg font-bold text-[#234c4b]">PMG Metales</h2>
                   <p className="text-xs text-muted-foreground">Dashboard comprador</p>
