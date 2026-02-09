@@ -33,20 +33,11 @@ const Logos: React.FC = () => {
 
       {/* Carrusel (una sola fila) */}
       <div className="mt-5 relative w-full overflow-hidden">
-        <div
-          className="
-            marquee flex items-center gap-8 sm:gap-12
-          "
-          aria-hidden="true"
-        >
+        <div className="marquee flex items-center gap-8 sm:gap-12" aria-hidden="true">
           {items.map((brand, i) => (
             <div
               key={`${brand}-${i}`}
-              className="
-                flex h-12 md:h-14 w-32 md:w-40 items-center justify-center
-                rounded-xl border border-gray-200 bg-white/70
-                text-gray-500 text-sm md:text-base
-              "
+              className="flex h-12 md:h-14 w-32 md:w-40 items-center justify-center rounded-xl border border-gray-200 bg-white/70 text-gray-500 text-sm md:text-base"
               role="img"
               aria-label={`Logo ${brand}`}
               title={brand}
