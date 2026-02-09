@@ -4,6 +4,7 @@ import { v } from "convex/values";
 export const createClient = mutation({
   args: {
     name: v.string(),
+    contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),

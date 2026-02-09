@@ -12,7 +12,8 @@ export default defineSchema({
   }).index("by_clerkId", ["clerkId"]),
 
   clients: defineTable({
-    name: v.string(),
+    name: v.string(),              // nombre del taller o cliente
+    contactName: v.optional(v.string()), // nombre de contacto
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
@@ -22,7 +23,7 @@ export default defineSchema({
   }).index("by_buyerId", ["buyerId"]),
 
   lots: defineTable({
-    number: v.number(), // 13, 14, 15, etc.
+    number: v.number(),
     status: v.union(v.literal("open"), v.literal("closed")),
     openedAt: v.number(),
     closedAt: v.optional(v.number()),
@@ -41,9 +42,9 @@ export default defineSchema({
     model: v.optional(v.string()),
     grams: v.optional(v.number()),
 
-    pricePaid: v.number(),     // valor pagado al cliente
-    commission: v.number(),    // comisión del comprador
-    total: v.number(),         // pricePaid + commission
+    pricePaid: v.number(),
+    commission: v.number(),
+    total: v.number(),
 
     notes: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
@@ -57,7 +58,7 @@ export default defineSchema({
   dayClosings: defineTable({
     buyerId: v.id("users"),
     lotId: v.id("lots"),
-    date: v.string(), // "YYYY-MM-DD"
+    date: v.string(),
 
     purchaseIds: v.array(v.id("purchases")),
     totalPaid: v.number(),
