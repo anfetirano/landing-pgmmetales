@@ -35,7 +35,7 @@ export const listByBuyerAndDate = query({
     dateTo: v.number(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const items = await ctx.db
       .query("purchases")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .filter((q) =>
@@ -45,5 +45,14 @@ export const listByBuyerAndDate = query({
         )
       )
       .collect();
+
+    const withUrls = await Promise.all(
+      items.map(async (p) => {
+        const photoUrl = p.photoId ? await ctx.storage.getUrl(p.photoId) : null;
+        return { ...p, photoUrl };
+      })
+    );
+
+    return withUrls;
   },
 });
