@@ -12,8 +12,8 @@ export default defineSchema({
   }).index("by_clerkId", ["clerkId"]),
 
   clients: defineTable({
-    name: v.string(),              // nombre del taller o cliente
-    contactName: v.optional(v.string()), // nombre de contacto
+    name: v.string(),
+    contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
@@ -71,4 +71,15 @@ export default defineSchema({
     notes: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_buyerId", ["buyerId"]),
+
+  cashMovements: defineTable({
+    buyerId: v.id("users"),
+    amount: v.number(), // + entrega, - ajuste
+    type: v.union(v.literal("fund"), v.literal("adjustment")),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    createdBy: v.id("users"), // admin
+  })
+    .index("by_buyerId", ["buyerId"])
+    .index("by_createdAt", ["createdAt"]),
 });

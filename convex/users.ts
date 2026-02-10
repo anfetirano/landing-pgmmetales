@@ -45,3 +45,12 @@ export const getByClerkId = query({
       .unique();
   },
 });
+
+// NUEVO: listar compradores
+export const listBuyers = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    return users.filter((u) => u.role === "buyer");
+  },
+});

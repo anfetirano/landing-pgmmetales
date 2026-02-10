@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
+import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
+
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut, User, Settings } from "lucide-react";
@@ -14,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const SidebarLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
+const BuyerLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
   <nav className="flex flex-col gap-2 text-sm">
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard" onClick={onNavigate}>
       Dashboard
@@ -27,6 +31,17 @@ const SidebarLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     </Link>
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/cierre" onClick={onNavigate}>
       Cierre del día
+    </Link>
+  </nav>
+);
+
+const AdminLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
+  <nav className="flex flex-col gap-2 text-sm">
+    <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin" onClick={onNavigate}>
+      Administrador
+    </Link>
+    <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/metals" onClick={onNavigate}>
+      Precios metales
     </Link>
   </nav>
 );
@@ -81,6 +96,22 @@ const SidebarUser = () => {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const { user } = useUser();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const role = dbUser?.role;
+
+  useEffect(() => {
+    if (role === "admin" && pathname === "/dashboard") {
+      router.replace("/dashboard/admin");
+    }
+  }, [role, pathname, router]);
+
+  const isAdmin = role === "admin";
+
+  const title = useMemo(() => (isAdmin ? "Dashboard administrador" : "Dashboard comprador"), [isAdmin]);
 
   return (
     <div className="min-h-screen bg-[#f7f8fb]">
@@ -89,9 +120,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <aside className="hidden md:flex w-64 min-h-screen flex-col border-r bg-white px-4 py-6">
           <div className="mb-6">
             <h2 className="text-lg font-bold text-[#234c4b]">PMG Metales</h2>
-            <p className="text-xs text-muted-foreground">Dashboard comprador</p>
+            <p className="text-xs text-muted-foreground">{title}</p>
           </div>
-          <SidebarLinks />
+          {isAdmin ? <AdminLinks /> : <BuyerLinks />}
           <SidebarUser />
         </aside>
 
@@ -108,9 +139,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <SheetTitle className="sr-only">Menú</SheetTitle>
                 <div className="mb-6">
                   <h2 className="text-lg font-bold text-[#234c4b]">PMG Metales</h2>
-                  <p className="text-xs text-muted-foreground">Dashboard comprador</p>
+                  <p className="text-xs text-muted-foreground">{title}</p>
                 </div>
-                <SidebarLinks onNavigate={() => setOpen(false)} />
+                {isAdmin ? (
+                  <AdminLinks onNavigate={() => setOpen(false)} />
+                ) : (
+                  <BuyerLinks onNavigate={() => setOpen(false)} />
+                )}
                 <div className="mt-auto pt-6">
                   <SidebarUser />
                 </div>

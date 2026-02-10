@@ -56,3 +56,30 @@ export const listByBuyerAndDate = query({
     return withUrls;
   },
 });
+
+// NUEVO: últimas compras por comprador
+export const listLatestByBuyer = query({
+  args: {
+    buyerId: v.id("users"),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const items = await ctx.db
+      .query("purchases")
+      .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
+      .collect();
+
+    const sorted = items
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      .slice(0, args.limit);
+
+    const withUrls = await Promise.all(
+      sorted.map(async (p) => {
+        const photoUrl = p.photoId ? await ctx.storage.getUrl(p.photoId) : null;
+        return { ...p, photoUrl };
+      })
+    );
+
+    return withUrls;
+  },
+});
