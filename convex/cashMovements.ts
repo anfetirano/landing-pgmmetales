@@ -17,6 +17,32 @@ export const addMovement = mutation({
   },
 });
 
+export const deleteMovement = mutation({
+  args: {
+    movementId: v.id("cashMovements"),
+    buyerId: v.id("users"),
+    adminId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Solo el administrador puede eliminar movimientos.");
+    }
+
+    const movement = await ctx.db.get(args.movementId);
+    if (!movement) {
+      throw new Error("Movimiento no encontrado.");
+    }
+
+    if (movement.buyerId !== args.buyerId) {
+      throw new Error("El movimiento no pertenece al comprador seleccionado.");
+    }
+
+    await ctx.db.delete(args.movementId);
+    return { ok: true };
+  },
+});
+
 export const listByBuyer = query({
   args: { buyerId: v.id("users") },
   handler: async (ctx, args) => {

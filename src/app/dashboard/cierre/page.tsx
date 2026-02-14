@@ -4,33 +4,23 @@ import { useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Id } from "@convex/_generated/dataModel";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function CierrePage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
 
-  const { startOfDay, endOfDay } = useMemo(() => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    return { startOfDay: start.getTime(), endOfDay: end.getTime() };
-  }, []);
-
   const purchases =
-    useQuery(
-      api.purchases.listByBuyerAndDate,
-      dbUser?._id
-        ? { buyerId: dbUser._id, dateFrom: startOfDay, dateTo: endOfDay }
-        : "skip"
-    ) ?? [];
+    useQuery(api.purchases.listOpenByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
 
   const createClosing = useMutation(api.closings.createClosing);
+  const deleteOpenPurchase = useMutation(api.purchases.deleteOpenPurchase);
   const activeLot = useQuery(api.lots.getActiveLot);
 
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     const totalPaid = purchases.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
@@ -43,6 +33,27 @@ export default function CierrePage() {
     return { totalPaid, totalCommission, totalAmount, totalGrams, piezas, suelto };
   }, [purchases]);
 
+  const handleDeletePurchase = async (purchaseId: Id<"purchases">) => {
+    if (!dbUser) return alert("Usuario no registrado en el sistema.");
+
+    const ok = confirm("¿Eliminar esta compra? Esta acción no se puede deshacer.");
+    if (!ok) return;
+
+    setDeletingId(purchaseId);
+    try {
+      await deleteOpenPurchase({
+        purchaseId,
+        buyerId: dbUser._id,
+      });
+      alert("Compra eliminada.");
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo eliminar la compra.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleCloseDay = async () => {
     if (!dbUser) {
       alert("Usuario no registrado en el sistema.");
@@ -53,7 +64,7 @@ export default function CierrePage() {
       return;
     }
     if (purchases.length === 0) {
-      alert("No hay compras para cerrar hoy.");
+      alert("No hay compras pendientes para cerrar.");
       return;
     }
 
@@ -81,7 +92,7 @@ export default function CierrePage() {
     <div className="max-w-5xl">
       <h1 className="text-2xl font-bold text-[#234c4b]">Cierre del día</h1>
       <p className="text-foreground-accent mt-2">
-        Revisa compras en cards y genera tu reporte diario.
+        Revisa compras pendientes y genera el cierre cuando corresponda.
       </p>
 
       <div className="mt-6 grid gap-4">
@@ -96,7 +107,7 @@ export default function CierrePage() {
                 )}
               </div>
 
-              <div className="text-sm text-foreground-accent grid gap-1">
+              <div className="flex-1 text-sm text-foreground-accent grid gap-1">
                 <div className="font-medium text-[#234c4b]">
                   {p.type === "pieza" ? "Pieza completa" : "Material suelto"} — {p.brand}
                 </div>
@@ -106,6 +117,15 @@ export default function CierrePage() {
                 <div>Comisión: ${p.commission.toLocaleString("es-CO")}</div>
                 <div>Total: ${(p.total ?? 0).toLocaleString("es-CO")}</div>
               </div>
+
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => handleDeletePurchase(p._id)}
+                disabled={deletingId === p._id || loading}
+              >
+                {deletingId === p._id ? "Eliminando..." : "Eliminar"}
+              </Button>
             </CardContent>
           </Card>
         ))}
@@ -117,7 +137,7 @@ export default function CierrePage() {
         <div>Total gramos: {totals.totalGrams}</div>
         <div>Total pagado: ${totals.totalPaid.toLocaleString("es-CO")}</div>
         <div>Total comisiones: ${totals.totalCommission.toLocaleString("es-CO")}</div>
-        <div>Total del día: ${totals.totalAmount.toLocaleString("es-CO")}</div>
+        <div>Total pendiente: ${totals.totalAmount.toLocaleString("es-CO")}</div>
       </div>
 
       <Button
@@ -125,7 +145,7 @@ export default function CierrePage() {
         onClick={handleCloseDay}
         disabled={loading}
       >
-        {loading ? "Generando..." : "Cerrar día y generar reporte"}
+        {loading ? "Generando..." : "Cerrar compras pendientes"}
       </Button>
     </div>
   );

@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import type { Id } from "@convex/_generated/dataModel";
+import { Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,10 +32,12 @@ export default function AdminDashboard() {
   const latest = useQuery(api.purchases.listLatestByBuyer, buyerId ? { buyerId, limit: 5 } : "skip") ?? [];
 
   const addMovement = useMutation(api.cashMovements.addMovement);
+  const deleteMovement = useMutation(api.cashMovements.deleteMovement);
 
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deletingMovementId, setDeletingMovementId] = useState<string | null>(null);
 
   const handleFund = async (type: "fund" | "adjustment") => {
     if (!dbUser) return alert("Usuario no registrado.");
@@ -44,11 +47,14 @@ export default function AdminDashboard() {
     const numeric = Number(amount);
     if (Number.isNaN(numeric) || numeric === 0) return alert("Monto inválido.");
 
+    const movementAmount =
+      type === "adjustment" ? -Math.abs(numeric) : Math.abs(numeric);
+
     setLoading(true);
     try {
       await addMovement({
         buyerId,
-        amount: numeric,
+        amount: movementAmount,
         type,
         notes: notes || undefined,
         createdBy: dbUser._id,
@@ -64,6 +70,28 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteMovement = async (movementId: Id<"cashMovements">) => {
+    if (!dbUser) return alert("Usuario no registrado.");
+    if (!buyerId) return alert("Selecciona un comprador.");
+
+    const ok = confirm("¿Eliminar este movimiento de caja? Esta acción no se puede deshacer.");
+    if (!ok) return;
+
+    setDeletingMovementId(movementId);
+    try {
+      await deleteMovement({
+        movementId,
+        buyerId,
+        adminId: dbUser._id,
+      });
+    } catch (e) {
+      console.error(e);
+      alert("Error eliminando movimiento.");
+    } finally {
+      setDeletingMovementId(null);
+    }
+  };
+
   const buyerName = buyers.find((b) => b._id === buyerId)?.name ?? "Comprador";
 
   return (
@@ -74,7 +102,6 @@ export default function AdminDashboard() {
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
-        {/* Sidebar compradores */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle>Compradores</CardTitle>
@@ -97,7 +124,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Panel derecho */}
         <div className="grid gap-6">
           <Card>
             <CardHeader>
@@ -115,8 +141,16 @@ export default function AdminDashboard() {
               <CardTitle>Registrar movimiento</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
-              <Input placeholder="Monto (ej: 2000000 o -500000)" value={amount} onChange={(e) => setAmount(e.target.value)} />
-              <Input placeholder="Notas (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Input
+                placeholder="Monto (ej: 2000000)"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <Input
+                placeholder="Notas (opcional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
               <div className="flex gap-2">
                 <Button
                   className="bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
@@ -144,7 +178,6 @@ export default function AdminDashboard() {
                 <div key={p._id} className="flex items-center gap-3 border-b pb-2 last:border-b-0">
                   <div className="h-10 w-10 overflow-hidden rounded border bg-muted">
                     {p.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={p.photoUrl} alt="Compra" className="h-full w-full object-cover" />
                     ) : null}
                   </div>
@@ -168,13 +201,26 @@ export default function AdminDashboard() {
                 <div className="text-muted-foreground">No hay movimientos.</div>
               )}
               {movements.map((m) => (
-                <div key={m._id} className="flex justify-between border-b pb-2 last:border-b-0">
+                <div key={m._id} className="flex items-center justify-between border-b pb-2 last:border-b-0">
                   <div>
                     <div className="font-medium">{m.type === "fund" ? "Entrega" : "Ajuste"}</div>
                     <div className="text-xs text-muted-foreground">{m.notes ?? ""}</div>
                   </div>
-                  <div className={m.amount >= 0 ? "text-green-700" : "text-red-600"}>
-                    {formatCop(m.amount)}
+
+                  <div className="flex items-center gap-2">
+                    <div className={m.amount >= 0 ? "text-green-700" : "text-red-600"}>
+                      {formatCop(m.amount)}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteMovement(m._id)}
+                      disabled={deletingMovementId === m._id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

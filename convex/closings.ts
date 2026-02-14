@@ -13,11 +13,26 @@ export const createClosing = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("dayClosings", {
+    const closingId = await ctx.db.insert("dayClosings", {
       ...args,
       status: "pending",
       createdAt: Date.now(),
     });
+
+    for (const purchaseId of args.purchaseIds) {
+      const purchase = await ctx.db.get(purchaseId);
+      if (!purchase) continue;
+      if (purchase.buyerId !== args.buyerId) continue;
+      if (purchase.status === "closed") continue;
+
+      await ctx.db.patch(purchaseId, {
+        status: "closed",
+        closingId,
+        closedAt: Date.now(),
+      });
+    }
+
+    return closingId;
   },
 });
 

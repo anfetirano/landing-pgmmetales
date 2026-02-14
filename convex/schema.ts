@@ -48,6 +48,9 @@ export default defineSchema({
 
     notes: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
+    status: v.optional(v.union(v.literal("open"), v.literal("closed"))),
+    closingId: v.optional(v.id("dayClosings")),
+    closedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_buyerId", ["buyerId"])

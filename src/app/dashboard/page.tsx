@@ -16,20 +16,10 @@ export default function DashboardHome() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
 
-  const { startOfDay, endOfDay } = useMemo(() => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    return { startOfDay: start.getTime(), endOfDay: end.getTime() };
-  }, []);
-
   const purchases =
     useQuery(
-      api.purchases.listByBuyerAndDate,
-      dbUser?._id
-        ? { buyerId: dbUser._id, dateFrom: startOfDay, dateTo: endOfDay }
-        : "skip"
+      api.purchases.listOpenByBuyer,
+      dbUser?._id ? { buyerId: dbUser._id } : "skip"
     ) ?? [];
 
   const summary = useMemo(() => {
@@ -52,7 +42,7 @@ export default function DashboardHome() {
     <div className="max-w-5xl">
       <h1 className="text-2xl font-bold text-[#234c4b]">Dashboard</h1>
       <p className="text-foreground-accent mt-2">
-        Resumen del día y últimas compras registradas.
+        Resumen de compras pendientes y últimas compras registradas.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -86,7 +76,7 @@ export default function DashboardHome() {
         <h2 className="text-lg font-semibold text-[#234c4b]">Últimas 5 compras</h2>
         <div className="mt-3 grid gap-4">
           {latest.length === 0 && (
-            <p className="text-sm text-muted-foreground">Todavía no hay compras hoy.</p>
+            <p className="text-sm text-muted-foreground">Todavía no hay compras pendientes.</p>
           )}
           {latest.map((p) => (
             <Card key={p._id}>
