@@ -96,6 +96,7 @@ export default defineSchema({
   suppliers: defineTable({
     name: v.string(),
     city: v.optional(v.string()),
+    identification: v.optional(v.string()),
     contactName: v.optional(v.string()),
     phone: v.optional(v.string()),
     notes: v.optional(v.string()),

@@ -33,24 +33,23 @@ export default function ProveedoresPage() {
     api.supplierMovements.getBalanceBySupplier,
     supplierId ? { supplierId } : "skip"
   );
-  const movements = useQuery(
-    api.supplierMovements.listBySupplier,
-    supplierId ? { supplierId } : "skip"
-  ) ?? [];
-  const purchases = useQuery(
-    api.supplierPurchases.listBySupplier,
-    supplierId ? { supplierId } : "skip"
-  ) ?? [];
+  const movements =
+    useQuery(api.supplierMovements.listBySupplier, supplierId ? { supplierId } : "skip") ?? [];
+  const purchases =
+    useQuery(api.supplierPurchases.listBySupplier, supplierId ? { supplierId } : "skip") ?? [];
 
   const createSupplier = useMutation(api.suppliers.createSupplier);
   const addMovement = useMutation(api.supplierMovements.addMovement);
   const openBase = useMutation(api.supplierMovements.openBase);
+  const deleteMovement = useMutation(api.supplierMovements.deleteMovement);
+
   const createPurchase = useMutation(api.supplierPurchases.createPurchase);
   const deletePurchase = useMutation(api.supplierPurchases.deletePurchase);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
-  const [newSupplierName, setNewSupplierName] = useState("Javier Martinez");
-  const [newSupplierCity, setNewSupplierCity] = useState("Barranquilla");
+  const [newSupplierName, setNewSupplierName] = useState("");
+  const [newSupplierCity, setNewSupplierCity] = useState("");
+  const [newSupplierIdentification, setNewSupplierIdentification] = useState("");
   const [newSupplierContact, setNewSupplierContact] = useState("");
   const [newSupplierPhone, setNewSupplierPhone] = useState("");
 
@@ -58,6 +57,7 @@ export default function ProveedoresPage() {
   const [movementNotes, setMovementNotes] = useState("");
   const [loadingMovement, setLoadingMovement] = useState(false);
   const [loadingOpenBase, setLoadingOpenBase] = useState(false);
+  const [deletingMovementId, setDeletingMovementId] = useState<string | null>(null);
 
   const [purchaseType, setPurchaseType] = useState<"pieza" | "suelto">("pieza");
   const [description, setDescription] = useState("");
@@ -86,11 +86,18 @@ export default function ProveedoresPage() {
       const id = await createSupplier({
         name: newSupplierName.trim(),
         city: newSupplierCity.trim() || undefined,
+        identification: newSupplierIdentification.trim() || undefined,
         contactName: newSupplierContact.trim() || undefined,
         phone: newSupplierPhone.trim() || undefined,
         createdBy: dbUser._id,
       });
+
       setSelectedSupplierId(id);
+      setNewSupplierName("");
+      setNewSupplierCity("");
+      setNewSupplierIdentification("");
+      setNewSupplierContact("");
+      setNewSupplierPhone("");
       alert("Proveedor creado.");
     } catch (e) {
       console.error(e);
@@ -155,6 +162,27 @@ export default function ProveedoresPage() {
       alert("Error abriendo base.");
     } finally {
       setLoadingOpenBase(false);
+    }
+  };
+
+  const handleDeleteMovement = async (movementId: Id<"supplierMovements">) => {
+    if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
+
+    const ok = confirm("¿Eliminar este movimiento? Esta acción no se puede deshacer.");
+    if (!ok) return;
+
+    setDeletingMovementId(movementId);
+    try {
+      await deleteMovement({
+        movementId,
+        deletedBy: dbUser._id,
+      });
+      alert("Movimiento eliminado.");
+    } catch (e) {
+      console.error(e);
+      alert("Error eliminando movimiento.");
+    } finally {
+      setDeletingMovementId(null);
     }
   };
 
@@ -301,6 +329,11 @@ export default function ProveedoresPage() {
                 placeholder="Ciudad"
                 value={newSupplierCity}
                 onChange={(e) => setNewSupplierCity(e.target.value)}
+              />
+              <Input
+                placeholder="Identificación (opcional)"
+                value={newSupplierIdentification}
+                onChange={(e) => setNewSupplierIdentification(e.target.value)}
               />
               <Input
                 placeholder="Contacto (opcional)"
@@ -517,8 +550,21 @@ export default function ProveedoresPage() {
                     </div>
                     <div className="text-xs text-muted-foreground">{m.notes ?? ""}</div>
                   </div>
-                  <div className={m.amount >= 0 ? "text-green-700" : "text-red-600"}>
-                    {formatCop(m.amount)}
+
+                  <div className="flex items-center gap-2">
+                    <div className={m.amount >= 0 ? "text-green-700" : "text-red-600"}>
+                      {formatCop(m.amount)}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteMovement(m._id)}
+                      disabled={deletingMovementId === m._id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

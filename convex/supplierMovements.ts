@@ -68,6 +68,27 @@ export const openBase = mutation({
   },
 });
 
+export const deleteMovement = mutation({
+  args: {
+    movementId: v.id("supplierMovements"),
+    deletedBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.deletedBy);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Solo el administrador puede eliminar movimientos.");
+    }
+
+    const movement = await ctx.db.get(args.movementId);
+    if (!movement) {
+      throw new Error("Movimiento no encontrado.");
+    }
+
+    await ctx.db.delete(args.movementId);
+    return { ok: true };
+  },
+});
+
 export const listBySupplier = query({
   args: { supplierId: v.id("suppliers") },
   handler: async (ctx, args) => {
@@ -108,6 +129,27 @@ export const getBalanceBySupplier = query({
       totalSpent,
       balance: totalFunds - totalSpent,
       lastOpeningAt,
+    };
+  },
+});
+
+export const getGlobalFundsStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db.query("supplierMovements").collect();
+
+    const totalPositive = items
+      .filter((m) => (m.amount ?? 0) > 0)
+      .reduce((s, m) => s + (m.amount ?? 0), 0);
+
+    const totalNegative = items
+      .filter((m) => (m.amount ?? 0) < 0)
+      .reduce((s, m) => s + Math.abs(m.amount ?? 0), 0);
+
+    return {
+      totalPositive,
+      totalNegative,
+      net: totalPositive - totalNegative,
     };
   },
 });
