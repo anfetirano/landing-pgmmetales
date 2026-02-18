@@ -8,19 +8,28 @@ import { api } from "@convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formatCop = (value: number) =>
-  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(
-    value
-  );
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
 
 export default function DashboardHome() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
 
+  // Admin: página vacía
+  if (dbUser?.role === "admin") {
+    return <div className="max-w-5xl" />;
+  }
+
   const purchases =
-    useQuery(
-      api.purchases.listOpenByBuyer,
-      dbUser?._id ? { buyerId: dbUser._id } : "skip"
-    ) ?? [];
+    useQuery(api.purchases.listOpenByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
+
+  const balance = useQuery(
+    api.cashMovements.getBalanceByBuyer,
+    dbUser?._id ? { buyerId: dbUser._id } : "skip"
+  );
 
   const summary = useMemo(() => {
     const totalPaid = purchases.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
@@ -42,10 +51,43 @@ export default function DashboardHome() {
     <div className="max-w-5xl">
       <h1 className="text-2xl font-bold text-[#234c4b]">Dashboard</h1>
       <p className="text-foreground-accent mt-2">
-        Resumen de compras pendientes y últimas compras registradas.
+        Resumen de compras pendientes, últimas compras y saldo operativo.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Tarjetas de dinero (base/saldo) */}
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Base asignada</CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {formatCop(balance?.totalFunds ?? 0)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Gastado</CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold">
+            {formatCop(balance?.totalSpent ?? 0)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Saldo disponible</CardTitle>
+          </CardHeader>
+          <CardContent
+            className={`text-2xl font-semibold ${
+              (balance?.balance ?? 0) >= 0 ? "text-green-700" : "text-red-600"
+            }`}
+          >
+            {formatCop(balance?.balance ?? 0)}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tarjetas de resumen de compras */}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Total compras</CardTitle>
@@ -83,7 +125,6 @@ export default function DashboardHome() {
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="h-12 w-12 overflow-hidden rounded-md border bg-muted">
                   {p.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.photoUrl} alt="Compra" className="h-full w-full object-cover" />
                   ) : null}
                 </div>
