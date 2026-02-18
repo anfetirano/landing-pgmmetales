@@ -14,6 +14,9 @@ import type * as closings from "../closings.js";
 import type * as lots from "../lots.js";
 import type * as purchases from "../purchases.js";
 import type * as storage from "../storage.js";
+import type * as supplierMovements from "../supplierMovements.js";
+import type * as supplierPurchases from "../supplierPurchases.js";
+import type * as suppliers from "../suppliers.js";
 import type * as users from "../users.js";
 
 import type {
@@ -29,6 +32,9 @@ declare const fullApi: ApiFromModules<{
   lots: typeof lots;
   purchases: typeof purchases;
   storage: typeof storage;
+  supplierMovements: typeof supplierMovements;
+  supplierPurchases: typeof supplierPurchases;
+  suppliers: typeof suppliers;
   users: typeof users;
 }>;
 
