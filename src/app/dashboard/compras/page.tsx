@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -42,9 +42,15 @@ export default function ComprasPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+
   const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setPhotoFile(file);
+    setShowPhotoOptions(false);
+
     if (!file) {
       setPhotoPreview(null);
       return;
@@ -120,6 +126,7 @@ export default function ComprasPage() {
       setNotas("");
       setPhotoPreview(null);
       setPhotoFile(null);
+      setShowPhotoOptions(false);
 
       alert("Compra guardada.");
     } catch (e) {
@@ -140,16 +147,28 @@ export default function ComprasPage() {
       <div className="mt-8 grid gap-6">
         {/* Foto */}
         <div className="flex justify-center">
-          <label className="block">
-            <span className="sr-only">Agregar foto</span>
+          <div className="w-fit">
             <input
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="environment"
               className="hidden"
               onChange={onPhotoChange}
             />
-            <div className="h-42 w-42 rounded-xl border border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-500 overflow-hidden">
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPhotoChange}
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPhotoOptions((v) => !v)}
+              className="h-42 w-42 rounded-xl border border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-500 overflow-hidden bg-white"
+            >
               {photoPreview ? (
                 <img
                   src={photoPreview}
@@ -162,8 +181,29 @@ export default function ComprasPage() {
                   <span className="text-xs">Toca para foto</span>
                 </>
               )}
-            </div>
-          </label>
+            </button>
+
+            {showPhotoOptions && (
+              <div className="mt-2 grid justify-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-40"
+                  onClick={() => cameraInputRef.current?.click()}
+                >
+                  Tomar foto
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-40"
+                  onClick={() => galleryInputRef.current?.click()}
+                >
+                  Elegir de galería
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Formulario */}
