@@ -91,4 +91,53 @@ export default defineSchema({
   })
     .index("by_buyerId", ["buyerId"])
     .index("by_createdAt", ["createdAt"]),
+
+  // NUEVO: Proveedores (sin login por ahora, gestionados por admin)
+  suppliers: defineTable({
+    name: v.string(),
+    city: v.optional(v.string()),
+    contactName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    active: v.optional(v.boolean()),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+  })
+    .index("by_name", ["name"])
+    .index("by_active", ["active"]),
+
+  // NUEVO: Movimientos de dinero para proveedores
+  supplierMovements: defineTable({
+    supplierId: v.id("suppliers"),
+    amount: v.number(),
+    type: v.union(
+      v.literal("opening"),    // apertura/base nueva
+      v.literal("fund"),       // agregar base
+      v.literal("adjustment"), // ajuste (-)
+      v.literal("expense")     // gasto (-)
+    ),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+  })
+    .index("by_supplierId", ["supplierId"])
+    .index("by_createdAt", ["createdAt"]),
+
+  // NUEVO: Ingresos/cargas del proveedor (descuentan saldo)
+  supplierPurchases: defineTable({
+    supplierId: v.id("suppliers"),
+
+    type: v.union(v.literal("pieza"), v.literal("suelto")),
+    description: v.string(),       // ej: "Lote 1", "Catalizadores mixtos"
+    model: v.optional(v.string()), // aplica para pieza
+    grams: v.optional(v.number()), // aplica para suelto o complemento
+    pricePaid: v.number(),         // valor pagado al proveedor
+    notes: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
+
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+  })
+    .index("by_supplierId", ["supplierId"])
+    .index("by_createdAt", ["createdAt"]),
 });

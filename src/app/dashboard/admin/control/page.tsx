@@ -20,7 +20,6 @@ export default function ControlAreaPage() {
 
   return (
     <div className="max-w-6xl">
-      <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-[#234c4b]">Prueba</p>
       <h1 className="text-2xl font-bold text-[#234c4b]">Área de control</h1>
       <p className="text-foreground-accent mt-2">
         Resumen del lote actual.
