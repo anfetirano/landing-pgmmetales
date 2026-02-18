@@ -13,16 +13,25 @@ const formatCop = (value: number) =>
 
 export default function ControlAreaPage() {
   const activeLot = useQuery(api.lots.getActiveLot);
-  const stats = useQuery(
+
+  const lotStats = useQuery(
     api.purchases.getLotStats,
     activeLot?._id ? { lotId: activeLot._id } : "skip"
   );
+
+  const supplierStats = useQuery(api.supplierPurchases.getGlobalStats, {});
+  const supplierFunds = useQuery(api.supplierMovements.getGlobalFundsStats, {});
+
+  const totalPieces = (lotStats?.totalPieces ?? 0) + (supplierStats?.totalPieces ?? 0);
+  const totalGrams = (lotStats?.totalGrams ?? 0) + (supplierStats?.totalGrams ?? 0);
+  const totalKilos = totalGrams / 1000;
+  const totalInvested = (lotStats?.totalInvested ?? 0) + (supplierStats?.totalPaid ?? 0);
 
   return (
     <div className="max-w-6xl">
       <h1 className="text-2xl font-bold text-[#234c4b]">Área de control</h1>
       <p className="text-foreground-accent mt-2">
-        Resumen del lote actual.
+        Resumen combinado de lote y proveedores.
       </p>
 
       {!activeLot?._id && (
@@ -39,40 +48,47 @@ export default function ControlAreaPage() {
             Lote activo: <span className="font-medium text-foreground">#{activeLot.number}</span>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Total compras</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">Compras lote</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {stats?.totalPurchases ?? 0}
+                {lotStats?.totalPurchases ?? 0}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Piezas</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">Ingresos proveedores</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {stats?.totalPieces ?? 0}
+                {supplierStats?.totalEntries ?? 0}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Gramos</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">Piezas (total)</CardTitle>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">{totalPieces}</CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm text-muted-foreground">Gramos (total)</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {(stats?.totalGrams ?? 0).toLocaleString("es-CO")}
+                {totalGrams.toLocaleString("es-CO")}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Kilos</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">Kilos (total)</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {(stats?.totalKilos ?? 0).toLocaleString("es-CO", {
+                {totalKilos.toLocaleString("es-CO", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 3,
                 })}
@@ -81,10 +97,28 @@ export default function ControlAreaPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Invertido</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">Invertido total</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {formatCop(stats?.totalInvested ?? 0)}
+                {formatCop(totalInvested)}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm text-muted-foreground">Base entregada proveedores</CardTitle>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">
+                {formatCop(supplierFunds?.totalPositive ?? 0)}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm text-muted-foreground">Saldo neto proveedores</CardTitle>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">
+                {formatCop(supplierFunds?.net ?? 0)}
               </CardContent>
             </Card>
           </div>

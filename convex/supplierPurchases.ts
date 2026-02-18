@@ -140,3 +140,25 @@ export const listBySupplier = query({
     return withUrls;
   },
 });
+
+// NUEVO: resumen global de ingresos de proveedores (para área de control)
+export const getGlobalStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db.query("supplierPurchases").collect();
+
+    const totalEntries = items.length;
+    const totalPieces = items.filter((p) => p.type === "pieza").length;
+    const totalGrams = items.reduce((s, p) => s + (p.grams ?? 0), 0);
+    const totalKilos = totalGrams / 1000;
+    const totalPaid = items.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
+
+    return {
+      totalEntries,
+      totalPieces,
+      totalGrams,
+      totalKilos,
+      totalPaid,
+    };
+  },
+});
