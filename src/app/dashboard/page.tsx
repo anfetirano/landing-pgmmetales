@@ -17,18 +17,14 @@ const formatCop = (value: number) =>
 export default function DashboardHome() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
-
-  // Admin: página vacía
-  if (dbUser?.role === "admin") {
-    return <div className="max-w-5xl" />;
-  }
+  const buyerId = dbUser?.role === "buyer" ? dbUser._id : undefined;
 
   const purchases =
-    useQuery(api.purchases.listOpenByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
+    useQuery(api.purchases.listOpenByBuyer, buyerId ? { buyerId } : "skip") ?? [];
 
   const balance = useQuery(
     api.cashMovements.getBalanceByBuyer,
-    dbUser?._id ? { buyerId: dbUser._id } : "skip"
+    buyerId ? { buyerId } : "skip"
   );
 
   const summary = useMemo(() => {
@@ -46,6 +42,11 @@ export default function DashboardHome() {
         .slice(0, 5),
     [purchases]
   );
+
+  // Admin: esta ruta no muestra datos (se redirige desde layout a /dashboard/admin/control)
+  if (dbUser?.role === "admin") {
+    return <div className="max-w-5xl" />;
+  }
 
   return (
     <div className="max-w-5xl">
