@@ -4,42 +4,50 @@ import { v } from "convex/values";
 export const addMovement = mutation({
   args: {
     buyerId: v.id("users"),
-    amount: v.number(), // + entrega, - ajuste
-    type: v.union(v.literal("fund"), v.literal("adjustment")),
+    amount: v.number(),
+    type: v.union(v.literal("fund"), v.literal("adjustment"), v.literal("expense")),
     notes: v.optional(v.string()),
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const normalizedAmount =
+      args.type === "fund" ? Math.abs(args.amount) : -Math.abs(args.amount);
+
     return await ctx.db.insert("cashMovements", {
-      ...args,
+      buyerId: args.buyerId,
+      amount: normalizedAmount,
+      type: args.type,
+      notes: args.notes,
       createdAt: Date.now(),
+      createdBy: args.createdBy,
     });
   },
 });
 
-export const deleteMovement = mutation({
+export const openBase = mutation({
   args: {
-    movementId: v.id("cashMovements"),
     buyerId: v.id("users"),
-    adminId: v.id("users"),
+    amount: v.number(),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const admin = await ctx.db.get(args.adminId);
+    const admin = await ctx.db.get(args.createdBy);
     if (!admin || admin.role !== "admin") {
-      throw new Error("Solo el administrador puede eliminar movimientos.");
+      throw new Error("Solo el administrador puede abrir una base.");
     }
 
-    const movement = await ctx.db.get(args.movementId);
-    if (!movement) {
-      throw new Error("Movimiento no encontrado.");
-    }
+    const baseAmount = Math.abs(args.amount);
+    if (!baseAmount) throw new Error("Monto inválido.");
 
-    if (movement.buyerId !== args.buyerId) {
-      throw new Error("El movimiento no pertenece al comprador seleccionado.");
-    }
-
-    await ctx.db.delete(args.movementId);
-    return { ok: true };
+    return await ctx.db.insert("cashMovements", {
+      buyerId: args.buyerId,
+      amount: baseAmount,
+      type: "opening",
+      notes: args.notes ?? "Apertura de base",
+      createdAt: Date.now(),
+      createdBy: args.createdBy,
+    });
   },
 });
 
@@ -61,24 +69,30 @@ export const getBalanceByBuyer = query({
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
 
-    const totalFunds = movements.reduce((s, m) => s + (m.amount ?? 0), 0);
+    // Compatibilidad: corte por "opening" nuevo o "reset" histórico.
+    const lastOpeningAt = movements
+      .filter((m) => m.type === "opening" || m.type === "reset")
+      .reduce((max, m) => Math.max(max, m.createdAt ?? 0), 0);
+
+    const effectiveMovements = movements.filter((m) => (m.createdAt ?? 0) >= lastOpeningAt);
+    const totalFunds = effectiveMovements.reduce((s, m) => s + (m.amount ?? 0), 0);
 
     const purchases = await ctx.db
       .query("purchases")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
 
-    const totalSpent = purchases.reduce(
+    const effectivePurchases = purchases.filter((p) => (p.createdAt ?? 0) >= lastOpeningAt);
+    const totalSpent = effectivePurchases.reduce(
       (s, p) => s + (p.pricePaid ?? 0) + (p.commission ?? 0),
       0
     );
 
-    const balance = totalFunds - totalSpent;
-
     return {
       totalFunds,
       totalSpent,
-      balance,
+      balance: totalFunds - totalSpent,
+      lastOpeningAt,
     };
   },
 });

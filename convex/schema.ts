@@ -77,11 +77,17 @@ export default defineSchema({
 
   cashMovements: defineTable({
     buyerId: v.id("users"),
-    amount: v.number(), // + entrega, - ajuste
-    type: v.union(v.literal("fund"), v.literal("adjustment")),
+    amount: v.number(),
+    type: v.union(
+      v.literal("opening"),
+      v.literal("fund"),
+      v.literal("adjustment"),
+      v.literal("expense"),
+      v.literal("reset")
+    ),
     notes: v.optional(v.string()),
     createdAt: v.number(),
-    createdBy: v.id("users"), // admin
+    createdBy: v.id("users"),
   })
     .index("by_buyerId", ["buyerId"])
     .index("by_createdAt", ["createdAt"]),

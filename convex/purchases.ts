@@ -46,6 +46,30 @@ export const deleteOpenPurchase = mutation({
   },
 });
 
+// NUEVO: borrado por administrador (sin restricción de estado)
+export const deletePurchaseAsAdmin = mutation({
+  args: {
+    purchaseId: v.id("purchases"),
+    adminId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Solo el administrador puede borrar compras.");
+    }
+
+    const purchase = await ctx.db.get(args.purchaseId);
+    if (!purchase) throw new Error("Compra no encontrada.");
+
+    if (purchase.photoId) {
+      await ctx.storage.delete(purchase.photoId);
+    }
+
+    await ctx.db.delete(args.purchaseId);
+    return { ok: true };
+  },
+});
+
 export const listOpenByBuyer = query({
   args: { buyerId: v.id("users") },
   handler: async (ctx, args) => {
@@ -117,5 +141,34 @@ export const listLatestByBuyer = query({
     );
 
     return withUrls;
+  },
+});
+
+export const getLotStats = query({
+  args: {
+    lotId: v.id("lots"),
+  },
+  handler: async (ctx, args) => {
+    const purchases = await ctx.db
+      .query("purchases")
+      .withIndex("by_lotId", (q) => q.eq("lotId", args.lotId))
+      .collect();
+
+    const totalPurchases = purchases.length;
+    const totalPieces = purchases.filter((p) => p.type === "pieza").length;
+    const totalGrams = purchases.reduce((s, p) => s + (p.grams ?? 0), 0);
+    const totalKilos = totalGrams / 1000;
+    const totalInvested = purchases.reduce(
+      (s, p) => s + (p.pricePaid ?? 0) + (p.commission ?? 0),
+      0
+    );
+
+    return {
+      totalPurchases,
+      totalPieces,
+      totalGrams,
+      totalKilos,
+      totalInvested,
+    };
   },
 });

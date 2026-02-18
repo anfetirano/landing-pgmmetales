@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
@@ -24,22 +24,33 @@ export default function AdminDashboard() {
 
   const buyers = useQuery(api.users.listBuyers) ?? [];
   const [selectedBuyerId, setSelectedBuyerId] = useState<Id<"users"> | null>(null);
+  const [showAllPurchases, setShowAllPurchases] = useState(false);
 
   const buyerId: Id<"users"> | null = selectedBuyerId ?? buyers[0]?._id ?? null;
 
   const balance = useQuery(api.cashMovements.getBalanceByBuyer, buyerId ? { buyerId } : "skip");
   const movements = useQuery(api.cashMovements.listByBuyer, buyerId ? { buyerId } : "skip") ?? [];
   const latest = useQuery(api.purchases.listLatestByBuyer, buyerId ? { buyerId, limit: 5 } : "skip") ?? [];
+  const allPurchases = useQuery(api.purchases.listLatestByBuyer, buyerId ? { buyerId, limit: 1000 } : "skip") ?? [];
 
   const addMovement = useMutation(api.cashMovements.addMovement);
-  const deleteMovement = useMutation(api.cashMovements.deleteMovement);
+  const openBase = useMutation(api.cashMovements.openBase);
+  const deletePurchaseAsAdmin = useMutation(api.purchases.deletePurchaseAsAdmin);
 
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
-  const [deletingMovementId, setDeletingMovementId] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
 
-  const handleFund = async (type: "fund" | "adjustment") => {
+  const sortedMovements = useMemo(
+    () => [...movements].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
+    [movements]
+  );
+
+  const purchaseList = showAllPurchases ? allPurchases : latest;
+
+  const handleMovement = async (type: "fund" | "adjustment" | "expense") => {
     if (!dbUser) return alert("Usuario no registrado.");
     if (!buyerId) return alert("Selecciona un comprador.");
     if (!amount) return alert("Ingresa un monto.");
@@ -47,14 +58,11 @@ export default function AdminDashboard() {
     const numeric = Number(amount);
     if (Number.isNaN(numeric) || numeric === 0) return alert("Monto inválido.");
 
-    const movementAmount =
-      type === "adjustment" ? -Math.abs(numeric) : Math.abs(numeric);
-
     setLoading(true);
     try {
       await addMovement({
         buyerId,
-        amount: movementAmount,
+        amount: numeric,
         type,
         notes: notes || undefined,
         createdBy: dbUser._id,
@@ -70,25 +78,56 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteMovement = async (movementId: Id<"cashMovements">) => {
+  const handleOpenBase = async () => {
     if (!dbUser) return alert("Usuario no registrado.");
     if (!buyerId) return alert("Selecciona un comprador.");
+    if (!amount) return alert("Ingresa un monto base.");
 
-    const ok = confirm("¿Eliminar este movimiento de caja? Esta acción no se puede deshacer.");
+    const numeric = Number(amount);
+    if (Number.isNaN(numeric) || numeric <= 0) return alert("Monto inválido.");
+
+    const selectedBuyerName = buyers.find((b) => b._id === buyerId)?.name ?? "este comprador";
+    const ok = confirm(
+      `Se abrirá una NUEVA base para ${selectedBuyerName} por ${formatCop(Math.abs(numeric))}.\n\nNo se borra historial.`
+    );
     if (!ok) return;
 
-    setDeletingMovementId(movementId);
+    setOpening(true);
     try {
-      await deleteMovement({
-        movementId,
+      await openBase({
         buyerId,
-        adminId: dbUser._id,
+        amount: Math.abs(numeric),
+        notes: notes || "Apertura de base",
+        createdBy: dbUser._id,
       });
+      setAmount("");
+      setNotes("");
+      alert("Base abierta correctamente.");
     } catch (e) {
       console.error(e);
-      alert("Error eliminando movimiento.");
+      alert("Error abriendo base.");
     } finally {
-      setDeletingMovementId(null);
+      setOpening(false);
+    }
+  };
+
+  const handleDeletePurchase = async (purchaseId: Id<"purchases">) => {
+    if (!dbUser) return alert("Usuario no registrado.");
+    const ok = confirm("¿Eliminar esta compra? Esta acción no se puede deshacer.");
+    if (!ok) return;
+
+    setDeletingPurchaseId(purchaseId);
+    try {
+      await deletePurchaseAsAdmin({
+        purchaseId,
+        adminId: dbUser._id,
+      });
+      alert("Compra eliminada.");
+    } catch (e) {
+      console.error(e);
+      alert("Error eliminando compra.");
+    } finally {
+      setDeletingPurchaseId(null);
     }
   };
 
@@ -98,7 +137,7 @@ export default function AdminDashboard() {
     <div className="max-w-6xl">
       <h1 className="text-2xl font-bold text-[#234c4b]">Administrador</h1>
       <p className="text-foreground-accent mt-2">
-        Control de saldos, movimientos y compras por comprador.
+        Control de base de compras, gastos y saldo por comprador.
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
@@ -113,25 +152,26 @@ export default function AdminDashboard() {
                 className={`w-full rounded-md px-3 py-2 text-left text-sm ${
                   b._id === buyerId ? "bg-[#234c4b] text-white" : "hover:bg-muted"
                 }`}
-                onClick={() => setSelectedBuyerId(b._id)}
+                onClick={() => {
+                  setSelectedBuyerId(b._id);
+                  setShowAllPurchases(false);
+                }}
               >
                 {b.name}
               </button>
             ))}
-            {buyers.length === 0 && (
-              <div className="text-sm text-muted-foreground">No hay compradores.</div>
-            )}
+            {buyers.length === 0 && <div className="text-sm text-muted-foreground">No hay compradores.</div>}
           </CardContent>
         </Card>
 
         <div className="grid gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Saldo de {buyerName}</CardTitle>
+              <CardTitle>Saldo operativo de {buyerName}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-              <div>Fondos entregados: {formatCop(balance?.totalFunds ?? 0)}</div>
-              <div>Gastado (pagado + comisión): {formatCop(balance?.totalSpent ?? 0)}</div>
+              <div>Base + movimientos desde última apertura: {formatCop(balance?.totalFunds ?? 0)}</div>
+              <div>Gastado (pagado + comisión) desde última apertura: {formatCop(balance?.totalSpent ?? 0)}</div>
               <div className="text-lg font-semibold">Saldo actual: {formatCop(balance?.balance ?? 0)}</div>
             </CardContent>
           </Card>
@@ -142,7 +182,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="grid gap-3">
               <Input
-                placeholder="Monto (ej: 2000000)"
+                placeholder="Monto (ej: 800000)"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
@@ -151,35 +191,59 @@ export default function AdminDashboard() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   className="bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
-                  onClick={() => handleFund("fund")}
-                  disabled={loading}
+                  onClick={() => handleMovement("fund")}
+                  disabled={loading || opening}
                 >
-                  Agregar fondos
+                  Agregar base
                 </Button>
-                <Button variant="outline" onClick={() => handleFund("adjustment")} disabled={loading}>
-                  Ajuste
+                <Button
+                  variant="outline"
+                  onClick={() => handleMovement("adjustment")}
+                  disabled={loading || opening}
+                >
+                  Ajustar saldo (-)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleMovement("expense")}
+                  disabled={loading || opening}
+                >
+                  Registrar gasto (-)
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleOpenBase}
+                  disabled={loading || opening}
+                >
+                  {opening ? "Abriendo..." : "Abrir base nueva"}
                 </Button>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Últimas 5 compras</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{showAllPurchases ? "Todas las compras" : "Últimas 5 compras"}</CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllPurchases((prev) => !prev)}
+              >
+                {showAllPurchases ? "Ver últimas 5" : "Ver todas"}
+              </Button>
             </CardHeader>
             <CardContent className="grid gap-3">
-              {latest.length === 0 && (
+              {purchaseList.length === 0 && (
                 <div className="text-sm text-muted-foreground">No hay compras recientes.</div>
               )}
-              {latest.map((p) => (
+              {purchaseList.map((p) => (
                 <div key={p._id} className="flex items-center gap-3 border-b pb-2 last:border-b-0">
                   <div className="h-10 w-10 overflow-hidden rounded border bg-muted">
-                    {p.photoUrl ? (
-                      <img src={p.photoUrl} alt="Compra" className="h-full w-full object-cover" />
-                    ) : null}
+                    {p.photoUrl ? <img src={p.photoUrl} alt="Compra" className="h-full w-full object-cover" /> : null}
                   </div>
                   <div className="flex-1 text-sm">
                     <div className="font-medium">{p.brand}</div>
@@ -187,6 +251,16 @@ export default function AdminDashboard() {
                       {p.type === "pieza" ? "Pieza completa" : "Material suelto"} · {formatCop(p.total ?? 0)}
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-600 hover:text-red-700"
+                    onClick={() => handleDeletePurchase(p._id)}
+                    disabled={deletingPurchaseId === p._id}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </CardContent>
@@ -194,33 +268,36 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Movimientos de caja</CardTitle>
+              <CardTitle>Historial de movimientos</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-              {movements.length === 0 && (
-                <div className="text-muted-foreground">No hay movimientos.</div>
-              )}
-              {movements.map((m) => (
+              {sortedMovements.length === 0 && <div className="text-muted-foreground">No hay movimientos.</div>}
+              {sortedMovements.map((m) => (
                 <div key={m._id} className="flex items-center justify-between border-b pb-2 last:border-b-0">
                   <div>
-                    <div className="font-medium">{m.type === "fund" ? "Entrega" : "Ajuste"}</div>
+                    <div className="font-medium">
+                      {m.type === "opening"
+                        ? "Apertura de base"
+                        : m.type === "fund"
+                        ? "Entrega"
+                        : m.type === "expense"
+                        ? "Gasto"
+                        : m.type === "reset"
+                        ? "Reset"
+                        : "Ajuste"}
+                    </div>
                     <div className="text-xs text-muted-foreground">{m.notes ?? ""}</div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className={m.amount >= 0 ? "text-green-700" : "text-red-600"}>
-                      {formatCop(m.amount)}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-600 hover:text-red-700"
-                      onClick={() => handleDeleteMovement(m._id)}
-                      disabled={deletingMovementId === m._id}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div
+                    className={
+                      m.type === "opening"
+                        ? "text-blue-700"
+                        : m.amount >= 0
+                        ? "text-green-700"
+                        : "text-red-600"
+                    }
+                  >
+                    {formatCop(m.amount)}
                   </div>
                 </div>
               ))}
