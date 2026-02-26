@@ -110,23 +110,27 @@ export default defineSchema({
   // NUEVO: Movimientos de dinero para proveedores
   supplierMovements: defineTable({
     supplierId: v.id("suppliers"),
+    lotId: v.optional(v.id("lots")),
     amount: v.number(),
     type: v.union(
       v.literal("opening"),    // apertura/base nueva
       v.literal("fund"),       // agregar base
       v.literal("adjustment"), // ajuste (-)
-      v.literal("expense")     // gasto (-)
+      v.literal("expense"),    // gasto (-)
+      v.literal("carryover")   // saldo arrastrado desde lote anterior
     ),
     notes: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.id("users"),
   })
     .index("by_supplierId", ["supplierId"])
+    .index("by_lotId", ["lotId"])
     .index("by_createdAt", ["createdAt"]),
 
   // NUEVO: Ingresos/cargas del proveedor (descuentan saldo)
   supplierPurchases: defineTable({
     supplierId: v.id("suppliers"),
+    lotId: v.optional(v.id("lots")),
 
     type: v.union(v.literal("pieza"), v.literal("suelto")),
     description: v.string(),       // ej: "Lote 1", "Catalizadores mixtos"
@@ -140,5 +144,6 @@ export default defineSchema({
     createdBy: v.id("users"),
   })
     .index("by_supplierId", ["supplierId"])
+    .index("by_lotId", ["lotId"])
     .index("by_createdAt", ["createdAt"]),
 });

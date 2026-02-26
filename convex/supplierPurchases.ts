@@ -1,9 +1,22 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+const resolveEffectiveLotId = async (
+  ctx: any,
+  explicitLotId: string | undefined
+) => {
+  if (explicitLotId) return explicitLotId;
+  const activeLot = await ctx.db
+    .query("lots")
+    .withIndex("by_status", (q: any) => q.eq("status", "open"))
+    .unique();
+  return activeLot?._id;
+};
+
 export const createPurchase = mutation({
   args: {
     supplierId: v.id("suppliers"),
+    lotId: v.id("lots"),
     type: v.union(v.literal("pieza"), v.literal("suelto")),
     description: v.string(),
     model: v.optional(v.string()),
@@ -24,6 +37,11 @@ export const createPurchase = mutation({
       throw new Error("Proveedor no encontrado.");
     }
 
+    const lot = await ctx.db.get(args.lotId);
+    if (!lot || lot.status !== "open") {
+      throw new Error("Lote activo no válido.");
+    }
+
     if (!args.description.trim()) {
       throw new Error("La descripción es obligatoria.");
     }
@@ -33,6 +51,7 @@ export const createPurchase = mutation({
 
     return await ctx.db.insert("supplierPurchases", {
       supplierId: args.supplierId,
+      lotId: args.lotId,
       type: args.type,
       description: args.description.trim(),
       model: args.model?.trim(),
@@ -76,7 +95,6 @@ export const updatePurchase = mutation({
       throw new Error("El valor pagado debe ser mayor a 0.");
     }
 
-    // Si cambia la foto, borra la anterior para no dejar basura en storage.
     if (existing.photoId && args.photoId && existing.photoId !== args.photoId) {
       await ctx.storage.delete(existing.photoId);
     }
@@ -121,14 +139,27 @@ export const deletePurchase = mutation({
 });
 
 export const listBySupplier = query({
-  args: { supplierId: v.id("suppliers") },
+  args: {
+    supplierId: v.id("suppliers"),
+    lotId: v.id("lots"),
+  },
   handler: async (ctx, args) => {
     const items = await ctx.db
       .query("supplierPurchases")
       .withIndex("by_supplierId", (q) => q.eq("supplierId", args.supplierId))
       .collect();
 
-    const sorted = items.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    const sorted = (
+      await Promise.all(
+        items.map(async (p) => ({
+          purchase: p,
+          effectiveLotId: await resolveEffectiveLotId(ctx, p.lotId),
+        }))
+      )
+    )
+      .filter((x) => x.effectiveLotId === args.lotId)
+      .map((x) => x.purchase)
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
     const withUrls = await Promise.all(
       sorted.map(async (p) => {
@@ -141,17 +172,29 @@ export const listBySupplier = query({
   },
 });
 
-// NUEVO: resumen global de ingresos de proveedores (para área de control)
 export const getGlobalStats = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    lotId: v.id("lots"),
+  },
+  handler: async (ctx, args) => {
     const items = await ctx.db.query("supplierPurchases").collect();
 
-    const totalEntries = items.length;
-    const totalPieces = items.filter((p) => p.type === "pieza").length;
-    const totalGrams = items.reduce((s, p) => s + (p.grams ?? 0), 0);
+    const filtered = (
+      await Promise.all(
+        items.map(async (p) => ({
+          purchase: p,
+          effectiveLotId: await resolveEffectiveLotId(ctx, p.lotId),
+        }))
+      )
+    )
+      .filter((x) => x.effectiveLotId === args.lotId)
+      .map((x) => x.purchase);
+
+    const totalEntries = filtered.length;
+    const totalPieces = filtered.filter((p) => p.type === "pieza").length;
+    const totalGrams = filtered.reduce((s, p) => s + (p.grams ?? 0), 0);
     const totalKilos = totalGrams / 1000;
-    const totalPaid = items.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
+    const totalPaid = filtered.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
 
     return {
       totalEntries,

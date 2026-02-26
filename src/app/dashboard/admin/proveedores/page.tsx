@@ -23,6 +23,7 @@ const formatCop = (value: number) =>
 export default function ProveedoresPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const activeLot = useQuery(api.lots.getActiveLot);
 
   const suppliers = useQuery(api.suppliers.listSuppliers) ?? [];
   const [selectedSupplierId, setSelectedSupplierId] = useState<Id<"suppliers"> | null>(null);
@@ -31,12 +32,18 @@ export default function ProveedoresPage() {
 
   const balance = useQuery(
     api.supplierMovements.getBalanceBySupplier,
-    supplierId ? { supplierId } : "skip"
+    supplierId && activeLot?._id ? { supplierId, lotId: activeLot._id } : "skip"
   );
   const movements =
-    useQuery(api.supplierMovements.listBySupplier, supplierId ? { supplierId } : "skip") ?? [];
+    useQuery(
+      api.supplierMovements.listBySupplier,
+      supplierId && activeLot?._id ? { supplierId, lotId: activeLot._id } : "skip"
+    ) ?? [];
   const purchases =
-    useQuery(api.supplierPurchases.listBySupplier, supplierId ? { supplierId } : "skip") ?? [];
+    useQuery(
+      api.supplierPurchases.listBySupplier,
+      supplierId && activeLot?._id ? { supplierId, lotId: activeLot._id } : "skip"
+    ) ?? [];
 
   const createSupplier = useMutation(api.suppliers.createSupplier);
   const addMovement = useMutation(api.supplierMovements.addMovement);
@@ -107,6 +114,7 @@ export default function ProveedoresPage() {
 
   const handleMovement = async (type: "fund" | "adjustment" | "expense") => {
     if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
+    if (!activeLot?._id) return alert("No hay lote activo.");
     if (!supplierId) return alert("Selecciona un proveedor.");
     if (!amount) return alert("Ingresa un monto.");
 
@@ -117,6 +125,7 @@ export default function ProveedoresPage() {
     try {
       await addMovement({
         supplierId,
+        lotId: activeLot._id,
         amount: numeric,
         type,
         notes: movementNotes || undefined,
@@ -135,6 +144,7 @@ export default function ProveedoresPage() {
 
   const handleOpenBase = async () => {
     if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
+    if (!activeLot?._id) return alert("No hay lote activo.");
     if (!supplierId) return alert("Selecciona un proveedor.");
     if (!amount) return alert("Ingresa un monto base.");
 
@@ -150,6 +160,7 @@ export default function ProveedoresPage() {
     try {
       await openBase({
         supplierId,
+        lotId: activeLot._id,
         amount: Math.abs(numeric),
         notes: movementNotes || "Apertura de base",
         createdBy: dbUser._id,
@@ -198,6 +209,7 @@ export default function ProveedoresPage() {
 
   const handleCreatePurchase = async () => {
     if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
+    if (!activeLot?._id) return alert("No hay lote activo.");
     if (!supplierId) return alert("Selecciona un proveedor.");
     if (!description.trim() || !pricePaid) return alert("Completa descripción y valor.");
 
@@ -229,6 +241,7 @@ export default function ProveedoresPage() {
 
       await createPurchase({
         supplierId,
+        lotId: activeLot._id,
         type: purchaseType,
         description: description.trim(),
         model: purchaseType === "pieza" ? model.trim() || undefined : undefined,
@@ -295,6 +308,9 @@ export default function ProveedoresPage() {
       <h1 className="text-2xl font-bold text-[#234c4b]">Proveedores</h1>
       <p className="text-foreground-accent mt-2">
         Gestiona base, movimientos e ingresos de proveedores externos.
+      </p>
+      <p className="text-sm text-muted-foreground mt-1">
+        Lote activo: {activeLot?.number ? `#${activeLot.number}` : "Sin lote activo"}
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[260px_1fr]">
@@ -542,6 +558,8 @@ export default function ProveedoresPage() {
                     <div className="font-medium">
                       {m.type === "opening"
                         ? "Apertura de base"
+                        : m.type === "carryover"
+                        ? "Saldo arrastrado"
                         : m.type === "fund"
                         ? "Entrega"
                         : m.type === "expense"
