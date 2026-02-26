@@ -15,11 +15,16 @@ const sourceSans = Source_Sans_3({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: siteDetails.metadata.title,
   description: siteDetails.metadata.description,
-  // 👇 Fuerza al navegador a tomar el FAVICON nuevo
+  manifest: "/manifest.webmanifest",
+  themeColor: "#234c4b",
   icons: {
-    icon: [{ url: "/favicon.ico?v=2" }], // deja el archivo en src/app/favicon.ico
-    // Si tienes apple-icon.png (opcional):
-    // apple: [{ url: "/apple-icon.png?v=2", sizes: "180x180" }],
+    icon: [{ url: "/favicon.ico?v=2" }],
+    apple: [{ url: "/icons/icon-192.png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PMG Metales",
   },
   openGraph: {
     title: siteDetails.metadata.title,
