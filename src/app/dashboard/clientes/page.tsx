@@ -4,7 +4,9 @@ import dynamic from "next/dynamic";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { useState } from "react";
+import type { Id } from "@convex/_generated/dataModel";
+import { useRef, useState } from "react";
+import { Navigation, Map, Pencil, MessageCircle, Camera } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,16 +19,52 @@ export default function ClientesPage() {
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const clients =
     useQuery(api.clients.listByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
+  const clientsWithLocation = clients.filter(
+    (c) => typeof c.lat === "number" && typeof c.lng === "number"
+  );
+  const visibleClients = clientsWithLocation;
 
   const createClient = useMutation(api.clients.createClient);
+  const updateClient = useMutation(api.clients.updateClient);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
   const [name, setName] = useState("");
   const [contactName, setContactName] = useState("");
   const [cedula, setCedula] = useState("");
+  const [phone, setPhone] = useState("");
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<Id<"clients"> | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [editingContactName, setEditingContactName] = useState("");
+  const [editingCedula, setEditingCedula] = useState("");
+  const [editingPhone, setEditingPhone] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+
+  const buildWazeUrl = (clientLat: number, clientLng: number) =>
+    `https://waze.com/ul?ll=${clientLat},${clientLng}&navigate=yes`;
+  const buildStreetViewUrl = (clientLat: number, clientLng: number) =>
+    `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${clientLat},${clientLng}`;
+  const buildWhatsAppUrl = (rawPhone: string) =>
+    `https://wa.me/${rawPhone.replace(/\D/g, "")}`;
+
+  const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setPhotoFile(file);
+    setShowPhotoOptions(false);
+    if (!file) {
+      setPhotoPreview(null);
+      return;
+    }
+    setPhotoPreview(URL.createObjectURL(file));
+  };
 
   const handleSave = async () => {
     if (!dbUser) return alert("Usuario no registrado.");
@@ -34,10 +72,24 @@ export default function ClientesPage() {
 
     setSaving(true);
     try {
+      let photoId: Id<"_storage"> | undefined = undefined;
+      if (photoFile) {
+        const uploadUrl = await generateUploadUrl();
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": photoFile.type },
+          body: photoFile,
+        });
+        const { storageId } = await res.json();
+        photoId = storageId;
+      }
+
       await createClient({
         name,
         contactName: contactName || undefined,
         cedula: cedula || undefined,
+        phone: phone || undefined,
+        photoId,
         lat: lat ? Number(lat) : undefined,
         lng: lng ? Number(lng) : undefined,
         buyerId: dbUser._id,
@@ -45,6 +97,10 @@ export default function ClientesPage() {
       setName("");
       setContactName("");
       setCedula("");
+      setPhone("");
+      setPhotoPreview(null);
+      setPhotoFile(null);
+      setShowPhotoOptions(false);
       setLat("");
       setLng("");
       alert("Cliente guardado.");
@@ -77,6 +133,47 @@ export default function ClientesPage() {
     );
   };
 
+  const startEditing = (client: (typeof visibleClients)[number]) => {
+    setEditingClientId(client._id);
+    setEditingName(client.name ?? "");
+    setEditingContactName(client.contactName ?? "");
+    setEditingCedula(client.cedula ?? "");
+    setEditingPhone(client.phone ?? "");
+  };
+
+  const cancelEditing = () => {
+    setEditingClientId(null);
+    setEditingName("");
+    setEditingContactName("");
+    setEditingCedula("");
+    setEditingPhone("");
+  };
+
+  const saveEditing = async () => {
+    if (!dbUser) return alert("Usuario no registrado.");
+    if (!editingClientId) return;
+    if (!editingName.trim()) return alert("El nombre del cliente es obligatorio.");
+
+    setSavingEdit(true);
+    try {
+      await updateClient({
+        clientId: editingClientId,
+        buyerId: dbUser._id,
+        name: editingName,
+        contactName: editingContactName || undefined,
+        cedula: editingCedula || undefined,
+        phone: editingPhone || undefined,
+      });
+      cancelEditing();
+      alert("Cliente actualizado.");
+    } catch (e) {
+      console.error(e);
+      alert("Error actualizando cliente.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl">
       <h1 className="text-2xl font-bold text-[#234c4b]">Clientes</h1>
@@ -85,14 +182,71 @@ export default function ClientesPage() {
       </p>
 
       <div className="mt-6 grid gap-6">
+        <div className="flex justify-center">
+          <div className="w-fit">
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={onPhotoChange}
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPhotoChange}
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPhotoOptions((v) => !v)}
+              className="h-28 w-28 rounded-xl border border-dashed border-gray-300 bg-white text-gray-500 overflow-hidden flex flex-col items-center justify-center gap-1"
+            >
+              {photoPreview ? (
+                <img src={photoPreview} alt="Vista previa" className="h-full w-full object-cover" />
+              ) : (
+                <>
+                  <Camera className="h-14 w-14" />
+                  <span className="text-xs">Toca para foto</span>
+                </>
+              )}
+            </button>
+
+            {showPhotoOptions && (
+              <div className="mt-2 grid justify-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-40"
+                  onClick={() => cameraInputRef.current?.click()}
+                >
+                  Tomar foto
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-40"
+                  onClick={() => galleryInputRef.current?.click()}
+                >
+                  Elegir de galería
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>Nuevo cliente</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             <Input placeholder="Nombre del taller / cliente" value={name} onChange={(e) => setName(e.target.value)} />
-            <Input placeholder="Nombre de contacto (opcional)" value={contactName} onChange={(e) => setContactName(e.target.value)} />
-            <Input placeholder="Cédula (opcional)" value={cedula} onChange={(e) => setCedula(e.target.value)} />
+            <Input placeholder="Nombre de contacto" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+            <Input placeholder="Cédula" value={cedula} onChange={(e) => setCedula(e.target.value)} />
+            <Input placeholder="WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} />
             <Input placeholder="Latitud (ej: 6.2442)" value={lat} onChange={(e) => setLat(e.target.value)} />
             <Input placeholder="Longitud (ej: -75.5812)" value={lng} onChange={(e) => setLng(e.target.value)} />
             <Button type="button" variant="outline" onClick={handleUseLocation} disabled={locating}>
@@ -104,49 +258,281 @@ export default function ClientesPage() {
           </CardContent>
         </Card>
 
-        <ClientsMap clients={clients} />
+        <ClientsMap clients={clientsWithLocation} />
 
-        <div className="overflow-x-auto rounded-xl border bg-white">
+        <div className="grid gap-3 md:hidden">
+          {visibleClients.length === 0 && (
+            <div className="rounded-xl border bg-white px-4 py-4 text-sm text-muted-foreground">
+              No hay clientes con ubicación guardada.
+            </div>
+          )}
+
+          {visibleClients.map((c) => {
+            const hasCoords = typeof c.lat === "number" && typeof c.lng === "number";
+            const isEditing = editingClientId === c._id;
+
+            return (
+              <Card key={c._id}>
+                <CardContent className="relative grid gap-3 p-4 pr-32">
+                  <div className="absolute right-4 top-4 h-24 w-24 overflow-hidden rounded border bg-muted">
+                    {c.photoUrl ? (
+                      <img src={c.photoUrl} alt={c.name} className="h-full w-full object-cover" />
+                    ) : null}
+                  </div>
+
+                  <div className="text-sm">
+                    <span className="font-medium">Cliente:</span>{" "}
+                    {isEditing ? (
+                      <Input className="mt-2" value={editingName} onChange={(e) => setEditingName(e.target.value)} />
+                    ) : (
+                      <span>{c.name}</span>
+                    )}
+                  </div>
+
+                  <div className="text-sm">
+                    <span className="font-medium">Contacto:</span>{" "}
+                    {isEditing ? (
+                      <Input
+                        className="mt-2"
+                        value={editingContactName}
+                        onChange={(e) => setEditingContactName(e.target.value)}
+                      />
+                    ) : (
+                      <span>{c.contactName ?? "-"}</span>
+                    )}
+                  </div>
+
+                  <div className="text-sm">
+                    <span className="font-medium">Cédula:</span>{" "}
+                    {isEditing ? (
+                      <Input className="mt-2" value={editingCedula} onChange={(e) => setEditingCedula(e.target.value)} />
+                    ) : (
+                      <span>{c.cedula ?? "-"}</span>
+                    )}
+                  </div>
+
+                  <div className="text-sm">
+                    <span className="font-medium">WhatsApp:</span>{" "}
+                    {isEditing ? (
+                      <Input className="mt-2" value={editingPhone} onChange={(e) => setEditingPhone(e.target.value)} />
+                    ) : (
+                      <span>{c.phone ?? "-"}</span>
+                    )}
+                  </div>
+
+                  <div className="text-sm">
+                    <span className="font-medium">Ubicación:</span>{" "}
+                    <span>{hasCoords ? `${c.lat?.toFixed(6)}, ${c.lng?.toFixed(6)}` : "Sin ubicación"}</span>
+                  </div>
+
+                  {isEditing ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        className="bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                        onClick={saveEditing}
+                        disabled={savingEdit}
+                      >
+                        {savingEdit ? "Guardando..." : "Guardar"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={cancelEditing} disabled={savingEdit}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => startEditing(c)}
+                        title="Editar"
+                        aria-label="Editar"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      {hasCoords ? (
+                        <>
+                          <a
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                            href={buildWazeUrl(c.lat as number, c.lng as number)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Ir por el cliente"
+                            aria-label="Ir por el cliente"
+                          >
+                            <Navigation className="h-4 w-4" />
+                          </a>
+                          <a
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted"
+                            href={buildStreetViewUrl(c.lat as number, c.lng as number)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Ver calle 360"
+                            aria-label="Ver calle 360"
+                          >
+                            <Map className="h-4 w-4" />
+                          </a>
+                        </>
+                      ) : null}
+                      {c.phone ? (
+                        <a
+                          href={buildWhatsAppUrl(c.phone)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted"
+                          title="Abrir WhatsApp"
+                          aria-label="Abrir WhatsApp"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                      ) : null}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-xl border bg-white md:block">
           <table className="w-full text-sm">
             <thead className="bg-muted text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 text-left">Cliente</th>
                 <th className="px-4 py-3 text-left">Contacto</th>
                 <th className="px-4 py-3 text-left">Cédula</th>
+                <th className="px-4 py-3 text-left">WhatsApp</th>
                 <th className="px-4 py-3 text-left">Ubicación</th>
-                <th className="px-4 py-3 text-left">Acción</th>
+                <th className="px-4 py-3 text-left">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {clients.length === 0 && (
+              {visibleClients.length === 0 && (
                 <tr>
-                  <td className="px-4 py-4 text-muted-foreground" colSpan={5}>
-                    No hay clientes registrados.
+                  <td className="px-4 py-4 text-muted-foreground" colSpan={6}>
+                    No hay clientes con ubicación guardada.
                   </td>
                 </tr>
               )}
-              {clients.map((c) => {
+              {visibleClients.map((c) => {
                 const hasCoords = typeof c.lat === "number" && typeof c.lng === "number";
+                const isEditing = editingClientId === c._id;
                 return (
                   <tr key={c._id} className="border-t">
-                    <td className="px-4 py-3 font-medium">{c.name}</td>
-                    <td className="px-4 py-3">{c.contactName ?? "-"}</td>
-                    <td className="px-4 py-3">{c.cedula ?? "-"}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 overflow-hidden rounded border bg-muted">
+                          {c.photoUrl ? (
+                            <img src={c.photoUrl} alt={c.name} className="h-full w-full object-cover" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0">
+                          {isEditing ? (
+                            <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} />
+                          ) : (
+                            c.name
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <Input value={editingContactName} onChange={(e) => setEditingContactName(e.target.value)} />
+                      ) : (
+                        c.contactName ?? "-"
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <Input value={editingCedula} onChange={(e) => setEditingCedula(e.target.value)} />
+                      ) : (
+                        c.cedula ?? "-"
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <Input value={editingPhone} onChange={(e) => setEditingPhone(e.target.value)} />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span>{c.phone ?? "-"}</span>
+                          {c.phone ? (
+                            <a
+                              href={buildWhatsAppUrl(c.phone)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border hover:bg-muted"
+                              title="Abrir WhatsApp"
+                              aria-label="Abrir WhatsApp"
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </a>
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       {hasCoords ? `${c.lat?.toFixed(6)}, ${c.lng?.toFixed(6)}` : "Sin ubicación"}
                     </td>
                     <td className="px-4 py-3">
-                      {hasCoords ? (
-                        <a
-                          className="inline-flex items-center rounded-md bg-[#234c4b] px-3 py-1.5 text-white hover:bg-[#1e3f3e]"
-                          href={`https://waze.com/ul?ll=${c.lat},${c.lng}&navigate=yes`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Ir por el cliente
-                        </a>
+                      {isEditing ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            className="bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                            onClick={saveEditing}
+                            disabled={savingEdit}
+                          >
+                            {savingEdit ? "Guardando..." : "Guardar"}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={cancelEditing} disabled={savingEdit}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      ) : hasCoords ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => startEditing(c)}
+                            title="Editar"
+                            aria-label="Editar"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <a
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                            href={buildWazeUrl(c.lat as number, c.lng as number)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Ir por el cliente"
+                            aria-label="Ir por el cliente"
+                          >
+                            <Navigation className="h-4 w-4" />
+                          </a>
+                          <a
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted"
+                            href={buildStreetViewUrl(c.lat as number, c.lng as number)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Ver calle 360"
+                            aria-label="Ver calle 360"
+                          >
+                            <Map className="h-4 w-4" />
+                          </a>
+                        </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => startEditing(c)}
+                          title="Editar"
+                          aria-label="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       )}
                     </td>
                   </tr>

@@ -68,6 +68,13 @@ export const closeAndOpenNextLot = mutation({
     if (!currentLot) throw new Error("Lote actual no encontrado.");
     if (currentLot.status !== "open") throw new Error("El lote actual ya está cerrado.");
 
+    // Protección anti doble clic/cierre encadenado accidental:
+    // evita cerrar un lote que acaba de abrirse hace segundos.
+    const lotAgeMs = Date.now() - (currentLot.openedAt ?? 0);
+    if (lotAgeMs < 60_000) {
+      throw new Error("El lote se abrió hace menos de 1 minuto. Espera un momento antes de cerrarlo.");
+    }
+
     const now = Date.now();
 
     await ctx.db.patch(args.currentLotId, {

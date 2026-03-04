@@ -20,6 +20,9 @@ export default function ComprasPage() {
 
   const clients =
     useQuery(api.clients.listByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
+  const clientsWithLocation = clients.filter(
+    (c) => typeof c.lat === "number" && typeof c.lng === "number"
+  );
 
   const createClient = useMutation(api.clients.createClient);
   const createPurchase = useMutation(api.purchases.createPurchase);
@@ -29,6 +32,7 @@ export default function ComprasPage() {
   const [taller, setTaller] = useState("");
   const [contactName, setContactName] = useState("");
   const [cedula, setCedula] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   const [marca, setMarca] = useState("");
@@ -83,6 +87,7 @@ export default function ComprasPage() {
         name: taller,
         contactName: contactName || undefined,
         cedula: cedula || undefined,
+        phone: whatsapp || undefined,
         buyerId: dbUser._id,
       });
 
@@ -117,6 +122,7 @@ export default function ComprasPage() {
       setTaller("");
       setContactName("");
       setCedula("");
+      setWhatsapp("");
       setSelectedClientId("");
       setMarca("");
       setModelo("");
@@ -232,11 +238,12 @@ export default function ComprasPage() {
                 value={selectedClientId}
                 onValueChange={(id) => {
                   setSelectedClientId(id);
-                  const c = clients.find((x) => x._id === id);
+                  const c = clientsWithLocation.find((x) => x._id === id);
                   if (c) {
                     setTaller(c.name ?? "");
                     setContactName(c.contactName ?? "");
                     setCedula(c.cedula ?? "");
+                    setWhatsapp(c.phone ?? "");
                   }
                 }}
               >
@@ -244,7 +251,7 @@ export default function ComprasPage() {
                   <SelectValue placeholder="Selecciona un cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((c) => (
+                  {clientsWithLocation.map((c) => (
                     <SelectItem key={c._id} value={c._id}>
                       {c.name}{c.contactName ? ` — ${c.contactName}` : ""}
                     </SelectItem>
@@ -266,6 +273,11 @@ export default function ComprasPage() {
             <div className="grid gap-2">
               <label className="text-sm font-medium">Cédula (opcional)</label>
               <Input value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="CC / NIT" />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">WhatsApp</label>
+              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Ej: 3001234567" />
             </div>
 
             <div className="grid gap-2">

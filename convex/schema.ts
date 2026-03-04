@@ -16,6 +16,7 @@ export default defineSchema({
     contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
     address: v.optional(v.string()),
     lat: v.optional(v.number()),
     lng: v.optional(v.number()),

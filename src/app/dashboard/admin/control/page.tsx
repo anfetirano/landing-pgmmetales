@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -25,6 +25,7 @@ export default function ControlAreaPage() {
   const closeAndOpenNextLot = useMutation(api.lots.closeAndOpenNextLot);
   const [selectedLotId, setSelectedLotId] = useState<Id<"lots"> | null>(null);
   const [closing, setClosing] = useState(false);
+  const closeLockRef = useRef(false);
 
   useEffect(() => {
     if (!selectedLotId && activeLot?._id) {
@@ -55,6 +56,8 @@ export default function ControlAreaPage() {
   const totalInvested = (lotStats?.totalInvested ?? 0) + (supplierStats?.totalPaid ?? 0);
 
   const handleCloseAndOpen = async () => {
+    if (closeLockRef.current || closing) return;
+
     if (!dbUser || dbUser.role !== "admin") {
       alert("No autorizado.");
       return;
@@ -65,10 +68,11 @@ export default function ControlAreaPage() {
     }
 
     const ok = confirm(
-      `Se cerrará el lote #${activeLot.number} y se abrirá el lote #${activeLot.number + 1}.`
+      `¿Está seguro que desea cerrar el lote #${activeLot.number} y abrir el lote #${activeLot.number + 1}?`
     );
     if (!ok) return;
 
+    closeLockRef.current = true;
     setClosing(true);
     try {
       const result = await closeAndOpenNextLot({
@@ -82,6 +86,7 @@ export default function ControlAreaPage() {
       alert("Error cerrando y abriendo lote.");
     } finally {
       setClosing(false);
+      closeLockRef.current = false;
     }
   };
 
