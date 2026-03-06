@@ -70,6 +70,23 @@ Before starting, make sure you have the following installed:
 
 The fastest way to deploy Finwise is on [Vercel](https://vercel.com/). Simply click the "Deploy with Vercel" button at the top of this README, or check the [Next.js deployment docs](https://vercel.com/docs/deployments/deployment-methods) for other deployment options.
 
+## Clerk Custom Domain (Recommended for PWA/App installs)
+
+To reduce dependency on `*.clerk.accounts.dev` in installed app flows:
+
+1. In Clerk Dashboard, add a custom domain (for example `auth.yourdomain.com`).
+2. Create the DNS records requested by Clerk (usually CNAME) and wait until status is active.
+3. In Vercel project env vars (Production/Preview), set:
+   - `NEXT_PUBLIC_CLERK_DOMAIN=auth.yourdomain.com`
+   - `NEXT_PUBLIC_CLERK_PROXY_URL=https://auth.yourdomain.com`
+   - `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
+   - `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+   - `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/dashboard`
+   - `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/dashboard`
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` from your Clerk instance.
+4. Redeploy on Vercel.
+5. On mobile, close and reopen the installed app (or reinstall once) to refresh cached auth/network state.
+
 ---
 
 ## Contributing
