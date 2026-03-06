@@ -12,17 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const formatCop = (value: number) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
+import { formatMoneyByTenant } from "@/lib/currency";
 
 export default function ProveedoresPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
   const activeLot = useQuery(
     api.lots.getActiveLot,
     dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
@@ -159,7 +154,7 @@ export default function ProveedoresPage() {
     if (Number.isNaN(numeric) || numeric <= 0) return alert("Monto inválido.");
 
     const ok = confirm(
-      `Se abrirá una NUEVA base para ${supplierName} por ${formatCop(Math.abs(numeric))}.\n\nNo se borra historial.`
+      `Se abrirá una NUEVA base para ${supplierName} por ${formatMoney(Math.abs(numeric))}.\n\nNo se borra historial.`
     );
     if (!ok) return;
 
@@ -381,9 +376,9 @@ export default function ProveedoresPage() {
               <CardTitle>Saldo de {supplierName}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-              <div>Base + movimientos desde última apertura: {formatCop(balance?.totalFunds ?? 0)}</div>
-              <div>Pagado en ingresos desde última apertura: {formatCop(balance?.totalSpent ?? 0)}</div>
-              <div className="text-lg font-semibold">Saldo actual: {formatCop(balance?.balance ?? 0)}</div>
+              <div>Base + movimientos desde última apertura: {formatMoney(balance?.totalFunds ?? 0)}</div>
+              <div>Pagado en ingresos desde última apertura: {formatMoney(balance?.totalSpent ?? 0)}</div>
+              <div className="text-lg font-semibold">Saldo actual: {formatMoney(balance?.balance ?? 0)}</div>
             </CardContent>
           </Card>
 
@@ -533,7 +528,7 @@ export default function ProveedoresPage() {
                   <div className="flex-1 text-sm">
                     <div className="font-medium">{p.description}</div>
                     <div className="text-xs text-muted-foreground">
-                      {p.type === "pieza" ? "Pieza" : `Suelto · ${p.grams ?? 0} g`} · {formatCop(p.pricePaid)}
+                      {p.type === "pieza" ? "Pieza" : `Suelto · ${p.grams ?? 0} g`} · {formatMoney(p.pricePaid)}
                     </div>
                   </div>
                   <Button
@@ -578,7 +573,7 @@ export default function ProveedoresPage() {
 
                   <div className="flex items-center gap-2">
                     <div className={m.amount >= 0 ? "text-green-700" : "text-red-600"}>
-                      {formatCop(m.amount)}
+                      {formatMoney(m.amount)}
                     </div>
                     <Button
                       type="button"

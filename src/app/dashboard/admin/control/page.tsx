@@ -8,17 +8,12 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const formatCop = (value: number) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
+import { formatMoneyByTenant } from "@/lib/currency";
 
 export default function ControlAreaPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
   const tenantArgs = dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip";
 
   const activeLot = useQuery(api.lots.getActiveLot, tenantArgs);
@@ -245,7 +240,7 @@ export default function ControlAreaPage() {
                 <CardTitle className="text-sm text-muted-foreground">Invertido total</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {formatCop(totalInvested)}
+                {formatMoney(totalInvested)}
               </CardContent>
             </Card>
 
@@ -254,7 +249,7 @@ export default function ControlAreaPage() {
                 <CardTitle className="text-sm text-muted-foreground">Por cobrar proveedores</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {formatCop(supplierFunds?.totalPositive ?? 0)}
+                {formatMoney(supplierFunds?.totalPositive ?? 0)}
               </CardContent>
             </Card>
 
@@ -263,7 +258,7 @@ export default function ControlAreaPage() {
                 <CardTitle className="text-sm text-muted-foreground">Saldo neto proveedores</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {formatCop(supplierFunds?.net ?? 0)}
+                {formatMoney(supplierFunds?.net ?? 0)}
               </CardContent>
             </Card>
           </div>

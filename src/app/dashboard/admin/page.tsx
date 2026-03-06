@@ -10,18 +10,13 @@ import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const formatCop = (value: number) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
+import { formatMoneyByTenant } from "@/lib/currency";
 
 export default function AdminDashboardPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const adminArgs = dbUser && dbUser.role === "admin" ? { adminId: dbUser._id } : "skip";
+  const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
 
   const buyers = useQuery(api.users.listBuyers, adminArgs) ?? [];
   const [selectedBuyerId, setSelectedBuyerId] = useState<Id<"users"> | null>(null);
@@ -99,7 +94,7 @@ export default function AdminDashboardPage() {
 
     const selectedBuyerName = buyers.find((b) => b._id === buyerId)?.name ?? "este comprador";
     const ok = confirm(
-      `Se abrirá una NUEVA base para ${selectedBuyerName} por ${formatCop(
+      `Se abrirá una NUEVA base para ${selectedBuyerName} por ${formatMoney(
         Math.abs(numeric)
       )}.\n\nNo se borra historial.`
     );
@@ -216,12 +211,12 @@ export default function AdminDashboardPage() {
               <CardTitle>Saldo operativo de {buyerName}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-              <div>Base + movimientos desde última apertura: {formatCop(balance?.totalFunds ?? 0)}</div>
+              <div>Base + movimientos desde última apertura: {formatMoney(balance?.totalFunds ?? 0)}</div>
               <div>
-                Gastado aprobado (pagado + comisión): {formatCop(balance?.totalSpent ?? 0)}
+                Gastado aprobado (pagado + comisión): {formatMoney(balance?.totalSpent ?? 0)}
               </div>
-              <div>Pendiente por aprobar: {formatCop(balance?.pendingSpent ?? 0)}</div>
-              <div className="text-lg font-semibold">Saldo actual: {formatCop(balance?.balance ?? 0)}</div>
+              <div>Pendiente por aprobar: {formatMoney(balance?.pendingSpent ?? 0)}</div>
+              <div className="text-lg font-semibold">Saldo actual: {formatMoney(balance?.balance ?? 0)}</div>
             </CardContent>
           </Card>
 
@@ -295,7 +290,7 @@ export default function AdminDashboardPage() {
                   <div className="flex-1 text-sm">
                     <div className="font-medium">{p.brand}</div>
                     <div className="text-xs text-muted-foreground">
-                      {p.type === "pieza" ? "Pieza completa" : "Material suelto"} · {formatCop(p.total ?? 0)}
+                      {p.type === "pieza" ? "Pieza completa" : "Material suelto"} · {formatMoney(p.total ?? 0)}
                     </div>
                   </div>
                   <Button
@@ -346,7 +341,7 @@ export default function AdminDashboardPage() {
                         : "text-red-600"
                     }
                   >
-                    {formatCop(m.amount)}
+                    {formatMoney(m.amount)}
                   </div>
                 </div>
               ))}
@@ -375,8 +370,8 @@ export default function AdminDashboardPage() {
                       Fecha cierre: {closing.date} · Compras: {closing.purchaseIds.length}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Total pagado: {formatCop(closing.totalPaid)} · Comisión:{" "}
-                      {formatCop(closing.totalCommission)} · Total: {formatCop(closing.totalAmount)}
+                      Total pagado: {formatMoney(closing.totalPaid)} · Comisión:{" "}
+                      {formatMoney(closing.totalCommission)} · Total: {formatMoney(closing.totalAmount)}
                     </div>
                   </div>
 

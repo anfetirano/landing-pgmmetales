@@ -7,10 +7,12 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { formatMoneyByTenant } from "@/lib/currency";
 
 export default function CierrePage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
 
   const purchases =
     useQuery(api.purchases.listOpenByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
@@ -116,9 +118,9 @@ export default function CierrePage() {
                 </div>
                 {p.model && <div>Modelo: {p.model}</div>}
                 {p.grams ? <div>Gramos: {p.grams}</div> : null}
-                <div>Pagado: ${p.pricePaid.toLocaleString("es-CO")}</div>
-                <div>Comisión: ${p.commission.toLocaleString("es-CO")}</div>
-                <div>Total: ${(p.total ?? 0).toLocaleString("es-CO")}</div>
+                <div>Pagado: {formatMoney(p.pricePaid)}</div>
+                <div>Comisión: {formatMoney(p.commission)}</div>
+                <div>Total: {formatMoney(p.total ?? 0)}</div>
               </div>
 
               <Button
@@ -138,9 +140,9 @@ export default function CierrePage() {
         <div>Piezas completas: {totals.piezas}</div>
         <div>Material suelto: {totals.suelto}</div>
         <div>Total gramos: {totals.totalGrams}</div>
-        <div>Total pagado: ${totals.totalPaid.toLocaleString("es-CO")}</div>
-        <div>Total comisiones: ${totals.totalCommission.toLocaleString("es-CO")}</div>
-        <div>Total pendiente: ${totals.totalAmount.toLocaleString("es-CO")}</div>
+        <div>Total pagado: {formatMoney(totals.totalPaid)}</div>
+        <div>Total comisiones: {formatMoney(totals.totalCommission)}</div>
+        <div>Total pendiente: {formatMoney(totals.totalAmount)}</div>
       </div>
 
       <Button

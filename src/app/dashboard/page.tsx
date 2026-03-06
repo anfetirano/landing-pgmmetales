@@ -6,17 +6,12 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const formatCop = (value: number) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
+import { formatMoneyByTenant } from "@/lib/currency";
 
 export default function DashboardHome() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
   const buyerId = dbUser?.role === "buyer" ? dbUser._id : undefined;
 
   const purchases =
@@ -62,7 +57,7 @@ export default function DashboardHome() {
             <CardTitle className="text-sm text-muted-foreground">Base asignada</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">
-            {formatCop(balance?.totalFunds ?? 0)}
+            {formatMoney(balance?.totalFunds ?? 0)}
           </CardContent>
         </Card>
         <Card>
@@ -70,7 +65,7 @@ export default function DashboardHome() {
             <CardTitle className="text-sm text-muted-foreground">Gastado aprobado</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">
-            {formatCop(balance?.totalSpent ?? 0)}
+            {formatMoney(balance?.totalSpent ?? 0)}
           </CardContent>
         </Card>
         <Card>
@@ -82,12 +77,12 @@ export default function DashboardHome() {
               (balance?.balance ?? 0) >= 0 ? "text-green-700" : "text-red-600"
             }`}
           >
-            {formatCop(balance?.balance ?? 0)}
+            {formatMoney(balance?.balance ?? 0)}
           </CardContent>
         </Card>
       </div>
       <div className="mt-2 text-xs text-muted-foreground">
-        Pendiente por aprobar: {formatCop(balance?.pendingSpent ?? 0)}
+        Pendiente por aprobar: {formatMoney(balance?.pendingSpent ?? 0)}
       </div>
 
       {/* Tarjetas de resumen de compras */}
@@ -102,13 +97,13 @@ export default function DashboardHome() {
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Total pagado</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold">{formatCop(summary.totalPaid)}</CardContent>
+          <CardContent className="text-2xl font-semibold">{formatMoney(summary.totalPaid)}</CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Total comisiones</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold">{formatCop(summary.totalCommission)}</CardContent>
+          <CardContent className="text-2xl font-semibold">{formatMoney(summary.totalCommission)}</CardContent>
         </Card>
         <Card>
           <CardHeader>
@@ -139,10 +134,10 @@ export default function DashboardHome() {
                   <div className="text-xs text-muted-foreground">
                     {p.model ? `Modelo: ${p.model} · ` : ""}
                     {p.grams ? `Gramos: ${p.grams} · ` : ""}
-                    {formatCop(p.pricePaid)} + {formatCop(p.commission)}
+                    {formatMoney(p.pricePaid)} + {formatMoney(p.commission)}
                   </div>
                 </div>
-                <div className="text-sm font-semibold">{formatCop(p.total ?? 0)}</div>
+                <div className="text-sm font-semibold">{formatMoney(p.total ?? 0)}</div>
               </CardContent>
             </Card>
           ))}
