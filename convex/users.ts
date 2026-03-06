@@ -2,21 +2,31 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { normalizeTenantKey, sameTenantKey, type TenantKey } from "./tenants";
 
+const CO_ADMIN_EMAILS = new Set(["admin@pmgmetales.com"]);
+const CO_BUYER_EMAILS = new Set(["marlen@pmgmetales.com", "kenny@pmgmetales.com"]);
 const PANAMA_ADMIN_EMAILS = new Set(["andres@pmgmetales.com"]);
 const PANAMA_BUYER_EMAILS = new Set([
   "richie@pmgmetales.com",
   "andrescompra@pmgmetales.com",
 ]);
 
-const inferIdentityFromEmail = (email?: string): { role: "admin" | "buyer"; tenantKey: TenantKey } => {
+const inferIdentityFromEmail = (
+  email?: string
+): { role: "admin" | "buyer"; tenantKey: TenantKey } | null => {
   const normalized = (email ?? "").trim().toLowerCase();
+  if (CO_ADMIN_EMAILS.has(normalized)) {
+    return { role: "admin", tenantKey: "co" };
+  }
+  if (CO_BUYER_EMAILS.has(normalized)) {
+    return { role: "buyer", tenantKey: "co" };
+  }
   if (PANAMA_ADMIN_EMAILS.has(normalized)) {
     return { role: "admin", tenantKey: "pa" };
   }
   if (PANAMA_BUYER_EMAILS.has(normalized)) {
     return { role: "buyer", tenantKey: "pa" };
   }
-  return { role: "buyer", tenantKey: "co" };
+  return null;
 };
 
 export const upsertUser = mutation({
@@ -30,6 +40,12 @@ export const upsertUser = mutation({
     city: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const normalizedEmail = args.email?.trim().toLowerCase();
+    const inferred = inferIdentityFromEmail(normalizedEmail);
+    if (normalizedEmail && !inferred) {
+      throw new Error("Usuario no autorizado en esta aplicación.");
+    }
+
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
@@ -37,22 +53,26 @@ export const upsertUser = mutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, {
-        email: args.email?.trim().toLowerCase() || existing.email,
+        email: normalizedEmail || existing.email,
         name: args.name,
-        role: args.role,
-        tenantKey: args.tenantKey ?? existing.tenantKey,
+        role: inferred?.role ?? args.role,
+        tenantKey: inferred?.tenantKey ?? args.tenantKey ?? existing.tenantKey,
         phone: args.phone,
         city: args.city,
       });
       return existing._id;
     }
 
+    if (!inferred) {
+      throw new Error("Usuario no autorizado en esta aplicación.");
+    }
+
     return await ctx.db.insert("users", {
       clerkId: args.clerkId,
-      email: args.email?.trim().toLowerCase(),
+      email: normalizedEmail,
       name: args.name,
-      role: args.role,
-      tenantKey: args.tenantKey,
+      role: inferred.role,
+      tenantKey: inferred.tenantKey,
       phone: args.phone,
       city: args.city,
       active: true,
@@ -74,19 +94,17 @@ export const syncFromClerk = mutation({
 
     const normalizedEmail = args.email?.trim().toLowerCase();
     const inferred = inferIdentityFromEmail(normalizedEmail);
-    const isPanamaAdminEmail = !!normalizedEmail && PANAMA_ADMIN_EMAILS.has(normalizedEmail);
-    const isPanamaMappedEmail =
-      isPanamaAdminEmail || (!!normalizedEmail && PANAMA_BUYER_EMAILS.has(normalizedEmail));
+    if (!inferred) {
+      throw new Error("Usuario no autorizado en esta aplicación.");
+    }
 
     if (existing) {
       const nextName = args.name?.trim() || existing.name;
       await ctx.db.patch(existing._id, {
         name: nextName,
         email: normalizedEmail || existing.email,
-        role: isPanamaAdminEmail ? "admin" : existing.role,
-        tenantKey: isPanamaMappedEmail
-          ? inferred.tenantKey
-          : existing.tenantKey ?? inferred.tenantKey,
+        role: inferred.role,
+        tenantKey: inferred.tenantKey,
       });
       return existing._id;
     }
