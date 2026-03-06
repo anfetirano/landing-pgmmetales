@@ -67,7 +67,7 @@ export default function DashboardHome() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Gastado</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Gastado aprobado</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold">
             {formatCop(balance?.totalSpent ?? 0)}
@@ -85,6 +85,9 @@ export default function DashboardHome() {
             {formatCop(balance?.balance ?? 0)}
           </CardContent>
         </Card>
+      </div>
+      <div className="mt-2 text-xs text-muted-foreground">
+        Pendiente por aprobar: {formatCop(balance?.pendingSpent ?? 0)}
       </div>
 
       {/* Tarjetas de resumen de compras */}

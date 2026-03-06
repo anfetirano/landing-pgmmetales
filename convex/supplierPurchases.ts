@@ -178,17 +178,7 @@ export const getGlobalStats = query({
   },
   handler: async (ctx, args) => {
     const items = await ctx.db.query("supplierPurchases").collect();
-
-    const filtered = (
-      await Promise.all(
-        items.map(async (p) => ({
-          purchase: p,
-          effectiveLotId: await resolveEffectiveLotId(ctx, p.lotId),
-        }))
-      )
-    )
-      .filter((x) => x.effectiveLotId === args.lotId)
-      .map((x) => x.purchase);
+    const filtered = items.filter((p) => p.lotId === args.lotId);
 
     const totalEntries = filtered.length;
     const totalPieces = filtered.filter((p) => p.type === "pieza").length;

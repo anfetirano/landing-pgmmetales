@@ -221,26 +221,51 @@ export const getGlobalFundsStats = query({
     lotId: v.id("lots"),
   },
   handler: async (ctx, args) => {
-    const items = await ctx.db.query("supplierMovements").collect();
+    const suppliers = await ctx.db.query("suppliers").collect();
+    let totalPositive = 0;
+    let totalNegative = 0;
 
-    const filtered = (
-      await Promise.all(
-        items.map(async (m) => ({
-          movement: m,
-          effectiveLotId: await resolveEffectiveLotId(ctx, m.lotId),
-        }))
+    for (const supplier of suppliers) {
+      const movements = await ctx.db
+        .query("supplierMovements")
+        .withIndex("by_supplierId", (q) => q.eq("supplierId", supplier._id))
+        .collect();
+
+      const effectiveMovements = (
+        await Promise.all(
+          movements.map(async (m) => ({
+            movement: m,
+            effectiveLotId: await resolveEffectiveLotId(ctx, m.lotId),
+          }))
+        )
       )
-    )
-      .filter((x) => x.effectiveLotId === args.lotId)
-      .map((x) => x.movement);
+        .filter((x) => x.effectiveLotId === args.lotId)
+        .map((x) => x.movement);
 
-    const totalPositive = filtered
-      .filter((m) => (m.amount ?? 0) > 0)
-      .reduce((s, m) => s + (m.amount ?? 0), 0);
+      const funds = effectiveMovements.reduce((s, m) => s + (m.amount ?? 0), 0);
 
-    const totalNegative = filtered
-      .filter((m) => (m.amount ?? 0) < 0)
-      .reduce((s, m) => s + Math.abs(m.amount ?? 0), 0);
+      const purchases = await ctx.db
+        .query("supplierPurchases")
+        .withIndex("by_supplierId", (q) => q.eq("supplierId", supplier._id))
+        .collect();
+
+      const effectivePurchases = (
+        await Promise.all(
+          purchases.map(async (p) => ({
+            purchase: p,
+            effectiveLotId: await resolveEffectiveLotId(ctx, p.lotId),
+          }))
+        )
+      )
+        .filter((x) => x.effectiveLotId === args.lotId)
+        .map((x) => x.purchase);
+
+      const spent = effectivePurchases.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
+      const balance = funds - spent;
+
+      if (balance > 0) totalPositive += balance;
+      if (balance < 0) totalNegative += Math.abs(balance);
+    }
 
     return {
       totalPositive,

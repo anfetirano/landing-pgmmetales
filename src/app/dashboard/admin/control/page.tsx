@@ -207,7 +207,7 @@ export default function ControlAreaPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Base entregada proveedores</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">Por cobrar proveedores</CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
                 {formatCop(supplierFunds?.totalPositive ?? 0)}

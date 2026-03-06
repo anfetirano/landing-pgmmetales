@@ -77,21 +77,48 @@ export const getBalanceByBuyer = query({
     const effectiveMovements = movements.filter((m) => (m.createdAt ?? 0) >= lastOpeningAt);
     const totalFunds = effectiveMovements.reduce((s, m) => s + (m.amount ?? 0), 0);
 
+    const closings = await ctx.db
+      .query("dayClosings")
+      .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
+      .collect();
+
+    const effectiveClosings = closings.filter((c) => (c.createdAt ?? 0) >= lastOpeningAt);
+    const receivedClosingIds = new Set(
+      effectiveClosings.filter((c) => c.status === "received").map((c) => c._id)
+    );
+    const pendingClosingIds = new Set(
+      effectiveClosings.filter((c) => c.status === "pending").map((c) => c._id)
+    );
+
     const purchases = await ctx.db
       .query("purchases")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
 
     const effectivePurchases = purchases.filter((p) => (p.createdAt ?? 0) >= lastOpeningAt);
-    const totalSpent = effectivePurchases.reduce(
-      (s, p) => s + (p.pricePaid ?? 0) + (p.commission ?? 0),
-      0
-    );
+    let approvedSpent = 0;
+    let pendingSpent = 0;
+
+    for (const purchase of effectivePurchases) {
+      const amount = (purchase.pricePaid ?? 0) + (purchase.commission ?? 0);
+
+      if (purchase.closingId && receivedClosingIds.has(purchase.closingId)) {
+        approvedSpent += amount;
+      } else if (
+        !purchase.closingId ||
+        pendingClosingIds.has(purchase.closingId) ||
+        !receivedClosingIds.has(purchase.closingId)
+      ) {
+        pendingSpent += amount;
+      }
+    }
 
     return {
       totalFunds,
-      totalSpent,
-      balance: totalFunds - totalSpent,
+      totalSpent: approvedSpent,
+      pendingSpent,
+      balance: totalFunds - approvedSpent,
+      projectedBalance: totalFunds - approvedSpent - pendingSpent,
       lastOpeningAt,
     };
   },

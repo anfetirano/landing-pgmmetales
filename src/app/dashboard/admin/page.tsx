@@ -38,16 +38,19 @@ export default function AdminDashboardPage() {
     api.purchases.listLatestByBuyer,
     buyerId ? { buyerId, limit: 1000 } : "skip"
   ) ?? [];
+  const pendingClosings = useQuery(api.closings.listPending) ?? [];
 
   const addMovement = useMutation(api.cashMovements.addMovement);
   const openBase = useMutation(api.cashMovements.openBase);
   const deletePurchaseAsAdmin = useMutation(api.purchases.deletePurchaseAsAdmin);
+  const receiveClosing = useMutation(api.closings.receiveClosing);
 
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
+  const [approvingClosingId, setApprovingClosingId] = useState<string | null>(null);
 
   const sortedMovements = useMemo(
     () => [...movements].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
@@ -140,6 +143,26 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleApproveClosing = async (closingId: Id<"dayClosings">) => {
+    if (!dbUser) return alert("Usuario no registrado.");
+    const ok = confirm("¿Aprobar este cierre?");
+    if (!ok) return;
+
+    setApprovingClosingId(closingId);
+    try {
+      await receiveClosing({
+        closingId,
+        adminId: dbUser._id,
+      });
+      alert("Cierre aprobado.");
+    } catch (e) {
+      console.error(e);
+      alert("Error aprobando cierre.");
+    } finally {
+      setApprovingClosingId(null);
+    }
+  };
+
   if (!dbUser) {
     return <div className="max-w-6xl">Cargando...</div>;
   }
@@ -194,8 +217,9 @@ export default function AdminDashboardPage() {
             <CardContent className="grid gap-2 text-sm">
               <div>Base + movimientos desde última apertura: {formatCop(balance?.totalFunds ?? 0)}</div>
               <div>
-                Gastado (pagado + comisión) desde última apertura: {formatCop(balance?.totalSpent ?? 0)}
+                Gastado aprobado (pagado + comisión): {formatCop(balance?.totalSpent ?? 0)}
               </div>
+              <div>Pendiente por aprobar: {formatCop(balance?.pendingSpent ?? 0)}</div>
               <div className="text-lg font-semibold">Saldo actual: {formatCop(balance?.balance ?? 0)}</div>
             </CardContent>
           </Card>
@@ -323,6 +347,46 @@ export default function AdminDashboardPage() {
                   >
                     {formatCop(m.amount)}
                   </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cierres pendientes (aprobación admin)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              {pendingClosings.length === 0 && (
+                <div className="text-muted-foreground">No hay cierres pendientes.</div>
+              )}
+
+              {pendingClosings.map((closing) => (
+                <div
+                  key={closing._id}
+                  className="flex flex-col gap-2 rounded-md border p-3 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="grid gap-1">
+                    <div className="font-medium">
+                      {closing.buyerName} · Lote #{closing.lotNumber ?? "-"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Fecha cierre: {closing.date} · Compras: {closing.purchaseIds.length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Total pagado: {formatCop(closing.totalPaid)} · Comisión:{" "}
+                      {formatCop(closing.totalCommission)} · Total: {formatCop(closing.totalAmount)}
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    className="bg-[#234c4b] text-white hover:bg-[#1e3f3e] md:w-auto"
+                    onClick={() => handleApproveClosing(closing._id)}
+                    disabled={approvingClosingId === closing._id}
+                  >
+                    {approvingClosingId === closing._id ? "Aprobando..." : "Aprobar cierre"}
+                  </Button>
                 </div>
               ))}
             </CardContent>
