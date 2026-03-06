@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const addMovement = mutation({
   args: {
@@ -10,6 +11,16 @@ export const addMovement = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    const actor = await ctx.db.get(args.createdBy);
+    if (!buyer || !actor) {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+    if (!sameTenantKey(actor.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
+
     const normalizedAmount =
       args.type === "fund" ? Math.abs(args.amount) : -Math.abs(args.amount);
 
@@ -20,6 +31,7 @@ export const addMovement = mutation({
       notes: args.notes,
       createdAt: Date.now(),
       createdBy: args.createdBy,
+      tenantKey,
     });
   },
 });
@@ -36,6 +48,12 @@ export const openBase = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede abrir una base.");
     }
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) throw new Error("Comprador no encontrado.");
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+    if (!sameTenantKey(buyer.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
 
     const baseAmount = Math.abs(args.amount);
     if (!baseAmount) throw new Error("Monto inválido.");
@@ -47,6 +65,7 @@ export const openBase = mutation({
       notes: args.notes ?? "Apertura de base",
       createdAt: Date.now(),
       createdBy: args.createdBy,
+      tenantKey,
     });
   },
 });
@@ -54,20 +73,39 @@ export const openBase = mutation({
 export const listByBuyer = query({
   args: { buyerId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) return [];
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
+    const items = await ctx.db
       .query("cashMovements")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
+
+    return items.filter((m) => sameTenantKey(m.tenantKey, tenantKey));
   },
 });
 
 export const getBalanceByBuyer = query({
   args: { buyerId: v.id("users") },
   handler: async (ctx, args) => {
-    const movements = await ctx.db
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) {
+      return {
+        totalFunds: 0,
+        totalSpent: 0,
+        pendingSpent: 0,
+        balance: 0,
+        projectedBalance: 0,
+        lastOpeningAt: 0,
+      };
+    }
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
+    const movements = (await ctx.db
       .query("cashMovements")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
-      .collect();
+      .collect()).filter((m) => sameTenantKey(m.tenantKey, tenantKey));
 
     // Compatibilidad: corte por "opening" nuevo o "reset" histórico.
     const lastOpeningAt = movements
@@ -82,7 +120,9 @@ export const getBalanceByBuyer = query({
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
 
-    const effectiveClosings = closings.filter((c) => (c.createdAt ?? 0) >= lastOpeningAt);
+    const effectiveClosings = closings.filter(
+      (c) => (c.createdAt ?? 0) >= lastOpeningAt && sameTenantKey(c.tenantKey, tenantKey)
+    );
     const receivedClosingIds = new Set(
       effectiveClosings.filter((c) => c.status === "received").map((c) => c._id)
     );
@@ -95,7 +135,9 @@ export const getBalanceByBuyer = query({
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
 
-    const effectivePurchases = purchases.filter((p) => (p.createdAt ?? 0) >= lastOpeningAt);
+    const effectivePurchases = purchases.filter(
+      (p) => (p.createdAt ?? 0) >= lastOpeningAt && sameTenantKey(p.tenantKey, tenantKey)
+    );
     let approvedSpent = 0;
     let pendingSpent = 0;
 

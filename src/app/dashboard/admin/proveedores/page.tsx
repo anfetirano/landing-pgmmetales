@@ -23,9 +23,16 @@ const formatCop = (value: number) =>
 export default function ProveedoresPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
-  const activeLot = useQuery(api.lots.getActiveLot);
+  const activeLot = useQuery(
+    api.lots.getActiveLot,
+    dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
+  );
 
-  const suppliers = useQuery(api.suppliers.listSuppliers) ?? [];
+  const suppliers =
+    useQuery(
+      api.suppliers.listSuppliers,
+      dbUser && dbUser.role === "admin" ? { adminId: dbUser._id } : "skip"
+    ) ?? [];
   const [selectedSupplierId, setSelectedSupplierId] = useState<Id<"suppliers"> | null>(null);
 
   const supplierId: Id<"suppliers"> | null = selectedSupplierId ?? suppliers[0]?._id ?? null;

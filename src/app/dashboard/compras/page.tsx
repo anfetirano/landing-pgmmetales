@@ -16,7 +16,10 @@ export default function ComprasPage() {
   const { user } = useUser();
 
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
-  const activeLot = useQuery(api.lots.getActiveLot);
+  const activeLot = useQuery(
+    api.lots.getActiveLot,
+    dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
+  );
 
   const clients =
     useQuery(api.clients.listByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];

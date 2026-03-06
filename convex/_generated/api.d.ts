@@ -17,6 +17,7 @@ import type * as storage from "../storage.js";
 import type * as supplierMovements from "../supplierMovements.js";
 import type * as supplierPurchases from "../supplierPurchases.js";
 import type * as suppliers from "../suppliers.js";
+import type * as tenants from "../tenants.js";
 import type * as users from "../users.js";
 
 import type {
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   supplierMovements: typeof supplierMovements;
   supplierPurchases: typeof supplierPurchases;
   suppliers: typeof suppliers;
+  tenants: typeof tenants;
   users: typeof users;
 }>;
 

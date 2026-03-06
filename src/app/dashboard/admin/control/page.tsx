@@ -19,12 +19,15 @@ const formatCop = (value: number) =>
 export default function ControlAreaPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const tenantArgs = dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip";
 
-  const activeLot = useQuery(api.lots.getActiveLot);
-  const lots = useQuery(api.lots.listAllLots) ?? [];
+  const activeLot = useQuery(api.lots.getActiveLot, tenantArgs);
+  const lots = useQuery(api.lots.listAllLots, tenantArgs) ?? [];
+  const createLot = useMutation(api.lots.createLot);
   const closeAndOpenNextLot = useMutation(api.lots.closeAndOpenNextLot);
   const [selectedLotId, setSelectedLotId] = useState<Id<"lots"> | null>(null);
   const [closing, setClosing] = useState(false);
+  const [openingFirstLot, setOpeningFirstLot] = useState(false);
   const closeLockRef = useRef(false);
 
   useEffect(() => {
@@ -43,17 +46,46 @@ export default function ControlAreaPage() {
 
   const supplierStats = useQuery(
     api.supplierPurchases.getGlobalStats,
-    viewingLotId ? { lotId: viewingLotId } : "skip"
+    viewingLotId && dbUser?.role === "admin"
+      ? { lotId: viewingLotId, adminId: dbUser._id }
+      : "skip"
   );
   const supplierFunds = useQuery(
     api.supplierMovements.getGlobalFundsStats,
-    viewingLotId ? { lotId: viewingLotId } : "skip"
+    viewingLotId && dbUser?.role === "admin"
+      ? { lotId: viewingLotId, adminId: dbUser._id }
+      : "skip"
   );
 
   const totalPieces = (lotStats?.totalPieces ?? 0) + (supplierStats?.totalPieces ?? 0);
   const totalGrams = (lotStats?.totalGrams ?? 0) + (supplierStats?.totalGrams ?? 0);
   const totalKilos = totalGrams / 1000;
   const totalInvested = (lotStats?.totalInvested ?? 0) + (supplierStats?.totalPaid ?? 0);
+
+  const handleOpenFirstLot = async () => {
+    if (!dbUser || dbUser.role !== "admin") {
+      alert("No autorizado.");
+      return;
+    }
+    if (openingFirstLot) return;
+
+    const nextNumber = (lots[0]?.number ?? 0) + 1;
+    setOpeningFirstLot(true);
+    try {
+      const lotId = await createLot({
+        adminId: dbUser._id,
+        number: nextNumber,
+        notes: "Apertura inicial",
+      });
+      setSelectedLotId(lotId);
+      alert(`Lote #${nextNumber} abierto.`);
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo abrir el lote.");
+    } finally {
+      setOpeningFirstLot(false);
+    }
+  };
 
   const handleCloseAndOpen = async () => {
     if (closeLockRef.current || closing) return;
@@ -99,8 +131,20 @@ export default function ControlAreaPage() {
 
       {!activeLot?._id && (
         <Card className="mt-6">
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            No hay lote activo en este momento.
+          <CardContent className="py-6 text-sm text-muted-foreground grid gap-3">
+            <div>No hay lote activo en este momento.</div>
+            {dbUser?.role === "admin" && (
+              <Button
+                type="button"
+                className="w-fit bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                onClick={handleOpenFirstLot}
+                disabled={openingFirstLot}
+              >
+                {openingFirstLot
+                  ? "Abriendo lote..."
+                  : `Abrir lote #${(lots[0]?.number ?? 0) + 1}`}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const createClient = mutation({
   args: {
@@ -14,20 +15,35 @@ export const createClient = mutation({
     buyerId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("clients", args);
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) {
+      throw new Error("Comprador no encontrado.");
+    }
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
+    return await ctx.db.insert("clients", {
+      ...args,
+      tenantKey,
+    });
   },
 });
 
 export const listByBuyer = query({
   args: { buyerId: v.id("users") },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) return [];
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
     const items = await ctx.db
       .query("clients")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
 
     return await Promise.all(
-      items.map(async (c) => ({
+      items
+        .filter((c) => sameTenantKey(c.tenantKey, tenantKey))
+        .map(async (c) => ({
         ...c,
         photoUrl: c.photoId ? await ctx.storage.getUrl(c.photoId) : null,
       }))
@@ -42,11 +58,12 @@ export const listAllForAdmin = query({
     if (!admin || admin.role !== "admin") {
       throw new Error("No autorizado.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const items = await ctx.db.query("clients").collect();
 
     return await Promise.all(
-      items.map(async (c) => {
+      items.filter((c) => sameTenantKey(c.tenantKey, tenantKey)).map(async (c) => {
         const buyer = await ctx.db.get(c.buyerId);
         return {
           ...c,
@@ -110,10 +127,14 @@ export const updateClientAsAdmin = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("No autorizado.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const existing = await ctx.db.get(args.clientId);
     if (!existing) {
       throw new Error("Cliente no encontrado.");
+    }
+    if (!sameTenantKey(existing.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
     if (!args.name.trim()) {
       throw new Error("El nombre del cliente es obligatorio.");

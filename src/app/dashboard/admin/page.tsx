@@ -21,8 +21,9 @@ const formatCop = (value: number) =>
 export default function AdminDashboardPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const adminArgs = dbUser && dbUser.role === "admin" ? { adminId: dbUser._id } : "skip";
 
-  const buyers = useQuery(api.users.listBuyers) ?? [];
+  const buyers = useQuery(api.users.listBuyers, adminArgs) ?? [];
   const [selectedBuyerId, setSelectedBuyerId] = useState<Id<"users"> | null>(null);
   const [showAllPurchases, setShowAllPurchases] = useState(false);
 
@@ -38,7 +39,7 @@ export default function AdminDashboardPage() {
     api.purchases.listLatestByBuyer,
     buyerId ? { buyerId, limit: 1000 } : "skip"
   ) ?? [];
-  const pendingClosings = useQuery(api.closings.listPending) ?? [];
+  const pendingClosings = useQuery(api.closings.listPending, adminArgs) ?? [];
 
   const addMovement = useMutation(api.cashMovements.addMovement);
   const openBase = useMutation(api.cashMovements.openBase);

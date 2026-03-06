@@ -17,7 +17,10 @@ export default function CierrePage() {
 
   const createClosing = useMutation(api.closings.createClosing);
   const deleteOpenPurchase = useMutation(api.purchases.deleteOpenPurchase);
-  const activeLot = useQuery(api.lots.getActiveLot);
+  const activeLot = useQuery(
+    api.lots.getActiveLot,
+    dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
+  );
 
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);

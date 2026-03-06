@@ -1,17 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
-const resolveEffectiveLotId = async (
-  ctx: any,
-  explicitLotId: string | undefined
-) => {
-  if (explicitLotId) return explicitLotId;
-  const activeLot = await ctx.db
-    .query("lots")
-    .withIndex("by_status", (q: any) => q.eq("status", "open"))
-    .unique();
-  return activeLot?._id;
-};
+const resolveEffectiveLotId = (explicitLotId: string | undefined, fallbackLotId: string) =>
+  explicitLotId ?? fallbackLotId;
 
 export const createPurchase = mutation({
   args: {
@@ -31,15 +23,22 @@ export const createPurchase = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede registrar ingresos.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const supplier = await ctx.db.get(args.supplierId);
     if (!supplier) {
       throw new Error("Proveedor no encontrado.");
     }
+    if (!sameTenantKey(supplier.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
 
     const lot = await ctx.db.get(args.lotId);
     if (!lot || lot.status !== "open") {
       throw new Error("Lote activo no válido.");
+    }
+    if (!sameTenantKey(lot.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
 
     if (!args.description.trim()) {
@@ -61,6 +60,7 @@ export const createPurchase = mutation({
       photoId: args.photoId,
       createdAt: Date.now(),
       createdBy: args.createdBy,
+      tenantKey,
     });
   },
 });
@@ -82,10 +82,14 @@ export const updatePurchase = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede editar ingresos.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const existing = await ctx.db.get(args.purchaseId);
     if (!existing) {
       throw new Error("Ingreso no encontrado.");
+    }
+    if (!sameTenantKey(existing.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
 
     if (!args.description.trim()) {
@@ -107,6 +111,7 @@ export const updatePurchase = mutation({
       pricePaid: args.pricePaid,
       notes: args.notes?.trim(),
       photoId: args.photoId,
+      tenantKey,
     });
 
     return { ok: true };
@@ -123,10 +128,14 @@ export const deletePurchase = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede eliminar ingresos.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const purchase = await ctx.db.get(args.purchaseId);
     if (!purchase) {
       throw new Error("Ingreso no encontrado.");
+    }
+    if (!sameTenantKey(purchase.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
 
     if (purchase.photoId) {
@@ -150,12 +159,10 @@ export const listBySupplier = query({
       .collect();
 
     const sorted = (
-      await Promise.all(
-        items.map(async (p) => ({
-          purchase: p,
-          effectiveLotId: await resolveEffectiveLotId(ctx, p.lotId),
-        }))
-      )
+      items.map((p) => ({
+        purchase: p,
+        effectiveLotId: resolveEffectiveLotId(p.lotId, args.lotId),
+      }))
     )
       .filter((x) => x.effectiveLotId === args.lotId)
       .map((x) => x.purchase)
@@ -175,10 +182,23 @@ export const listBySupplier = query({
 export const getGlobalStats = query({
   args: {
     lotId: v.id("lots"),
+    adminId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+    const lot = await ctx.db.get(args.lotId);
+    if (!lot || !sameTenantKey(lot.tenantKey, tenantKey)) {
+      throw new Error("Lote no autorizado.");
+    }
+
     const items = await ctx.db.query("supplierPurchases").collect();
-    const filtered = items.filter((p) => p.lotId === args.lotId);
+    const filtered = items.filter(
+      (p) => p.lotId === args.lotId && sameTenantKey(p.tenantKey, tenantKey)
+    );
 
     const totalEntries = filtered.length;
     const totalPieces = filtered.filter((p) => p.type === "pieza").length;

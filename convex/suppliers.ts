@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const createSupplier = mutation({
   args: {
@@ -15,6 +16,7 @@ export const createSupplier = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede crear proveedores.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     if (!args.name.trim()) {
       throw new Error("El nombre es obligatorio.");
@@ -29,14 +31,22 @@ export const createSupplier = mutation({
       active: true,
       createdAt: Date.now(),
       createdBy: args.createdBy,
+      tenantKey,
     });
   },
 });
 
 export const listSuppliers = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { adminId: v.id("users") },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
     const items = await ctx.db.query("suppliers").collect();
-    return items.sort((a, b) => a.name.localeCompare(b.name));
+    return items
+      .filter((supplier) => sameTenantKey(supplier.tenantKey, tenantKey))
+      .sort((a, b) => a.name.localeCompare(b.name));
   },
 });

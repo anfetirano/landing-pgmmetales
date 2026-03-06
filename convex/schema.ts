@@ -4,8 +4,10 @@ import { v } from "convex/values";
 export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
+    email: v.optional(v.string()),
     name: v.string(),
     role: v.union(v.literal("buyer"), v.literal("admin")),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
     phone: v.optional(v.string()),
     city: v.optional(v.string()),
     active: v.optional(v.boolean()),
@@ -21,6 +23,7 @@ export default defineSchema({
     lat: v.optional(v.number()),
     lng: v.optional(v.number()),
     buyerId: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   }).index("by_buyerId", ["buyerId"]),
 
   lots: defineTable({
@@ -31,6 +34,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     refineryResult: v.optional(v.number()),
     profit: v.optional(v.number()),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   }).index("by_status", ["status"]),
 
   purchases: defineTable({
@@ -53,6 +57,7 @@ export default defineSchema({
     closingId: v.optional(v.id("dayClosings")),
     closedAt: v.optional(v.number()),
     createdAt: v.number(),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_buyerId", ["buyerId"])
     .index("by_clientId", ["clientId"])
@@ -74,6 +79,7 @@ export default defineSchema({
     receivedBy: v.optional(v.id("users")),
     notes: v.optional(v.string()),
     createdAt: v.number(),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   }).index("by_buyerId", ["buyerId"]),
 
   cashMovements: defineTable({
@@ -89,6 +95,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_buyerId", ["buyerId"])
     .index("by_createdAt", ["createdAt"]),
@@ -104,6 +111,7 @@ export default defineSchema({
     active: v.optional(v.boolean()),
     createdAt: v.number(),
     createdBy: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_name", ["name"])
     .index("by_active", ["active"]),
@@ -123,6 +131,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     createdAt: v.number(),
     createdBy: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_supplierId", ["supplierId"])
     .index("by_lotId", ["lotId"])
@@ -143,6 +152,7 @@ export default defineSchema({
 
     createdAt: v.number(),
     createdBy: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_supplierId", ["supplierId"])
     .index("by_lotId", ["lotId"])

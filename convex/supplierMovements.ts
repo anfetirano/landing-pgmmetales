@@ -1,17 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
-const resolveEffectiveLotId = async (
-  ctx: any,
-  explicitLotId: string | undefined
-) => {
-  if (explicitLotId) return explicitLotId;
-  const activeLot = await ctx.db
-    .query("lots")
-    .withIndex("by_status", (q: any) => q.eq("status", "open"))
-    .unique();
-  return activeLot?._id;
-};
+const resolveEffectiveLotId = (explicitLotId: string | undefined, fallbackLotId: string) =>
+  explicitLotId ?? fallbackLotId;
 
 export const addMovement = mutation({
   args: {
@@ -27,15 +19,22 @@ export const addMovement = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede registrar movimientos.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const supplier = await ctx.db.get(args.supplierId);
     if (!supplier) {
       throw new Error("Proveedor no encontrado.");
     }
+    if (!sameTenantKey(supplier.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
 
     const lot = await ctx.db.get(args.lotId);
     if (!lot || lot.status !== "open") {
       throw new Error("Lote activo no válido.");
+    }
+    if (!sameTenantKey(lot.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
 
     const normalizedAmount =
@@ -49,6 +48,7 @@ export const addMovement = mutation({
       notes: args.notes,
       createdAt: Date.now(),
       createdBy: args.createdBy,
+      tenantKey,
     });
   },
 });
@@ -66,15 +66,22 @@ export const openBase = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede abrir base.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const supplier = await ctx.db.get(args.supplierId);
     if (!supplier) {
       throw new Error("Proveedor no encontrado.");
     }
+    if (!sameTenantKey(supplier.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
 
     const lot = await ctx.db.get(args.lotId);
     if (!lot || lot.status !== "open") {
       throw new Error("Lote activo no válido.");
+    }
+    if (!sameTenantKey(lot.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
 
     const baseAmount = Math.abs(args.amount);
@@ -90,6 +97,7 @@ export const openBase = mutation({
       notes: args.notes ?? "Apertura de base",
       createdAt: Date.now(),
       createdBy: args.createdBy,
+      tenantKey,
     });
   },
 });
@@ -104,10 +112,14 @@ export const deleteMovement = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede eliminar movimientos.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const movement = await ctx.db.get(args.movementId);
     if (!movement) {
       throw new Error("Movimiento no encontrado.");
+    }
+    if (!sameTenantKey(movement.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
 
     await ctx.db.delete(args.movementId);
@@ -124,8 +136,17 @@ export const createCarryoverMovement = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.createdBy);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+
     const supplier = await ctx.db.get(args.supplierId);
     if (!supplier) throw new Error("Proveedor no encontrado.");
+    if (!sameTenantKey(supplier.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
 
     if (args.amount <= 0) return null;
 
@@ -137,6 +158,7 @@ export const createCarryoverMovement = mutation({
       notes: args.notes ?? "Saldo arrastrado lote anterior",
       createdAt: Date.now(),
       createdBy: args.createdBy,
+      tenantKey,
     });
   },
 });
@@ -152,12 +174,10 @@ export const listBySupplier = query({
       .withIndex("by_supplierId", (q) => q.eq("supplierId", args.supplierId))
       .collect();
 
-    const withEffectiveLot = await Promise.all(
-      items.map(async (m) => ({
+    const withEffectiveLot = items.map((m) => ({
         movement: m,
-        effectiveLotId: await resolveEffectiveLotId(ctx, m.lotId),
-      }))
-    );
+        effectiveLotId: resolveEffectiveLotId(m.lotId, args.lotId),
+      }));
 
     return withEffectiveLot
       .filter((x) => x.effectiveLotId === args.lotId)
@@ -177,14 +197,11 @@ export const getBalanceBySupplier = query({
       .withIndex("by_supplierId", (q) => q.eq("supplierId", args.supplierId))
       .collect();
 
-    const effectiveMovements = (
-      await Promise.all(
-        movements.map(async (m) => ({
+    const effectiveMovements = movements
+        .map((m) => ({
           movement: m,
-          effectiveLotId: await resolveEffectiveLotId(ctx, m.lotId),
+          effectiveLotId: resolveEffectiveLotId(m.lotId, args.lotId),
         }))
-      )
-    )
       .filter((x) => x.effectiveLotId === args.lotId)
       .map((x) => x.movement);
 
@@ -195,14 +212,11 @@ export const getBalanceBySupplier = query({
       .withIndex("by_supplierId", (q) => q.eq("supplierId", args.supplierId))
       .collect();
 
-    const effectivePurchases = (
-      await Promise.all(
-        purchases.map(async (p) => ({
+    const effectivePurchases = purchases
+        .map((p) => ({
           purchase: p,
-          effectiveLotId: await resolveEffectiveLotId(ctx, p.lotId),
+          effectiveLotId: resolveEffectiveLotId(p.lotId, args.lotId),
         }))
-      )
-    )
       .filter((x) => x.effectiveLotId === args.lotId)
       .map((x) => x.purchase);
 
@@ -219,27 +233,36 @@ export const getBalanceBySupplier = query({
 export const getGlobalFundsStats = query({
   args: {
     lotId: v.id("lots"),
+    adminId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+    const lot = await ctx.db.get(args.lotId);
+    if (!lot || !sameTenantKey(lot.tenantKey, tenantKey)) {
+      throw new Error("Lote no autorizado.");
+    }
+
     const suppliers = await ctx.db.query("suppliers").collect();
     let totalPositive = 0;
     let totalNegative = 0;
 
-    for (const supplier of suppliers) {
+    for (const supplier of suppliers.filter((s) => sameTenantKey(s.tenantKey, tenantKey))) {
       const movements = await ctx.db
         .query("supplierMovements")
         .withIndex("by_supplierId", (q) => q.eq("supplierId", supplier._id))
         .collect();
 
-      const effectiveMovements = (
-        await Promise.all(
-          movements.map(async (m) => ({
+      const effectiveMovements = movements
+          .map((m) => ({
             movement: m,
-            effectiveLotId: await resolveEffectiveLotId(ctx, m.lotId),
+            effectiveLotId: resolveEffectiveLotId(m.lotId, args.lotId),
           }))
-        )
-      )
         .filter((x) => x.effectiveLotId === args.lotId)
+        .filter((x) => sameTenantKey(x.movement.tenantKey, tenantKey))
         .map((x) => x.movement);
 
       const funds = effectiveMovements.reduce((s, m) => s + (m.amount ?? 0), 0);
@@ -249,15 +272,13 @@ export const getGlobalFundsStats = query({
         .withIndex("by_supplierId", (q) => q.eq("supplierId", supplier._id))
         .collect();
 
-      const effectivePurchases = (
-        await Promise.all(
-          purchases.map(async (p) => ({
+      const effectivePurchases = purchases
+          .map((p) => ({
             purchase: p,
-            effectiveLotId: await resolveEffectiveLotId(ctx, p.lotId),
+            effectiveLotId: resolveEffectiveLotId(p.lotId, args.lotId),
           }))
-        )
-      )
         .filter((x) => x.effectiveLotId === args.lotId)
+        .filter((x) => sameTenantKey(x.purchase.tenantKey, tenantKey))
         .map((x) => x.purchase);
 
       const spent = effectivePurchases.reduce((s, p) => s + (p.pricePaid ?? 0), 0);

@@ -1,35 +1,51 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const getActiveLot = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db
+  args: { tenantKey: v.union(v.literal("co"), v.literal("pa")) },
+  handler: async (ctx, args) => {
+    const openLots = await ctx.db
       .query("lots")
       .withIndex("by_status", (q) => q.eq("status", "open"))
-      .unique();
+      .collect();
+
+    return openLots
+      .filter((lot) => sameTenantKey(lot.tenantKey, args.tenantKey))
+      .sort((a, b) => b.number - a.number)[0] ?? null;
   },
 });
 
 export const listAllLots = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { tenantKey: v.union(v.literal("co"), v.literal("pa")) },
+  handler: async (ctx, args) => {
     const lots = await ctx.db.query("lots").collect();
-    return lots.sort((a, b) => b.number - a.number);
+    return lots
+      .filter((lot) => sameTenantKey(lot.tenantKey, args.tenantKey))
+      .sort((a, b) => b.number - a.number);
   },
 });
 
 export const createLot = mutation({
   args: {
+    adminId: v.id("users"),
     number: v.number(),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Solo el administrador puede abrir lotes.");
+    }
+
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+
     return await ctx.db.insert("lots", {
       number: args.number,
       status: "open",
       openedAt: Date.now(),
       notes: args.notes,
+      tenantKey,
     });
   },
 });
@@ -63,10 +79,14 @@ export const closeAndOpenNextLot = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede cerrar y abrir lote.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const currentLot = await ctx.db.get(args.currentLotId);
     if (!currentLot) throw new Error("Lote actual no encontrado.");
     if (currentLot.status !== "open") throw new Error("El lote actual ya está cerrado.");
+    if (!sameTenantKey(currentLot.tenantKey, tenantKey)) {
+      throw new Error("No autorizado para cerrar este lote.");
+    }
 
     // Protección anti doble clic/cierre encadenado accidental:
     // evita cerrar un lote que acaba de abrirse hace segundos.
@@ -90,12 +110,13 @@ export const closeAndOpenNextLot = mutation({
       status: "open",
       openedAt: now,
       notes: `Apertura automática desde lote #${currentLot.number}`,
+      tenantKey,
     });
 
     const suppliers = await ctx.db.query("suppliers").collect();
     let carriedSuppliers = 0;
 
-    for (const supplier of suppliers) {
+    for (const supplier of suppliers.filter((s) => sameTenantKey(s.tenantKey, tenantKey))) {
       const movements = await ctx.db
         .query("supplierMovements")
         .withIndex("by_supplierId", (q) => q.eq("supplierId", supplier._id))
@@ -128,6 +149,7 @@ export const closeAndOpenNextLot = mutation({
           notes: `Saldo arrastrado desde lote #${currentLot.number}`,
           createdAt: now,
           createdBy: args.adminId,
+          tenantKey,
         });
         carriedSuppliers += 1;
       }

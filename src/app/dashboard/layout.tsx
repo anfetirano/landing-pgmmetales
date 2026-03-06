@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { usePathname, useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -110,6 +110,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const pathname = usePathname();
   const router = useRouter();
+  const syncFromClerk = useMutation(api.users.syncFromClerk);
 
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const role = dbUser?.role;
@@ -118,6 +119,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    syncFromClerk({
+      clerkId: user.id,
+      email: user.primaryEmailAddress?.emailAddress,
+      name: user.fullName ?? undefined,
+    }).catch((error) => {
+      console.error("Error sincronizando usuario con Convex", error);
+    });
+  }, [syncFromClerk, user?.fullName, user?.id, user?.primaryEmailAddress?.emailAddress]);
 
   useEffect(() => {
     if (role === "admin" && pathname === "/dashboard") {

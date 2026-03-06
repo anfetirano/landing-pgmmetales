@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const createPurchase = mutation({
   args: {
@@ -16,12 +17,29 @@ export const createPurchase = mutation({
     photoId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) throw new Error("Comprador no encontrado.");
+    const client = await ctx.db.get(args.clientId);
+    if (!client) throw new Error("Cliente no encontrado.");
+    const lot = await ctx.db.get(args.lotId);
+    if (!lot || lot.status !== "open") throw new Error("Lote no válido.");
+
+    if (client.buyerId !== args.buyerId) {
+      throw new Error("Cliente no corresponde al comprador.");
+    }
+
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+    if (!sameTenantKey(client.tenantKey, tenantKey) || !sameTenantKey(lot.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
+
     const total = args.pricePaid + args.commission;
     return await ctx.db.insert("purchases", {
       ...args,
       total,
       status: "open",
       createdAt: Date.now(),
+      tenantKey,
     });
   },
 });
@@ -32,9 +50,14 @@ export const deleteOpenPurchase = mutation({
     buyerId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) throw new Error("No autorizado.");
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
     const purchase = await ctx.db.get(args.purchaseId);
     if (!purchase) throw new Error("Compra no encontrada.");
     if (purchase.buyerId !== args.buyerId) throw new Error("No autorizado.");
+    if (!sameTenantKey(purchase.tenantKey, tenantKey)) throw new Error("No autorizado.");
     if (purchase.status === "closed") throw new Error("Compra ya cerrada.");
 
     if (purchase.photoId) {
@@ -57,9 +80,11 @@ export const deletePurchaseAsAdmin = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede borrar compras.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const purchase = await ctx.db.get(args.purchaseId);
     if (!purchase) throw new Error("Compra no encontrada.");
+    if (!sameTenantKey(purchase.tenantKey, tenantKey)) throw new Error("No autorizado.");
 
     if (purchase.photoId) {
       await ctx.storage.delete(purchase.photoId);
@@ -73,6 +98,10 @@ export const deletePurchaseAsAdmin = mutation({
 export const listOpenByBuyer = query({
   args: { buyerId: v.id("users") },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) return [];
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
     const items = await ctx.db
       .query("purchases")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
@@ -82,7 +111,7 @@ export const listOpenByBuyer = query({
       .collect();
 
     const withUrls = await Promise.all(
-      items.map(async (p) => {
+      items.filter((p) => sameTenantKey(p.tenantKey, tenantKey)).map(async (p) => {
         const photoUrl = p.photoId ? await ctx.storage.getUrl(p.photoId) : null;
         return { ...p, photoUrl };
       })
@@ -99,6 +128,10 @@ export const listByBuyerAndDate = query({
     dateTo: v.number(),
   },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) return [];
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
     const items = await ctx.db
       .query("purchases")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
@@ -108,7 +141,7 @@ export const listByBuyerAndDate = query({
       .collect();
 
     const withUrls = await Promise.all(
-      items.map(async (p) => {
+      items.filter((p) => sameTenantKey(p.tenantKey, tenantKey)).map(async (p) => {
         const photoUrl = p.photoId ? await ctx.storage.getUrl(p.photoId) : null;
         return { ...p, photoUrl };
       })
@@ -124,12 +157,17 @@ export const listLatestByBuyer = query({
     limit: v.number(),
   },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) return [];
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+
     const items = await ctx.db
       .query("purchases")
       .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
       .collect();
 
     const sorted = items
+      .filter((p) => sameTenantKey(p.tenantKey, tenantKey))
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
       .slice(0, args.limit);
 

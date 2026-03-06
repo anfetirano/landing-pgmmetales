@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const createClosing = mutation({
   args: {
@@ -13,6 +14,15 @@ export const createClosing = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) throw new Error("Comprador no encontrado.");
+    const lot = await ctx.db.get(args.lotId);
+    if (!lot) throw new Error("Lote no encontrado.");
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+    if (!sameTenantKey(lot.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
+
     const uniquePurchaseIds = [...new Set(args.purchaseIds)];
     const purchases = await Promise.all(
       uniquePurchaseIds.map(async (purchaseId) => await ctx.db.get(purchaseId))
@@ -22,6 +32,7 @@ export const createClosing = mutation({
       (purchase): purchase is NonNullable<typeof purchase> =>
         !!purchase &&
         purchase.buyerId === args.buyerId &&
+        sameTenantKey(purchase.tenantKey, tenantKey) &&
         purchase.status !== "closed"
     );
 
@@ -44,6 +55,7 @@ export const createClosing = mutation({
       notes: args.notes,
       status: "pending",
       createdAt: Date.now(),
+      tenantKey,
     });
 
     for (const purchase of closablePurchases) {
@@ -59,15 +71,23 @@ export const createClosing = mutation({
 });
 
 export const listPending = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { adminId: v.id("users") },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+
     const closings = await ctx.db
       .query("dayClosings")
       .filter((q) => q.eq(q.field("status"), "pending"))
       .collect();
 
     const detailed = await Promise.all(
-      closings.map(async (closing) => {
+      closings
+        .filter((closing) => sameTenantKey(closing.tenantKey, tenantKey))
+        .map(async (closing) => {
         const buyer = await ctx.db.get(closing.buyerId);
         const lot = await ctx.db.get(closing.lotId);
 
@@ -93,10 +113,14 @@ export const receiveClosing = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede aprobar cierres.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const closing = await ctx.db.get(args.closingId);
     if (!closing) {
       throw new Error("Cierre no encontrado.");
+    }
+    if (!sameTenantKey(closing.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
     if (closing.status === "received") {
       return { ok: true, alreadyReceived: true };
@@ -122,10 +146,14 @@ export const recalculateClosingTotals = mutation({
     if (!admin || admin.role !== "admin") {
       throw new Error("Solo el administrador puede recalcular cierres.");
     }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
 
     const closing = await ctx.db.get(args.closingId);
     if (!closing) {
       throw new Error("Cierre no encontrado.");
+    }
+    if (!sameTenantKey(closing.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
     }
 
     const purchaseDocs = await Promise.all(
@@ -138,7 +166,9 @@ export const recalculateClosingTotals = mutation({
     const validPurchases = purchaseDocs
       .filter(
         (row): row is { purchaseId: typeof row.purchaseId; purchase: NonNullable<typeof row.purchase> } =>
-          !!row.purchase && row.purchase.buyerId === closing.buyerId
+          !!row.purchase &&
+          row.purchase.buyerId === closing.buyerId &&
+          sameTenantKey(row.purchase.tenantKey, tenantKey)
       )
       .map((row) => row.purchase);
 
