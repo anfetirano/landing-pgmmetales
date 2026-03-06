@@ -2,7 +2,7 @@
   "name": "PMG Metales",
   "short_name": "PMG",
   "description": "Gestión de compras y lotes PMG Metales",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f8fb",

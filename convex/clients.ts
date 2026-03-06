@@ -35,6 +35,29 @@ export const listByBuyer = query({
   },
 });
 
+export const listAllForAdmin = query({
+  args: { adminId: v.id("users") },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+
+    const items = await ctx.db.query("clients").collect();
+
+    return await Promise.all(
+      items.map(async (c) => {
+        const buyer = await ctx.db.get(c.buyerId);
+        return {
+          ...c,
+          buyerName: buyer?.name ?? "Comprador",
+          photoUrl: c.photoId ? await ctx.storage.getUrl(c.photoId) : null,
+        };
+      })
+    );
+  },
+});
+
 export const updateClient = mutation({
   args: {
     clientId: v.id("clients"),
@@ -67,6 +90,40 @@ export const updateClient = mutation({
       cedula: args.cedula?.trim() || undefined,
       phone: args.phone?.trim() || undefined,
       photoId: args.photoId,
+    });
+
+    return { ok: true };
+  },
+});
+
+export const updateClientAsAdmin = mutation({
+  args: {
+    clientId: v.id("clients"),
+    adminId: v.id("users"),
+    name: v.string(),
+    contactName: v.optional(v.string()),
+    cedula: v.optional(v.string()),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+
+    const existing = await ctx.db.get(args.clientId);
+    if (!existing) {
+      throw new Error("Cliente no encontrado.");
+    }
+    if (!args.name.trim()) {
+      throw new Error("El nombre del cliente es obligatorio.");
+    }
+
+    await ctx.db.patch(args.clientId, {
+      name: args.name.trim(),
+      contactName: args.contactName?.trim() || undefined,
+      cedula: args.cedula?.trim() || undefined,
+      phone: args.phone?.trim() || undefined,
     });
 
     return { ok: true };

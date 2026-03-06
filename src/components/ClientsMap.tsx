@@ -10,6 +10,7 @@ type Client = {
   _id: string;
   name: string;
   contactName?: string;
+  buyerName?: string;
   phone?: string;
   lat?: number;
   lng?: number;
@@ -19,14 +20,41 @@ type Client = {
 
 const DEFAULT_CENTER: [number, number] = [6.2442, -75.5812]; // Medellín
 
-const DefaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+const createBuyerIcon = (buyerName?: string) => {
+  const key = (buyerName ?? "").trim().toLowerCase();
+  const className = key.includes("marlen")
+    ? "cata-marker cata-marker-marlen"
+    : key.includes("kenny")
+      ? "cata-marker cata-marker-kenny"
+      : "cata-marker cata-marker-default";
+
+  return L.icon({
+    iconUrl: "/icons/cata.png",
+    iconSize: [42, 42],
+    iconAnchor: [21, 42],
+    popupAnchor: [0, -36],
+    className,
+  });
+};
+
+const markerGlowStyle = `
+  .cata-marker {
+    filter: drop-shadow(0 0 4px rgba(15, 23, 42, 0.2))
+      drop-shadow(0 2px 6px rgba(15, 23, 42, 0.22));
+  }
+  .cata-marker-default {
+    filter: drop-shadow(0 0 6px rgba(35, 76, 75, 0.65))
+      drop-shadow(0 4px 8px rgba(35, 76, 75, 0.35));
+  }
+  .cata-marker-marlen {
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.75))
+      drop-shadow(0 4px 10px rgba(16, 185, 129, 0.42));
+  }
+  .cata-marker-kenny {
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.75))
+      drop-shadow(0 4px 10px rgba(239, 68, 68, 0.42));
+  }
+`;
 
 export default function ClientsMap({ clients }: { clients: Client[] }) {
   const mapRef = useRef<LeafletMap | null>(null);
@@ -75,6 +103,7 @@ export default function ClientsMap({ clients }: { clients: Client[] }) {
 
   return (
     <div className={containerClass}>
+      <style>{markerGlowStyle}</style>
       <div className={mapShellClass}>
         <button
           type="button"
@@ -103,7 +132,7 @@ export default function ClientsMap({ clients }: { clients: Client[] }) {
               />
 
               {markers.map((c) => (
-                <Marker key={c._id} position={[c.lat as number, c.lng as number]}>
+                <Marker key={c._id} position={[c.lat as number, c.lng as number]} icon={createBuyerIcon(c.buyerName)}>
                   <Popup>
                     <div className="text-sm">
                       <div className="font-semibold">{c.name}</div>

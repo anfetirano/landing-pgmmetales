@@ -46,6 +46,9 @@ const AdminLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/proveedores" onClick={onNavigate}>
       Proveedores
     </Link>
+    <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/clientes" onClick={onNavigate}>
+      Clientes
+    </Link>
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/metals" onClick={onNavigate}>
       Precios metales
     </Link>
