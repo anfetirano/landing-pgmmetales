@@ -13,11 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatMoneyByTenant } from "@/lib/currency";
+import { formatLotCode } from "@/lib/lots";
 
 export default function ProveedoresPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
+  const lotCode = (number: number) => formatLotCode(number, dbUser?.tenantKey);
   const activeLot = useQuery(
     api.lots.getActiveLot,
     dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
@@ -312,7 +314,7 @@ export default function ProveedoresPage() {
         Gestiona base, movimientos e ingresos de proveedores externos.
       </p>
       <p className="text-sm text-muted-foreground mt-1">
-        Lote activo: {activeLot?.number ? `#${activeLot.number}` : "Sin lote activo"}
+        Lote activo: {activeLot?.number ? lotCode(activeLot.number) : "Sin lote activo"}
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[260px_1fr]">

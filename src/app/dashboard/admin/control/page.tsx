@@ -9,11 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatMoneyByTenant } from "@/lib/currency";
+import { formatLotCode } from "@/lib/lots";
 
 export default function ControlAreaPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
+  const lotCode = (number: number) => formatLotCode(number, dbUser?.tenantKey);
   const tenantArgs = dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip";
 
   const activeLot = useQuery(api.lots.getActiveLot, tenantArgs);
@@ -73,7 +75,7 @@ export default function ControlAreaPage() {
         notes: "Apertura inicial",
       });
       setSelectedLotId(lotId);
-      alert(`Lote #${nextNumber} abierto.`);
+      alert(`Lote ${lotCode(nextNumber)} abierto.`);
     } catch (e) {
       console.error(e);
       alert("No se pudo abrir el lote.");
@@ -95,7 +97,7 @@ export default function ControlAreaPage() {
     }
 
     const ok = confirm(
-      `¿Está seguro que desea cerrar el lote #${activeLot.number} y abrir el lote #${activeLot.number + 1}?`
+      `¿Está seguro que desea cerrar el lote ${lotCode(activeLot.number)} y abrir el lote ${lotCode(activeLot.number + 1)}?`
     );
     if (!ok) return;
 
@@ -107,7 +109,7 @@ export default function ControlAreaPage() {
         adminId: dbUser._id,
       });
       setSelectedLotId(result.newLotId);
-      alert(`Listo. Nuevo lote activo: #${result.nextNumber}`);
+      alert(`Listo. Nuevo lote activo: ${lotCode(result.nextNumber)}`);
     } catch (e) {
       console.error(e);
       alert("Error cerrando y abriendo lote.");
@@ -137,7 +139,7 @@ export default function ControlAreaPage() {
               >
                 {openingFirstLot
                   ? "Abriendo lote..."
-                  : `Abrir lote #${(lots[0]?.number ?? 0) + 1}`}
+                  : `Abrir lote ${lotCode((lots[0]?.number ?? 0) + 1)}`}
               </Button>
             )}
           </CardContent>
@@ -148,7 +150,7 @@ export default function ControlAreaPage() {
         <>
           <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
             <div className="text-sm text-muted-foreground">
-              Lote activo: <span className="font-medium text-foreground">#{activeLot.number}</span>
+              Lote activo: <span className="font-medium text-foreground">{lotCode(activeLot.number)}</span>
             </div>
             <Button
               type="button"
@@ -158,7 +160,7 @@ export default function ControlAreaPage() {
             >
               {closing
                 ? "Cerrando y abriendo lote..."
-                : `Cerrar lote #${activeLot.number} y abrir #${activeLot.number + 1}`}
+                : `Cerrar lote ${lotCode(activeLot.number)} y abrir ${lotCode(activeLot.number + 1)}`}
             </Button>
           </div>
 
@@ -174,7 +176,7 @@ export default function ControlAreaPage() {
               <SelectContent>
                 {lots.map((lot) => (
                   <SelectItem key={lot._id} value={lot._id}>
-                    {`Lote #${lot.number} (${lot.status === "open" ? "Activo" : "Cerrado"})`}
+                    {`Lote ${lotCode(lot.number)} (${lot.status === "open" ? "Activo" : "Cerrado"})`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -184,7 +186,7 @@ export default function ControlAreaPage() {
           <div className="mt-3 text-sm text-muted-foreground">
             Viendo:{" "}
             <span className="font-medium text-foreground">
-              {selectedLot ? `#${selectedLot.number}` : "Sin lote"}
+              {selectedLot ? lotCode(selectedLot.number) : "Sin lote"}
             </span>
           </div>
 

@@ -11,12 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoneyByTenant } from "@/lib/currency";
+import { formatLotCode } from "@/lib/lots";
 
 export default function AdminDashboardPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const adminArgs = dbUser && dbUser.role === "admin" ? { adminId: dbUser._id } : "skip";
   const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
+  const lotCode = (number: number) => formatLotCode(number, dbUser?.tenantKey);
 
   const buyers = useQuery(api.users.listBuyers, adminArgs) ?? [];
   const [selectedBuyerId, setSelectedBuyerId] = useState<Id<"users"> | null>(null);
@@ -364,7 +366,8 @@ export default function AdminDashboardPage() {
                 >
                   <div className="grid gap-1">
                     <div className="font-medium">
-                      {closing.buyerName} · Lote #{closing.lotNumber ?? "-"}
+                      {closing.buyerName} ·{" "}
+                      {closing.lotNumber ? `Lote ${lotCode(closing.lotNumber)}` : "Lote -"}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Fecha cierre: {closing.date} · Compras: {closing.purchaseIds.length}
