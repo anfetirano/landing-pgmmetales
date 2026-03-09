@@ -152,3 +152,46 @@ export const updateClientAsAdmin = mutation({
     return { ok: true };
   },
 });
+
+export const deleteClientAsAdmin = mutation({
+  args: {
+    clientId: v.id("clients"),
+    adminId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+
+    const existing = await ctx.db.get(args.clientId);
+    if (!existing) {
+      throw new Error("Cliente no encontrado.");
+    }
+    if (!sameTenantKey(existing.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
+
+    const linkedPurchases = await ctx.db
+      .query("purchases")
+      .withIndex("by_clientId", (q) => q.eq("clientId", args.clientId))
+      .collect();
+
+    const hasPurchases = linkedPurchases.some((purchase) =>
+      sameTenantKey(purchase.tenantKey, tenantKey)
+    );
+    if (hasPurchases) {
+      throw new Error(
+        "No se puede eliminar: este cliente tiene compras registradas. Elimina o corrige primero esas compras."
+      );
+    }
+
+    if (existing.photoId) {
+      await ctx.storage.delete(existing.photoId);
+    }
+
+    await ctx.db.delete(args.clientId);
+    return { ok: true };
+  },
+});

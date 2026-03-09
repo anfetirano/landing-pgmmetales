@@ -7,7 +7,7 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { FileText, Map, MessageCircle, Navigation, Pencil } from "lucide-react";
+import { FileText, Map, MessageCircle, Navigation, Pencil, Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ export default function AdminClientsPage() {
   const clients =
     useQuery(api.clients.listAllForAdmin, dbUser?._id ? { adminId: dbUser._id } : "skip") ?? [];
   const updateClientAsAdmin = useMutation(api.clients.updateClientAsAdmin);
+  const deleteClientAsAdmin = useMutation(api.clients.deleteClientAsAdmin);
 
   const clientsWithLocation = clients.filter(
     (c) => typeof c.lat === "number" && typeof c.lng === "number"
@@ -35,6 +36,7 @@ export default function AdminClientsPage() {
   const [editingCedula, setEditingCedula] = useState("");
   const [editingPhone, setEditingPhone] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingClientId, setDeletingClientId] = useState<Id<"clients"> | null>(null);
 
   const visibleClients = useMemo(() => {
     const sorted = [...clientsWithLocation].sort((a, b) =>
@@ -143,6 +145,28 @@ export default function AdminClientsPage() {
       alert("Error actualizando cliente.");
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteClient = async (clientId: Id<"clients">, clientName: string) => {
+    if (!dbUser) return alert("Usuario no registrado.");
+
+    const ok = confirm(`¿Eliminar cliente "${clientName}"? Esta acción no se puede deshacer.`);
+    if (!ok) return;
+
+    setDeletingClientId(clientId);
+    try {
+      await deleteClientAsAdmin({
+        clientId,
+        adminId: dbUser._id,
+      });
+      alert("Cliente eliminado.");
+    } catch (e) {
+      console.error(e);
+      const message = e instanceof Error ? e.message : "Error eliminando cliente.";
+      alert(message);
+    } finally {
+      setDeletingClientId(null);
     }
   };
 
@@ -288,6 +312,18 @@ export default function AdminClientsPage() {
                         aria-label="Editar"
                       >
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDeleteClient(c._id, c.name ?? "cliente")}
+                        title="Eliminar cliente"
+                        aria-label="Eliminar cliente"
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        disabled={deletingClientId === c._id}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                       <a
                         className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
@@ -453,6 +489,18 @@ export default function AdminClientsPage() {
                             aria-label="Editar"
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteClient(c._id, c.name ?? "cliente")}
+                            title="Eliminar cliente"
+                            aria-label="Eliminar cliente"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            disabled={deletingClientId === c._id}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                           <a
                             className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
