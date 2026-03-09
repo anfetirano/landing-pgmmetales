@@ -56,6 +56,8 @@ export default defineSchema({
     status: v.optional(v.union(v.literal("open"), v.literal("closed"))),
     closingId: v.optional(v.id("dayClosings")),
     closedAt: v.optional(v.number()),
+    approvedAt: v.optional(v.number()),
+    approvedBy: v.optional(v.id("users")),
     createdAt: v.number(),
     tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })

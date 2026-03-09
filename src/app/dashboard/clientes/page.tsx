@@ -292,7 +292,7 @@ export default function ClientesPage() {
           </CardContent>
         </Card>
 
-        <ClientsMap clients={mapClients} />
+        <ClientsMap clients={mapClients} tenantKey={dbUser?.tenantKey} />
 
         <div className="grid gap-2">
           <label className="text-sm font-medium">Buscar cliente</label>

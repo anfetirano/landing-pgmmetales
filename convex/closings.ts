@@ -32,6 +32,7 @@ export const createClosing = mutation({
       (purchase): purchase is NonNullable<typeof purchase> =>
         !!purchase &&
         purchase.buyerId === args.buyerId &&
+        purchase.lotId === args.lotId &&
         sameTenantKey(purchase.tenantKey, tenantKey) &&
         purchase.status !== "closed"
     );
@@ -88,18 +89,121 @@ export const listPending = query({
       closings
         .filter((closing) => sameTenantKey(closing.tenantKey, tenantKey))
         .map(async (closing) => {
-        const buyer = await ctx.db.get(closing.buyerId);
-        const lot = await ctx.db.get(closing.lotId);
+          const buyer = await ctx.db.get(closing.buyerId);
+          const lot = await ctx.db.get(closing.lotId);
+          const purchases = await Promise.all(
+            closing.purchaseIds.map(async (purchaseId) => {
+              const purchase = await ctx.db.get(purchaseId);
+              if (!purchase || !sameTenantKey(purchase.tenantKey, tenantKey)) return null;
+              const client = await ctx.db.get(purchase.clientId);
+              const photoUrl = purchase.photoId ? await ctx.storage.getUrl(purchase.photoId) : null;
 
-        return {
-          ...closing,
-          buyerName: buyer?.name ?? "Comprador",
-          lotNumber: lot?.number ?? null,
-        };
-      })
+              return {
+                _id: purchase._id,
+                type: purchase.type,
+                brand: purchase.brand,
+                model: purchase.model,
+                grams: purchase.grams,
+                pricePaid: purchase.pricePaid,
+                commission: purchase.commission,
+                total: purchase.total,
+                notes: purchase.notes,
+                createdAt: purchase.createdAt,
+                clientName: client?.name ?? "Cliente",
+                approvedAt: purchase.approvedAt ?? null,
+                photoUrl,
+              };
+            })
+          );
+
+          const purchaseRows = purchases
+            .filter((p): p is NonNullable<typeof p> => !!p)
+            .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+          return {
+            ...closing,
+            buyerName: buyer?.name ?? "Comprador",
+            lotNumber: lot?.number ?? null,
+            purchases: purchaseRows,
+            approvedCount: purchaseRows.filter((p) => !!p.approvedAt).length,
+            pendingCount: purchaseRows.filter((p) => !p.approvedAt).length,
+          };
+        })
     );
 
     return detailed.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  },
+});
+
+export const approvePurchasesInClosing = mutation({
+  args: {
+    closingId: v.id("dayClosings"),
+    adminId: v.id("users"),
+    purchaseIds: v.array(v.id("purchases")),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Solo el administrador puede aprobar compras.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+
+    const closing = await ctx.db.get(args.closingId);
+    if (!closing) throw new Error("Cierre no encontrado.");
+    if (!sameTenantKey(closing.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
+
+    const closingPurchaseIds = new Set(closing.purchaseIds.map((id) => String(id)));
+    const uniqueRequestedIds = [...new Set(args.purchaseIds)];
+    const targetIds = uniqueRequestedIds.filter((id) => closingPurchaseIds.has(String(id)));
+    if (targetIds.length === 0) {
+      throw new Error("Selecciona al menos una compra del cierre.");
+    }
+
+    let approvedNow = 0;
+    for (const purchaseId of targetIds) {
+      const purchase = await ctx.db.get(purchaseId);
+      if (!purchase) continue;
+      if (!sameTenantKey(purchase.tenantKey, tenantKey)) continue;
+      if (purchase.closingId !== args.closingId) continue;
+      if (purchase.approvedAt) continue;
+
+      await ctx.db.patch(purchaseId, {
+        approvedAt: Date.now(),
+        approvedBy: args.adminId,
+      });
+      approvedNow += 1;
+    }
+
+    const purchasesAfter = await Promise.all(
+      closing.purchaseIds.map(async (purchaseId) => await ctx.db.get(purchaseId))
+    );
+
+    const validPurchases = purchasesAfter.filter(
+      (purchase): purchase is NonNullable<typeof purchase> =>
+        !!purchase &&
+        purchase.closingId === args.closingId &&
+        sameTenantKey(purchase.tenantKey, tenantKey)
+    );
+
+    const allApproved = validPurchases.length > 0 && validPurchases.every((purchase) => !!purchase.approvedAt);
+
+    if (allApproved && closing.status !== "received") {
+      await ctx.db.patch(args.closingId, {
+        status: "received",
+        receivedAt: Date.now(),
+        receivedBy: args.adminId,
+      });
+    }
+
+    return {
+      ok: true,
+      approvedNow,
+      approvedTotal: validPurchases.filter((purchase) => !!purchase.approvedAt).length,
+      totalPurchases: validPurchases.length,
+      closingReceived: allApproved,
+    };
   },
 });
 

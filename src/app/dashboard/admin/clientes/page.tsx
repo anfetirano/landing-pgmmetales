@@ -166,7 +166,7 @@ export default function AdminClientsPage() {
       </p>
 
       <div className="mt-6 grid gap-6">
-        <ClientsMap clients={mapClients} />
+        <ClientsMap clients={mapClients} tenantKey={dbUser?.tenantKey} />
 
         <div className="grid gap-2">
           <label className="text-sm font-medium">Buscar cliente</label>

@@ -95,6 +95,7 @@ export const getBalanceByBuyer = query({
         totalFunds: 0,
         totalSpent: 0,
         pendingSpent: 0,
+        openSpent: 0,
         balance: 0,
         projectedBalance: 0,
         lastOpeningAt: 0,
@@ -140,14 +141,23 @@ export const getBalanceByBuyer = query({
     );
     let approvedSpent = 0;
     let pendingSpent = 0;
+    let openSpent = 0;
 
     for (const purchase of effectivePurchases) {
       const amount = (purchase.pricePaid ?? 0) + (purchase.commission ?? 0);
+      if (!purchase.closingId) {
+        // Aún no enviado en cierre del día.
+        openSpent += amount;
+        continue;
+      }
+      const approvedByPurchase = !!purchase.approvedAt;
+      const approvedByClosing =
+        !!purchase.closingId && receivedClosingIds.has(purchase.closingId);
+      const isApproved = approvedByPurchase || approvedByClosing;
 
-      if (purchase.closingId && receivedClosingIds.has(purchase.closingId)) {
+      if (isApproved) {
         approvedSpent += amount;
       } else if (
-        !purchase.closingId ||
         pendingClosingIds.has(purchase.closingId) ||
         !receivedClosingIds.has(purchase.closingId)
       ) {
@@ -155,12 +165,15 @@ export const getBalanceByBuyer = query({
       }
     }
 
+    const balance = totalFunds - approvedSpent - pendingSpent;
+
     return {
       totalFunds,
       totalSpent: approvedSpent,
       pendingSpent,
-      balance: totalFunds - approvedSpent,
-      projectedBalance: totalFunds - approvedSpent - pendingSpent,
+      openSpent,
+      balance,
+      projectedBalance: balance - openSpent,
       lastOpeningAt,
     };
   },

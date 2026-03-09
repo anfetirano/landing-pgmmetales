@@ -18,7 +18,8 @@ type Client = {
   cedula?: string;
 };
 
-const DEFAULT_CENTER: [number, number] = [6.2442, -75.5812]; // Medellín
+const DEFAULT_CENTER_CO: [number, number] = [6.2442, -75.5812]; // Medellín
+const DEFAULT_CENTER_PA: [number, number] = [8.9824, -79.5199]; // Ciudad de Panamá
 
 const createBuyerIcon = (buyerName?: string) => {
   const key = (buyerName ?? "").trim().toLowerCase();
@@ -56,7 +57,13 @@ const markerGlowStyle = `
   }
 `;
 
-export default function ClientsMap({ clients }: { clients: Client[] }) {
+export default function ClientsMap({
+  clients,
+  tenantKey,
+}: {
+  clients: Client[];
+  tenantKey?: "co" | "pa";
+}) {
   const mapRef = useRef<LeafletMap | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
@@ -92,6 +99,24 @@ export default function ClientsMap({ clients }: { clients: Client[] }) {
     () => clients.filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
     [clients]
   );
+  const fallbackCenter = tenantKey === "pa" ? DEFAULT_CENTER_PA : DEFAULT_CENTER_CO;
+  const mapCenter = markers.length
+    ? ([markers[0].lat as number, markers[0].lng as number] as [number, number])
+    : fallbackCenter;
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (!markers.length) {
+      mapRef.current.setView(fallbackCenter, tenantKey === "pa" ? 11 : 12);
+      return;
+    }
+
+    const bounds = L.latLngBounds(
+      markers.map((c) => [c.lat as number, c.lng as number] as [number, number])
+    );
+    mapRef.current.fitBounds(bounds.pad(0.18));
+  }, [markers, fallbackCenter, tenantKey]);
 
   const containerClass = isFullscreen
     ? "fixed inset-0 z-50 bg-black/50 p-3"
@@ -118,7 +143,7 @@ export default function ClientsMap({ clients }: { clients: Client[] }) {
           {ready && (
             <MapContainer
               key={mapKey}
-              center={DEFAULT_CENTER}
+              center={mapCenter}
               zoom={12}
               className="h-full w-full"
               scrollWheelZoom

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { Camera } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,8 +24,12 @@ export default function ComprasPage() {
 
   const clients =
     useQuery(api.clients.listByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
-  const clientsWithLocation = clients.filter(
-    (c) => typeof c.lat === "number" && typeof c.lng === "number"
+  const clientsSorted = useMemo(
+    () =>
+      [...clients].sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", "es", { sensitivity: "base" })
+      ),
+    [clients]
   );
 
   const createClient = useMutation(api.clients.createClient);
@@ -33,9 +38,6 @@ export default function ComprasPage() {
 
   const [type, setType] = useState<"pieza" | "suelto">("pieza");
   const [taller, setTaller] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [cedula, setCedula] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   const [marca, setMarca] = useState("");
@@ -75,24 +77,23 @@ export default function ComprasPage() {
       alert("No hay lote activo. Pídele al admin abrir un lote.");
       return;
     }
-    if (!taller || !marca || !valorPagado || !comision) {
+    if (!marca || !valorPagado || !comision) {
       alert("Completa los campos obligatorios.");
       return;
     }
-    if (!cedula) {
-      const ok = confirm("¿Seguro que no deseas anotar la cédula? Esto ayuda para la DIAN.");
-      if (!ok) return;
+    if (!selectedClientId && !taller.trim()) {
+      alert("Selecciona un cliente o usa Taller / Cliente solo en emergencia.");
+      return;
     }
 
     setLoading(true);
     try {
-      const clientId = await createClient({
-        name: taller,
-        contactName: contactName || undefined,
-        cedula: cedula || undefined,
-        phone: whatsapp || undefined,
-        buyerId: dbUser._id,
-      });
+      const clientId = selectedClientId
+        ? (selectedClientId as Id<"clients">)
+        : await createClient({
+            name: taller.trim(),
+            buyerId: dbUser._id,
+          });
 
       let photoId: string | undefined = undefined;
 
@@ -123,9 +124,6 @@ export default function ComprasPage() {
 
       // reset
       setTaller("");
-      setContactName("");
-      setCedula("");
-      setWhatsapp("");
       setSelectedClientId("");
       setMarca("");
       setModelo("");
@@ -241,20 +239,14 @@ export default function ComprasPage() {
                 value={selectedClientId}
                 onValueChange={(id) => {
                   setSelectedClientId(id);
-                  const c = clientsWithLocation.find((x) => x._id === id);
-                  if (c) {
-                    setTaller(c.name ?? "");
-                    setContactName(c.contactName ?? "");
-                    setCedula(c.cedula ?? "");
-                    setWhatsapp(c.phone ?? "");
-                  }
+                  setTaller("");
                 }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clientsWithLocation.map((c) => (
+                  {clientsSorted.map((c) => (
                     <SelectItem key={c._id} value={c._id}>
                       {c.name}{c.contactName ? ` — ${c.contactName}` : ""}
                     </SelectItem>
@@ -265,22 +257,15 @@ export default function ComprasPage() {
 
             <div className="grid gap-2">
               <label className="text-sm font-medium">Taller / Cliente</label>
-              <Input value={taller} onChange={(e) => setTaller(e.target.value)} placeholder="Nombre del taller" />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Nombre de contacto (opcional)</label>
-              <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Ej: Juan Pérez" />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Cédula (opcional)</label>
-              <Input value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="CC / NIT" />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">WhatsApp</label>
-              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Ej: 3001234567" />
+              <Input
+                value={taller}
+                onChange={(e) => setTaller(e.target.value)}
+                placeholder="Solo usar en emergencia"
+                disabled={!!selectedClientId}
+              />
+              <p className="text-xs text-muted-foreground">
+                Solo usar en emergencia. Recuerda agregar el cliente en Clientes.
+              </p>
             </div>
 
             <div className="grid gap-2">

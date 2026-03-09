@@ -41,7 +41,7 @@ export default function AdminDashboardPage() {
   const addMovement = useMutation(api.cashMovements.addMovement);
   const openBase = useMutation(api.cashMovements.openBase);
   const deletePurchaseAsAdmin = useMutation(api.purchases.deletePurchaseAsAdmin);
-  const receiveClosing = useMutation(api.closings.receiveClosing);
+  const approvePurchasesInClosing = useMutation(api.closings.approvePurchasesInClosing);
 
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -49,6 +49,7 @@ export default function AdminDashboardPage() {
   const [opening, setOpening] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [approvingClosingId, setApprovingClosingId] = useState<string | null>(null);
+  const [selectedApprovals, setSelectedApprovals] = useState<Record<string, string[]>>({});
 
   const sortedMovements = useMemo(
     () => [...movements].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
@@ -141,21 +142,49 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const togglePurchaseSelection = (closingId: Id<"dayClosings">, purchaseId: Id<"purchases">) => {
+    setSelectedApprovals((prev) => {
+      const current = prev[closingId] ?? [];
+      const exists = current.includes(purchaseId);
+      return {
+        ...prev,
+        [closingId]: exists
+          ? current.filter((id) => id !== purchaseId)
+          : [...current, purchaseId],
+      };
+    });
+  };
+
   const handleApproveClosing = async (closingId: Id<"dayClosings">) => {
     if (!dbUser) return alert("Usuario no registrado.");
-    const ok = confirm("¿Aprobar este cierre?");
+    const selectedIds = selectedApprovals[closingId] ?? [];
+    if (selectedIds.length === 0) {
+      alert("Selecciona al menos una compra para aprobar.");
+      return;
+    }
+
+    const ok = confirm(`¿Aprobar ${selectedIds.length} compra(s) seleccionada(s)?`);
     if (!ok) return;
 
     setApprovingClosingId(closingId);
     try {
-      await receiveClosing({
+      const result = await approvePurchasesInClosing({
         closingId,
         adminId: dbUser._id,
+        purchaseIds: selectedIds as Id<"purchases">[],
       });
-      alert("Cierre aprobado.");
+      setSelectedApprovals((prev) => ({ ...prev, [closingId]: [] }));
+      alert(
+        result.closingReceived
+          ? "Compras aprobadas. Cierre completado."
+          : `Compras aprobadas. Pendientes: ${Math.max(
+              0,
+              (result.totalPurchases ?? 0) - (result.approvedTotal ?? 0)
+            )}.`
+      );
     } catch (e) {
       console.error(e);
-      alert("Error aprobando cierre.");
+      alert("Error aprobando compras.");
     } finally {
       setApprovingClosingId(null);
     }
@@ -364,7 +393,7 @@ export default function AdminDashboardPage() {
                   key={closing._id}
                   className="flex flex-col gap-2 rounded-md border p-3 md:flex-row md:items-center md:justify-between"
                 >
-                  <div className="grid gap-1">
+                  <div className="grid gap-2">
                     <div className="font-medium">
                       {closing.buyerName} ·{" "}
                       {closing.lotNumber ? `Lote ${lotCode(closing.lotNumber)}` : "Lote -"}
@@ -376,16 +405,77 @@ export default function AdminDashboardPage() {
                       Total pagado: {formatMoney(closing.totalPaid)} · Comisión:{" "}
                       {formatMoney(closing.totalCommission)} · Total: {formatMoney(closing.totalAmount)}
                     </div>
+                    <div className="text-xs text-muted-foreground">
+                      Aprobadas: {closing.approvedCount ?? 0} · Pendientes: {closing.pendingCount ?? 0}
+                    </div>
+                    <div className="mt-1 grid gap-2 rounded-md border bg-muted/20 p-2">
+                      {(closing.purchases ?? []).map((purchase) => {
+                        const isApproved = !!purchase.approvedAt;
+                        const checked =
+                          isApproved || (selectedApprovals[closing._id] ?? []).includes(purchase._id);
+
+                        return (
+                          <label
+                            key={purchase._id}
+                            className={`flex items-start gap-2 rounded px-2 py-1 text-xs ${
+                              isApproved ? "bg-emerald-50 text-emerald-800" : "hover:bg-muted"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={checked}
+                              disabled={isApproved || approvingClosingId === closing._id}
+                              onChange={() =>
+                                togglePurchaseSelection(
+                                  closing._id as Id<"dayClosings">,
+                                  purchase._id as Id<"purchases">
+                                )
+                              }
+                            />
+                            <span>
+                              {purchase.clientName} ·{" "}
+                              {purchase.type === "pieza"
+                                ? `Pieza ${purchase.brand}${purchase.model ? ` ${purchase.model}` : ""}`
+                                : `Suelto ${purchase.grams ?? 0}g`}
+                              {" · "}
+                              {formatMoney(purchase.total ?? 0)}
+                              {isApproved ? " · Aprobada" : ""}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <Button
-                    type="button"
-                    className="bg-[#234c4b] text-white hover:bg-[#1e3f3e] md:w-auto"
-                    onClick={() => handleApproveClosing(closing._id)}
-                    disabled={approvingClosingId === closing._id}
-                  >
-                    {approvingClosingId === closing._id ? "Aprobando..." : "Aprobar cierre"}
-                  </Button>
+                  <div className="flex flex-col gap-2 md:w-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const pendingIds = (closing.purchases ?? [])
+                          .filter((purchase) => !purchase.approvedAt)
+                          .map((purchase) => purchase._id as string);
+                        setSelectedApprovals((prev) => ({ ...prev, [closing._id]: pendingIds }));
+                      }}
+                      disabled={approvingClosingId === closing._id}
+                    >
+                      Seleccionar pendientes
+                    </Button>
+                    <Button
+                      type="button"
+                      className="bg-[#234c4b] text-white hover:bg-[#1e3f3e] md:w-auto"
+                      onClick={() => handleApproveClosing(closing._id)}
+                      disabled={
+                        approvingClosingId === closing._id ||
+                        (selectedApprovals[closing._id]?.length ?? 0) === 0
+                      }
+                    >
+                      {approvingClosingId === closing._id
+                        ? "Aprobando..."
+                        : `Aprobar seleccionadas (${selectedApprovals[closing._id]?.length ?? 0})`}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </CardContent>
