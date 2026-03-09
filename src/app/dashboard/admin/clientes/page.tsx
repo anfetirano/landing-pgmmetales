@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Map, MessageCircle, Navigation, Pencil } from "lucide-react";
+import { FileText, Map, MessageCircle, Navigation, Pencil } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -270,6 +271,14 @@ export default function AdminClientsPage() {
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                      <Link
+                        href={`/dashboard/admin/clientes/${c._id}`}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted"
+                        title="Ver hoja del cliente"
+                        aria-label="Ver hoja del cliente"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Link>
                       <Button
                         type="button"
                         variant="outline"
@@ -426,6 +435,15 @@ export default function AdminClientsPage() {
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Link
+                            href={`/dashboard/admin/clientes/${c._id}`}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Ver hoja del cliente"
+                            aria-label="Ver hoja del cliente"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Link>
                           <Button
                             type="button"
                             variant="outline"

@@ -10,8 +10,25 @@ import { Camera } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+
+const normalizeTextKey = (value: string | undefined | null) =>
+  (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 
 export default function ComprasPage() {
   const { user } = useUser();
@@ -24,11 +41,44 @@ export default function ComprasPage() {
 
   const clients =
     useQuery(api.clients.listByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
-  const clientsSorted = useMemo(
-    () =>
-      [...clients].sort((a, b) =>
-        (a.name ?? "").localeCompare(b.name ?? "", "es", { sensitivity: "base" })
-      ),
+  const getPrimaryClientName = (client: (typeof clients)[number]) =>
+    (client.contactName ?? "").trim() || (client.name ?? "").trim();
+  const getWorkshopName = (client: (typeof clients)[number]) =>
+    ((client.name ?? "").trim() || null);
+  const getClientOptionLabel = (client: (typeof clients)[number]) => {
+    const primary = getPrimaryClientName(client);
+    const workshop = getWorkshopName(client);
+    if (primary && workshop && normalizeTextKey(primary) !== normalizeTextKey(workshop)) {
+      return `${primary} — ${workshop}`;
+    }
+    return primary || workshop || "Cliente";
+  };
+
+  const selectableClients = useMemo(
+    () => {
+      const byKey = new Map<string, (typeof clients)[number]>();
+
+      for (const client of clients) {
+        if (typeof client.lat !== "number" || typeof client.lng !== "number") continue;
+        if (client.isEmergency === true) continue;
+
+        const primaryName = getPrimaryClientName(client);
+        const workshopName = getWorkshopName(client);
+        if (!primaryName || /^\d+$/.test(primaryName)) continue;
+
+        const key = `${normalizeTextKey(primaryName)}|${normalizeTextKey(workshopName)}`;
+        const existing = byKey.get(key);
+        if (!existing || client._creationTime > existing._creationTime) {
+          byKey.set(key, client);
+        }
+      }
+
+      return [...byKey.values()].sort((a, b) =>
+        getPrimaryClientName(a).localeCompare(getPrimaryClientName(b), "es", {
+          sensitivity: "base",
+        })
+      );
+    },
     [clients]
   );
 
@@ -54,6 +104,19 @@ export default function ComprasPage() {
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const clientsByLetter = useMemo(() => {
+    const groups = new Map<string, (typeof selectableClients)>();
+
+    for (const client of selectableClients) {
+      const first = normalizeTextKey(getPrimaryClientName(client)).charAt(0).toUpperCase();
+      const letter = /^[A-Z]$/.test(first) ? first : "#";
+      const group = groups.get(letter) ?? [];
+      group.push(client);
+      groups.set(letter, group);
+    }
+
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b, "es"));
+  }, [selectableClients]);
 
   const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -88,10 +151,12 @@ export default function ComprasPage() {
 
     setLoading(true);
     try {
+      const emergencyClientName = taller.trim();
       const clientId = selectedClientId
         ? (selectedClientId as Id<"clients">)
         : await createClient({
-            name: taller.trim(),
+            name: emergencyClientName,
+            isEmergency: true,
             buyerId: dbUser._id,
           });
 
@@ -232,7 +297,7 @@ export default function ComprasPage() {
               </Select>
             </div>
 
-            {/* Selector de clientes guardados (autocompleta) */}
+            {/* Selector de clientes guardados */}
             <div className="grid gap-2">
               <label className="text-sm font-medium">Seleccionar cliente</label>
               <Select
@@ -243,16 +308,29 @@ export default function ComprasPage() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un cliente" />
+                  <SelectValue placeholder="Selecciona un cliente con ubicación" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clientsSorted.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>
-                      {c.name}{c.contactName ? ` — ${c.contactName}` : ""}
-                    </SelectItem>
+                  {clientsByLetter.map(([letter, group], index) => (
+                    <div key={letter}>
+                      <SelectGroup>
+                        <SelectLabel>{letter}</SelectLabel>
+                        {group.map((c) => (
+                          <SelectItem key={c._id} value={c._id}>
+                            {getClientOptionLabel(c)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      {index < clientsByLetter.length - 1 ? <SelectSeparator /> : null}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
+              {selectableClients.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No tienes clientes con ubicación. Agrégalos en Clientes.
+                </p>
+              ) : null}
             </div>
 
             <div className="grid gap-2">
@@ -264,7 +342,7 @@ export default function ComprasPage() {
                 disabled={!!selectedClientId}
               />
               <p className="text-xs text-muted-foreground">
-                Solo usar en emergencia. Recuerda agregar el cliente en Clientes.
+                Solo usar en emergencia. Estas compras no quedarán en la hoja del cliente normal.
               </p>
             </div>
 

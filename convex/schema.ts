@@ -15,6 +15,7 @@ export default defineSchema({
 
   clients: defineTable({
     name: v.string(),
+    isEmergency: v.optional(v.boolean()),
     contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),

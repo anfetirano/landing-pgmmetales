@@ -5,6 +5,7 @@ import { normalizeTenantKey, sameTenantKey } from "./tenants";
 export const createClient = mutation({
   args: {
     name: v.string(),
+    isEmergency: v.optional(v.boolean()),
     contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -23,6 +24,7 @@ export const createClient = mutation({
 
     return await ctx.db.insert("clients", {
       ...args,
+      isEmergency: args.isEmergency === true ? true : undefined,
       tenantKey,
     });
   },
