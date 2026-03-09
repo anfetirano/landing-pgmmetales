@@ -55,6 +55,13 @@ export default function AdminDashboardPage() {
     () => [...movements].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
     [movements]
   );
+  const visiblePendingClosings = useMemo(
+    () =>
+      pendingClosings.filter((closing) =>
+        buyerId ? String(closing.buyerId) === String(buyerId) : true
+      ),
+    [pendingClosings, buyerId]
+  );
 
   const purchaseList = showAllPurchases ? allPurchases : latest;
   const buyerName = buyers.find((b) => b._id === buyerId)?.name ?? "Comprador";
@@ -384,11 +391,15 @@ export default function AdminDashboardPage() {
               <CardTitle>Cierres pendientes (aprobación admin)</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm">
-              {pendingClosings.length === 0 && (
-                <div className="text-muted-foreground">No hay cierres pendientes.</div>
+              {visiblePendingClosings.length === 0 && (
+                <div className="text-muted-foreground">
+                  {buyerId
+                    ? "No hay cierres pendientes para este comprador."
+                    : "No hay cierres pendientes."}
+                </div>
               )}
 
-              {pendingClosings.map((closing) => (
+              {visiblePendingClosings.map((closing) => (
                 <div
                   key={closing._id}
                   className="flex flex-col gap-2 rounded-md border p-3 md:flex-row md:items-center md:justify-between"
