@@ -140,12 +140,30 @@ export default function ComprasPage() {
       alert("No hay lote activo. Pídele al admin abrir un lote.");
       return;
     }
-    if (!marca || !valorPagado || !comision) {
-      alert("Completa los campos obligatorios.");
+    if (!valorPagado) {
+      alert("Ingresa el valor pagado.");
       return;
     }
     if (!selectedClientId && !taller.trim()) {
       alert("Selecciona un cliente o usa Taller / Cliente solo en emergencia.");
+      return;
+    }
+
+    const normalizedBrand = marca.trim() || "Generico";
+    const numericPricePaid = Number(valorPagado);
+    const numericCommission = Number(comision || 0);
+    const numericGrams = type === "suelto" ? Number(gramos || 0) : undefined;
+
+    if (Number.isNaN(numericPricePaid) || numericPricePaid <= 0) {
+      alert("Valor pagado inválido.");
+      return;
+    }
+    if (Number.isNaN(numericCommission) || numericCommission < 0) {
+      alert("Comisión inválida.");
+      return;
+    }
+    if (type === "suelto" && typeof numericGrams === "number" && (Number.isNaN(numericGrams) || numericGrams < 0)) {
+      alert("Gramos inválidos.");
       return;
     }
 
@@ -178,11 +196,11 @@ export default function ComprasPage() {
         clientId,
         lotId: activeLot._id,
         type,
-        brand: marca,
+        brand: normalizedBrand,
         model: type === "pieza" ? modelo || undefined : undefined,
-        grams: type === "suelto" ? Number(gramos || 0) : undefined,
-        pricePaid: Number(valorPagado),
-        commission: Number(comision),
+        grams: type === "suelto" ? numericGrams : undefined,
+        pricePaid: numericPricePaid,
+        commission: numericCommission,
         notes: notas || undefined,
         photoId: photoId as any,
       });
@@ -347,7 +365,7 @@ export default function ComprasPage() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Marca</label>
+              <label className="text-sm font-medium">Marca (opcional)</label>
               <Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Ej: Toyota" />
             </div>
 
@@ -371,8 +389,8 @@ export default function ComprasPage() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Comisión comprador</label>
-              <Input type="number" value={comision} onChange={(e) => setComision(e.target.value)} placeholder="Ej: 30000" />
+              <label className="text-sm font-medium">Comisión comprador (opcional)</label>
+              <Input type="number" value={comision} onChange={(e) => setComision(e.target.value)} placeholder="Ej: 30000 (si lo dejas vacío = 0)" />
             </div>
 
             <div className="grid gap-2">
