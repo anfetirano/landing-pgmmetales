@@ -148,7 +148,9 @@ export default defineSchema({
     type: v.union(v.literal("pieza"), v.literal("suelto")),
     description: v.string(),       // ej: "Lote 1", "Catalizadores mixtos"
     model: v.optional(v.string()), // aplica para pieza
+    quantity: v.optional(v.number()), // aplica para pieza (cantidad de catalizadores)
     grams: v.optional(v.number()), // aplica para suelto o complemento
+    unitPrice: v.optional(v.number()), // aplica para suelto (valor por gramo)
     pricePaid: v.number(),         // valor pagado al proveedor
     notes: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),

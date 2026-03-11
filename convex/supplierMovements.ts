@@ -2,9 +2,6 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
-const resolveEffectiveLotId = (explicitLotId: string | undefined, fallbackLotId: string) =>
-  explicitLotId ?? fallbackLotId;
-
 export const addMovement = mutation({
   args: {
     supplierId: v.id("suppliers"),
@@ -169,19 +166,18 @@ export const listBySupplier = query({
     lotId: v.id("lots"),
   },
   handler: async (ctx, args) => {
+    const supplier = await ctx.db.get(args.supplierId);
+    const tenantKey = supplier?.tenantKey;
     const items = await ctx.db
       .query("supplierMovements")
       .withIndex("by_supplierId", (q) => q.eq("supplierId", args.supplierId))
       .collect();
 
-    const withEffectiveLot = items.map((m) => ({
-        movement: m,
-        effectiveLotId: resolveEffectiveLotId(m.lotId, args.lotId),
-      }));
-
-    return withEffectiveLot
-      .filter((x) => x.effectiveLotId === args.lotId)
-      .map((x) => x.movement)
+    return items
+      .filter((movement) => movement.lotId === args.lotId)
+      .filter((movement) =>
+        tenantKey ? sameTenantKey(movement.tenantKey, normalizeTenantKey(tenantKey)) : true
+      )
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
   },
 });
@@ -192,18 +188,18 @@ export const getBalanceBySupplier = query({
     lotId: v.id("lots"),
   },
   handler: async (ctx, args) => {
+    const supplier = await ctx.db.get(args.supplierId);
+    const tenantKey = supplier?.tenantKey;
     const movements = await ctx.db
       .query("supplierMovements")
       .withIndex("by_supplierId", (q) => q.eq("supplierId", args.supplierId))
       .collect();
 
     const effectiveMovements = movements
-        .map((m) => ({
-          movement: m,
-          effectiveLotId: resolveEffectiveLotId(m.lotId, args.lotId),
-        }))
-      .filter((x) => x.effectiveLotId === args.lotId)
-      .map((x) => x.movement);
+      .filter((movement) => movement.lotId === args.lotId)
+      .filter((movement) =>
+        tenantKey ? sameTenantKey(movement.tenantKey, normalizeTenantKey(tenantKey)) : true
+      );
 
     const totalFunds = effectiveMovements.reduce((s, m) => s + (m.amount ?? 0), 0);
 
@@ -213,12 +209,10 @@ export const getBalanceBySupplier = query({
       .collect();
 
     const effectivePurchases = purchases
-        .map((p) => ({
-          purchase: p,
-          effectiveLotId: resolveEffectiveLotId(p.lotId, args.lotId),
-        }))
-      .filter((x) => x.effectiveLotId === args.lotId)
-      .map((x) => x.purchase);
+      .filter((purchase) => purchase.lotId === args.lotId)
+      .filter((purchase) =>
+        tenantKey ? sameTenantKey(purchase.tenantKey, normalizeTenantKey(tenantKey)) : true
+      );
 
     const totalSpent = effectivePurchases.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
 
@@ -257,13 +251,8 @@ export const getGlobalFundsStats = query({
         .collect();
 
       const effectiveMovements = movements
-          .map((m) => ({
-            movement: m,
-            effectiveLotId: resolveEffectiveLotId(m.lotId, args.lotId),
-          }))
-        .filter((x) => x.effectiveLotId === args.lotId)
-        .filter((x) => sameTenantKey(x.movement.tenantKey, tenantKey))
-        .map((x) => x.movement);
+        .filter((movement) => movement.lotId === args.lotId)
+        .filter((movement) => sameTenantKey(movement.tenantKey, tenantKey));
 
       const funds = effectiveMovements.reduce((s, m) => s + (m.amount ?? 0), 0);
 
@@ -273,13 +262,8 @@ export const getGlobalFundsStats = query({
         .collect();
 
       const effectivePurchases = purchases
-          .map((p) => ({
-            purchase: p,
-            effectiveLotId: resolveEffectiveLotId(p.lotId, args.lotId),
-          }))
-        .filter((x) => x.effectiveLotId === args.lotId)
-        .filter((x) => sameTenantKey(x.purchase.tenantKey, tenantKey))
-        .map((x) => x.purchase);
+        .filter((purchase) => purchase.lotId === args.lotId)
+        .filter((purchase) => sameTenantKey(purchase.tenantKey, tenantKey));
 
       const spent = effectivePurchases.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
       const balance = funds - spent;

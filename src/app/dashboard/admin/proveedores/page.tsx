@@ -78,7 +78,9 @@ export default function ProveedoresPage() {
   const [purchaseType, setPurchaseType] = useState<"pieza" | "suelto">("pieza");
   const [description, setDescription] = useState("");
   const [model, setModel] = useState("");
+  const [quantity, setQuantity] = useState("1");
   const [grams, setGrams] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
   const [pricePaid, setPricePaid] = useState("");
   const [purchaseNotes, setPurchaseNotes] = useState("");
   const [loadingPurchase, setLoadingPurchase] = useState(false);
@@ -98,12 +100,22 @@ export default function ProveedoresPage() {
     () => sortedPurchases.find((purchase) => purchase._id === editingPurchaseId) ?? null,
     [sortedPurchases, editingPurchaseId]
   );
+  const looseComputedTotal = useMemo(() => {
+    if (purchaseType !== "suelto") return null;
+    const numericGrams = Number(grams || 0);
+    const numericUnitPrice = Number(unitPrice || 0);
+    if (Number.isNaN(numericGrams) || Number.isNaN(numericUnitPrice)) return null;
+    if (numericGrams <= 0 || numericUnitPrice <= 0) return null;
+    return Number((numericGrams * numericUnitPrice).toFixed(2));
+  }, [purchaseType, grams, unitPrice]);
 
   const resetPurchaseForm = () => {
     setPurchaseType("pieza");
     setDescription("");
     setModel("");
+    setQuantity("1");
     setGrams("");
+    setUnitPrice("");
     setPricePaid("");
     setPurchaseNotes("");
     setPhotoFile(null);
@@ -238,9 +250,23 @@ export default function ProveedoresPage() {
     setPurchaseType(purchase.type);
     setDescription(purchase.description ?? "");
     setModel(purchase.model ?? "");
+    setQuantity(
+      purchase.type === "pieza" && typeof purchase.quantity === "number"
+        ? String(Math.max(1, Math.trunc(purchase.quantity)))
+        : "1"
+    );
     setGrams(
       purchase.type === "suelto" && typeof purchase.grams === "number"
         ? String(purchase.grams)
+        : ""
+    );
+    setUnitPrice(
+      purchase.type === "suelto"
+        ? typeof purchase.unitPrice === "number" && purchase.unitPrice > 0
+          ? String(purchase.unitPrice)
+          : purchase.grams && purchase.grams > 0
+          ? String(Number((purchase.pricePaid / purchase.grams).toFixed(2)))
+          : ""
         : ""
     );
     setPricePaid(String(purchase.pricePaid ?? ""));
@@ -253,16 +279,38 @@ export default function ProveedoresPage() {
     if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
     if (!activeLot?._id) return alert("No hay lote activo.");
     if (!supplierId) return alert("Selecciona un proveedor.");
-    if (!description.trim() || !pricePaid) return alert("Completa descripción y valor.");
+    if (!description.trim()) return alert("Completa la descripción.");
 
-    const numericPaid = Number(pricePaid);
-    if (Number.isNaN(numericPaid) || numericPaid <= 0) return alert("Valor pagado inválido.");
-
+    let parsedQuantity: number | undefined = undefined;
     let parsedGrams: number | undefined = undefined;
+    let parsedUnitPrice: number | undefined = undefined;
+    let finalPricePaid = 0;
+
+    if (purchaseType === "pieza") {
+      if (!pricePaid) return alert("Completa el valor pagado.");
+      parsedQuantity = Number(quantity || 0);
+      if (Number.isNaN(parsedQuantity) || parsedQuantity < 1) {
+        return alert("Unidades inválidas para pieza.");
+      }
+      parsedQuantity = Math.max(1, Math.trunc(parsedQuantity));
+      finalPricePaid = Number(pricePaid);
+      if (Number.isNaN(finalPricePaid) || finalPricePaid <= 0) {
+        return alert("Valor pagado inválido.");
+      }
+    }
+
     if (purchaseType === "suelto") {
       parsedGrams = Number(grams || 0);
       if (Number.isNaN(parsedGrams) || parsedGrams <= 0) {
         return alert("Gramos inválidos para material suelto.");
+      }
+      parsedUnitPrice = Number(unitPrice || 0);
+      if (Number.isNaN(parsedUnitPrice) || parsedUnitPrice <= 0) {
+        return alert("Valor por gramo inválido.");
+      }
+      finalPricePaid = Number((parsedGrams * parsedUnitPrice).toFixed(2));
+      if (finalPricePaid <= 0) {
+        return alert("Total inválido.");
       }
     }
 
@@ -287,8 +335,10 @@ export default function ProveedoresPage() {
           type: purchaseType,
           description: description.trim(),
           model: purchaseType === "pieza" ? model.trim() || undefined : undefined,
+          quantity: purchaseType === "pieza" ? parsedQuantity : undefined,
           grams: purchaseType === "suelto" ? parsedGrams : undefined,
-          pricePaid: numericPaid,
+          unitPrice: purchaseType === "suelto" ? parsedUnitPrice : undefined,
+          pricePaid: finalPricePaid,
           notes: purchaseNotes.trim() || undefined,
           photoId,
           updatedBy: dbUser._id,
@@ -301,8 +351,10 @@ export default function ProveedoresPage() {
           type: purchaseType,
           description: description.trim(),
           model: purchaseType === "pieza" ? model.trim() || undefined : undefined,
+          quantity: purchaseType === "pieza" ? parsedQuantity : undefined,
           grams: purchaseType === "suelto" ? parsedGrams : undefined,
-          pricePaid: numericPaid,
+          unitPrice: purchaseType === "suelto" ? parsedUnitPrice : undefined,
+          pricePaid: finalPricePaid,
           notes: purchaseNotes.trim() || undefined,
           photoId,
           createdBy: dbUser._id,
@@ -495,7 +547,21 @@ export default function ProveedoresPage() {
               ) : null}
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Tipo</label>
-                <Select value={purchaseType} onValueChange={(v) => setPurchaseType(v as "pieza" | "suelto")}>
+                <Select
+                  value={purchaseType}
+                  onValueChange={(v) => {
+                    const nextType = v as "pieza" | "suelto";
+                    setPurchaseType(nextType);
+                    if (nextType === "pieza") {
+                      setGrams("");
+                      setUnitPrice("");
+                    } else {
+                      setModel("");
+                      setQuantity("1");
+                      setPricePaid("");
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tipo" />
                   </SelectTrigger>
@@ -514,6 +580,17 @@ export default function ProveedoresPage() {
 
               {purchaseType === "pieza" && (
                 <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="Unidades"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                />
+              )}
+
+              {purchaseType === "pieza" && (
+                <Input
                   placeholder="Modelo (opcional)"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
@@ -521,20 +598,36 @@ export default function ProveedoresPage() {
               )}
 
               {purchaseType === "suelto" && (
-                <Input
-                  type="number"
-                  placeholder="Gramos"
-                  value={grams}
-                  onChange={(e) => setGrams(e.target.value)}
-                />
+                <>
+                  <Input
+                    type="number"
+                    placeholder="Gramos"
+                    value={grams}
+                    onChange={(e) => setGrams(e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Valor por gramo"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
+                  />
+                  <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">Total: </span>
+                    <span className="font-medium text-foreground">
+                      {looseComputedTotal !== null ? formatMoney(looseComputedTotal) : "-"}
+                    </span>
+                  </div>
+                </>
               )}
 
-              <Input
-                type="number"
-                placeholder="Valor pagado"
-                value={pricePaid}
-                onChange={(e) => setPricePaid(e.target.value)}
-              />
+              {purchaseType === "pieza" ? (
+                <Input
+                  type="number"
+                  placeholder="Valor pagado"
+                  value={pricePaid}
+                  onChange={(e) => setPricePaid(e.target.value)}
+                />
+              ) : null}
 
               <Textarea
                 placeholder="Notas (opcional)"
@@ -605,7 +698,14 @@ export default function ProveedoresPage() {
                   >
                     <div className="font-medium">{p.description}</div>
                     <div className="text-xs text-muted-foreground">
-                      {p.type === "pieza" ? "Pieza" : `Suelto · ${p.grams ?? 0} g`} · Valor pagado:{" "}
+                      {p.type === "pieza"
+                        ? `Pieza · ${Math.max(1, Math.trunc(p.quantity ?? 1))} und`
+                        : `Suelto · ${p.grams ?? 0} g${
+                            typeof p.unitPrice === "number" && p.unitPrice > 0
+                              ? ` · ${formatMoney(p.unitPrice)} / g`
+                              : ""
+                          }`}{" "}
+                      · Valor pagado:{" "}
                       {formatMoney(p.pricePaid)}
                     </div>
                   </button>

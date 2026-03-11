@@ -122,9 +122,7 @@ export const closeAndOpenNextLot = mutation({
         .withIndex("by_supplierId", (q) => q.eq("supplierId", supplier._id))
         .collect();
 
-      const lotMovements = movements.filter(
-        (m) => m.lotId === args.currentLotId || m.lotId === undefined
-      );
+      const lotMovements = movements.filter((m) => m.lotId === args.currentLotId);
 
       const totalFunds = lotMovements.reduce((s, m) => s + (m.amount ?? 0), 0);
 
@@ -133,9 +131,7 @@ export const closeAndOpenNextLot = mutation({
         .withIndex("by_supplierId", (q) => q.eq("supplierId", supplier._id))
         .collect();
 
-      const lotPurchases = purchases.filter(
-        (p) => p.lotId === args.currentLotId || p.lotId === undefined
-      );
+      const lotPurchases = purchases.filter((p) => p.lotId === args.currentLotId);
 
       const totalSpent = lotPurchases.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
       const balance = totalFunds - totalSpent;

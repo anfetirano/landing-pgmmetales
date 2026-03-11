@@ -2,8 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { normalizeTenantKey, sameTenantKey } from "./tenants";
 
-const resolveEffectiveLotId = (explicitLotId: string | undefined, fallbackLotId: string) =>
-  explicitLotId ?? fallbackLotId;
+const roundCurrency = (value: number) => Number(value.toFixed(2));
 
 export const createPurchase = mutation({
   args: {
@@ -12,7 +11,9 @@ export const createPurchase = mutation({
     type: v.union(v.literal("pieza"), v.literal("suelto")),
     description: v.string(),
     model: v.optional(v.string()),
+    quantity: v.optional(v.number()),
     grams: v.optional(v.number()),
+    unitPrice: v.optional(v.number()),
     pricePaid: v.number(),
     notes: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
@@ -44,7 +45,24 @@ export const createPurchase = mutation({
     if (!args.description.trim()) {
       throw new Error("La descripción es obligatoria.");
     }
-    if (args.pricePaid <= 0) {
+
+    const quantity = args.type === "pieza" ? args.quantity ?? 1 : undefined;
+    const grams = args.type === "suelto" ? args.grams ?? 0 : undefined;
+    const unitPrice = args.type === "suelto" ? args.unitPrice ?? 0 : undefined;
+
+    if (args.type === "pieza" && (!Number.isFinite(quantity) || (quantity ?? 0) < 1)) {
+      throw new Error("Las unidades deben ser al menos 1.");
+    }
+    if (args.type === "suelto" && (!Number.isFinite(grams) || (grams ?? 0) <= 0)) {
+      throw new Error("Los gramos deben ser mayores a 0.");
+    }
+    if (args.type === "suelto" && (!Number.isFinite(unitPrice) || (unitPrice ?? 0) <= 0)) {
+      throw new Error("El valor por gramo debe ser mayor a 0.");
+    }
+
+    const computedPricePaid =
+      args.type === "suelto" ? roundCurrency((grams ?? 0) * (unitPrice ?? 0)) : args.pricePaid;
+    if (computedPricePaid <= 0) {
       throw new Error("El valor pagado debe ser mayor a 0.");
     }
 
@@ -54,8 +72,10 @@ export const createPurchase = mutation({
       type: args.type,
       description: args.description.trim(),
       model: args.model?.trim(),
-      grams: args.type === "suelto" ? args.grams ?? 0 : args.grams,
-      pricePaid: args.pricePaid,
+      quantity: args.type === "pieza" ? Math.trunc(quantity ?? 1) : undefined,
+      grams,
+      unitPrice,
+      pricePaid: computedPricePaid,
       notes: args.notes?.trim(),
       photoId: args.photoId,
       createdAt: Date.now(),
@@ -71,7 +91,9 @@ export const updatePurchase = mutation({
     type: v.union(v.literal("pieza"), v.literal("suelto")),
     description: v.string(),
     model: v.optional(v.string()),
+    quantity: v.optional(v.number()),
     grams: v.optional(v.number()),
+    unitPrice: v.optional(v.number()),
     pricePaid: v.number(),
     notes: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
@@ -95,7 +117,24 @@ export const updatePurchase = mutation({
     if (!args.description.trim()) {
       throw new Error("La descripción es obligatoria.");
     }
-    if (args.pricePaid <= 0) {
+
+    const quantity = args.type === "pieza" ? args.quantity ?? 1 : undefined;
+    const grams = args.type === "suelto" ? args.grams ?? 0 : undefined;
+    const unitPrice = args.type === "suelto" ? args.unitPrice ?? 0 : undefined;
+
+    if (args.type === "pieza" && (!Number.isFinite(quantity) || (quantity ?? 0) < 1)) {
+      throw new Error("Las unidades deben ser al menos 1.");
+    }
+    if (args.type === "suelto" && (!Number.isFinite(grams) || (grams ?? 0) <= 0)) {
+      throw new Error("Los gramos deben ser mayores a 0.");
+    }
+    if (args.type === "suelto" && (!Number.isFinite(unitPrice) || (unitPrice ?? 0) <= 0)) {
+      throw new Error("El valor por gramo debe ser mayor a 0.");
+    }
+
+    const computedPricePaid =
+      args.type === "suelto" ? roundCurrency((grams ?? 0) * (unitPrice ?? 0)) : args.pricePaid;
+    if (computedPricePaid <= 0) {
       throw new Error("El valor pagado debe ser mayor a 0.");
     }
 
@@ -107,8 +146,10 @@ export const updatePurchase = mutation({
       type: args.type,
       description: args.description.trim(),
       model: args.model?.trim(),
-      grams: args.type === "suelto" ? args.grams ?? 0 : args.grams,
-      pricePaid: args.pricePaid,
+      quantity: args.type === "pieza" ? Math.trunc(quantity ?? 1) : undefined,
+      grams,
+      unitPrice,
+      pricePaid: computedPricePaid,
       notes: args.notes?.trim(),
       photoId: args.photoId,
       tenantKey,
@@ -158,14 +199,8 @@ export const listBySupplier = query({
       .withIndex("by_supplierId", (q) => q.eq("supplierId", args.supplierId))
       .collect();
 
-    const sorted = (
-      items.map((p) => ({
-        purchase: p,
-        effectiveLotId: resolveEffectiveLotId(p.lotId, args.lotId),
-      }))
-    )
-      .filter((x) => x.effectiveLotId === args.lotId)
-      .map((x) => x.purchase)
+    const sorted = items
+      .filter((purchase) => purchase.lotId === args.lotId)
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
     const withUrls = await Promise.all(
@@ -201,7 +236,11 @@ export const getGlobalStats = query({
     );
 
     const totalEntries = filtered.length;
-    const totalPieces = filtered.filter((p) => p.type === "pieza").length;
+    const totalPieces = filtered.reduce(
+      (total, purchase) =>
+        purchase.type === "pieza" ? total + Math.max(1, Math.trunc(purchase.quantity ?? 1)) : total,
+      0
+    );
     const totalGrams = filtered.reduce((s, p) => s + (p.grams ?? 0), 0);
     const totalKilos = totalGrams / 1000;
     const totalPaid = filtered.reduce((s, p) => s + (p.pricePaid ?? 0), 0);
