@@ -8,6 +8,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const hideChrome =
     pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/pmr") ||
     pathname.startsWith("/sign-in") ||
     pathname.startsWith("/sign-up");
 

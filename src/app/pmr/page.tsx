@@ -1,0 +1,259 @@
+import { fetchQuery } from "convex/nextjs";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { api } from "@convex/_generated/api";
+
+import PmrMapSection from "./PmrMapSection";
+import PmrLiveHeader from "./PmrLiveHeader";
+import { formatMoneyByTenant } from "@/lib/currency";
+import { formatLotCode } from "@/lib/lots";
+import {
+  PMR_COOKIE_NAME,
+  createPmrSessionToken,
+  isValidPmrPassword,
+  isValidPmrSessionToken,
+} from "@/lib/pmr-auth";
+
+export const dynamic = "force-dynamic";
+const PMR_INITIAL_CAPITAL_USD = 15000;
+const PMR_INITIAL_CAPITAL_STATUS: "pending" | "received" = "pending";
+
+async function loginPmr(formData: FormData) {
+  "use server";
+
+  const password = String(formData.get("password") ?? "");
+  if (!isValidPmrPassword(password)) {
+    redirect("/pmr?error=1");
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(PMR_COOKIE_NAME, createPmrSessionToken(), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  redirect("/pmr");
+}
+
+async function logoutPmr() {
+  "use server";
+
+  const cookieStore = await cookies();
+  cookieStore.delete(PMR_COOKIE_NAME);
+  redirect("/pmr");
+}
+
+export default async function PmrPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const cookieStore = await cookies();
+  const isAuthenticated = isValidPmrSessionToken(cookieStore.get(PMR_COOKIE_NAME)?.value);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#e9f5f2] via-white to-[#f6faf9] px-4 py-14">
+        <div className="mx-auto w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm">
+          <h1 className="text-2xl font-bold text-[#234c4b]">PMG Panama - PMR Control</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Private access for Panama operational tracking.
+          </p>
+
+          <form action={loginPmr} className="mt-6 grid gap-3">
+            <label className="text-sm font-medium" htmlFor="pmr-password">
+              Password
+            </label>
+            <input
+              id="pmr-password"
+              name="password"
+              type="password"
+              required
+              className="h-10 rounded-md border px-3 text-sm outline-none ring-[#234c4b] focus:ring-1"
+              placeholder="Enter PMR access key"
+            />
+            {params.error ? (
+              <p className="text-sm text-red-600">Incorrect password. Please try again.</p>
+            ) : null}
+            <button
+              type="submit"
+              className="mt-1 h-10 rounded-md bg-[#234c4b] text-sm font-semibold text-white hover:bg-[#1e3f3e]"
+            >
+              Sign in
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  const report = await fetchQuery(api.pmr.getPanamaControlData, {});
+  const summary = report.summary;
+  const initialLatestClients = report.clients.slice(0, 20).map((client) => ({
+    _id: String(client._id),
+    name: client.name,
+    contactName: client.contactName,
+    buyerName: client.buyerName,
+    createdAt: client.createdAt,
+  }));
+  const mapClients = report.mapClients.map((client) => ({
+    ...client,
+    _id: String(client._id),
+  }));
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#e9f5f2] via-white to-[#f6faf9] px-4 py-6 md:px-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[#234c4b] md:text-3xl">PMR - Panama Control Area</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Operational and commercial growth view. Data isolated to Panama only.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <PmrLiveHeader initialLatestClients={initialLatestClients} />
+          <p className="text-xs text-muted-foreground">
+            Updated: {new Date(report.generatedAt).toLocaleString("en-US")}
+          </p>
+          <form action={logoutPmr}>
+            <button
+              type="submit"
+              className="h-9 rounded-md border bg-white px-3 text-sm hover:bg-muted"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-6 grid w-full max-w-7xl grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <StatCard label="Total clients" value={`${summary.totalClients}`} />
+        <StatCard label="With location" value={`${summary.totalClientsWithLocation}`} />
+        <StatCard label="Clients (30d)" value={`${summary.clientsAdded30d}`} />
+        <StatCard label="Total purchases" value={`${summary.totalPurchases}`} />
+        <StatCard label="Purchases (30d)" value={`${summary.purchases30d}`} />
+        <StatCard label="Active buyers" value={`${summary.buyersActive}`} />
+      </div>
+
+      <div className="mx-auto mt-3 grid w-full max-w-7xl grid-cols-1 gap-3 md:grid-cols-3">
+        <StatCard
+          label={
+            PMR_INITIAL_CAPITAL_STATUS === "pending"
+              ? "Initial capital commitment (pending transfer)"
+              : "Initial capital received"
+          }
+          value={formatMoneyByTenant(PMR_INITIAL_CAPITAL_USD, "pa")}
+          tone={PMR_INITIAL_CAPITAL_STATUS === "pending" ? "pending" : "success"}
+        />
+        <StatCard
+          label="Total invested capital"
+          value={formatMoneyByTenant(summary.totalInvested, "pa")}
+        />
+        <StatCard
+          label="Invested capital (last 30 days)"
+          value={formatMoneyByTenant(summary.invested30d, "pa")}
+        />
+      </div>
+
+      <div className="mx-auto mt-6 grid w-full max-w-7xl gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <section className="rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#234c4b]">Added Clients (Panama)</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Latest {report.clients.length} registered clients.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {report.clients.map((client) => (
+              <article key={String(client._id)} className="rounded-xl border p-3">
+                <p className="text-sm font-semibold">{client.name}</p>
+                <p className="text-xs text-muted-foreground">{client.contactName || "No contact"}</p>
+                <p className="mt-2 text-xs text-muted-foreground">Buyer: {client.buyerName}</p>
+                <p className="text-xs text-muted-foreground">
+                  Date: {new Date(client.createdAt).toLocaleDateString("en-US")}
+                </p>
+              </article>
+            ))}
+            {report.clients.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No clients registered yet.</p>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-[#234c4b]">Recent Purchases</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Purchase log with responsible buyer.
+          </p>
+          <div className="mt-4 grid gap-3">
+            {report.purchases.map((purchase) => (
+              <article key={String(purchase._id)} className="rounded-xl border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{purchase.clientName}</p>
+                    <p className="text-xs text-muted-foreground">Recorded by: {purchase.buyerName}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-[#234c4b]">
+                    {formatMoneyByTenant(purchase.total ?? 0, "pa")}
+                  </p>
+                </div>
+
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {purchase.type === "pieza"
+                    ? `Part ${purchase.brand}${purchase.model ? ` ${purchase.model}` : ""}`
+                    : `Loose ${purchase.grams ?? 0}g - ${purchase.brand}`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Lot:{" "}
+                  {purchase.lotNumber != null ? formatLotCode(purchase.lotNumber, "pa") : "No lot"}
+                  {" · "}
+                  {new Date(purchase.createdAt).toLocaleDateString("en-US")}
+                </p>
+              </article>
+            ))}
+            {report.purchases.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No purchases registered yet.</p>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      <div className="mx-auto mt-6 w-full max-w-7xl rounded-2xl border bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#234c4b]">Client Growth Map (Panama)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Active locations where new clients are being registered.
+        </p>
+        <div className="mt-4">
+          <PmrMapSection clients={mapClients} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "pending" | "success";
+}) {
+  const toneClass =
+    tone === "pending"
+      ? "border-slate-300 bg-slate-100"
+      : tone === "success"
+        ? "border-emerald-300 bg-emerald-50"
+        : "border bg-white";
+
+  return (
+    <div className={`rounded-xl p-4 shadow-sm ${toneClass}`}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-[#234c4b] md:text-2xl">{value}</p>
+    </div>
+  );
+}
