@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Trash2, Camera } from "lucide-react";
+import { Trash2, Camera, Pencil } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,10 @@ export default function ProveedoresPage() {
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
   const lotCode = (number: number) => formatLotCode(number, dbUser?.tenantKey);
+  const formatDateTime = (timestamp?: number) =>
+    new Date(timestamp ?? Date.now()).toLocaleString(
+      dbUser?.tenantKey === "pa" ? "en-US" : "es-CO"
+    );
   const activeLot = useQuery(
     api.lots.getActiveLot,
     dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
@@ -55,6 +59,7 @@ export default function ProveedoresPage() {
   const deleteMovement = useMutation(api.supplierMovements.deleteMovement);
 
   const createPurchase = useMutation(api.supplierPurchases.createPurchase);
+  const updatePurchase = useMutation(api.supplierPurchases.updatePurchase);
   const deletePurchase = useMutation(api.supplierPurchases.deletePurchase);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
@@ -78,6 +83,7 @@ export default function ProveedoresPage() {
   const [purchaseNotes, setPurchaseNotes] = useState("");
   const [loadingPurchase, setLoadingPurchase] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
+  const [editingPurchaseId, setEditingPurchaseId] = useState<Id<"supplierPurchases"> | null>(null);
 
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -88,6 +94,22 @@ export default function ProveedoresPage() {
   );
 
   const supplierName = suppliers.find((s) => s._id === supplierId)?.name ?? "Proveedor";
+  const editingPurchase = useMemo(
+    () => sortedPurchases.find((purchase) => purchase._id === editingPurchaseId) ?? null,
+    [sortedPurchases, editingPurchaseId]
+  );
+
+  const resetPurchaseForm = () => {
+    setPurchaseType("pieza");
+    setDescription("");
+    setModel("");
+    setGrams("");
+    setPricePaid("");
+    setPurchaseNotes("");
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setEditingPurchaseId(null);
+  };
 
   const handleCreateSupplier = async () => {
     if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
@@ -211,7 +233,23 @@ export default function ProveedoresPage() {
     setPhotoPreview(URL.createObjectURL(file));
   };
 
-  const handleCreatePurchase = async () => {
+  const startEditingPurchase = (purchase: (typeof sortedPurchases)[number]) => {
+    setEditingPurchaseId(purchase._id);
+    setPurchaseType(purchase.type);
+    setDescription(purchase.description ?? "");
+    setModel(purchase.model ?? "");
+    setGrams(
+      purchase.type === "suelto" && typeof purchase.grams === "number"
+        ? String(purchase.grams)
+        : ""
+    );
+    setPricePaid(String(purchase.pricePaid ?? ""));
+    setPurchaseNotes(purchase.notes ?? "");
+    setPhotoFile(null);
+    setPhotoPreview(purchase.photoUrl ?? null);
+  };
+
+  const handleSavePurchase = async () => {
     if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
     if (!activeLot?._id) return alert("No hay lote activo.");
     if (!supplierId) return alert("Selecciona un proveedor.");
@@ -230,7 +268,7 @@ export default function ProveedoresPage() {
 
     setLoadingPurchase(true);
     try {
-      let photoId: Id<"_storage"> | undefined = undefined;
+      let photoId: Id<"_storage"> | undefined = editingPurchase?.photoId;
 
       if (photoFile) {
         const uploadUrl = await generateUploadUrl();
@@ -243,31 +281,39 @@ export default function ProveedoresPage() {
         photoId = storageId;
       }
 
-      await createPurchase({
-        supplierId,
-        lotId: activeLot._id,
-        type: purchaseType,
-        description: description.trim(),
-        model: purchaseType === "pieza" ? model.trim() || undefined : undefined,
-        grams: purchaseType === "suelto" ? parsedGrams : undefined,
-        pricePaid: numericPaid,
-        notes: purchaseNotes.trim() || undefined,
-        photoId,
-        createdBy: dbUser._id,
-      });
+      if (editingPurchaseId) {
+        await updatePurchase({
+          purchaseId: editingPurchaseId,
+          type: purchaseType,
+          description: description.trim(),
+          model: purchaseType === "pieza" ? model.trim() || undefined : undefined,
+          grams: purchaseType === "suelto" ? parsedGrams : undefined,
+          pricePaid: numericPaid,
+          notes: purchaseNotes.trim() || undefined,
+          photoId,
+          updatedBy: dbUser._id,
+        });
+        alert("Ingreso actualizado.");
+      } else {
+        await createPurchase({
+          supplierId,
+          lotId: activeLot._id,
+          type: purchaseType,
+          description: description.trim(),
+          model: purchaseType === "pieza" ? model.trim() || undefined : undefined,
+          grams: purchaseType === "suelto" ? parsedGrams : undefined,
+          pricePaid: numericPaid,
+          notes: purchaseNotes.trim() || undefined,
+          photoId,
+          createdBy: dbUser._id,
+        });
+        alert("Ingreso registrado.");
+      }
 
-      setDescription("");
-      setModel("");
-      setGrams("");
-      setPricePaid("");
-      setPurchaseNotes("");
-      setPhotoFile(null);
-      setPhotoPreview(null);
-
-      alert("Ingreso registrado.");
+      resetPurchaseForm();
     } catch (e) {
       console.error(e);
-      alert("Error registrando ingreso.");
+      alert(editingPurchaseId ? "Error actualizando ingreso." : "Error registrando ingreso.");
     } finally {
       setLoadingPurchase(false);
     }
@@ -285,6 +331,9 @@ export default function ProveedoresPage() {
         purchaseId,
         deletedBy: dbUser._id,
       });
+      if (editingPurchaseId === purchaseId) {
+        resetPurchaseForm();
+      }
       alert("Ingreso eliminado.");
     } catch (e) {
       console.error(e);
@@ -434,9 +483,16 @@ export default function ProveedoresPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Registrar ingreso de carga</CardTitle>
+              <CardTitle>{editingPurchaseId ? "Editar ingreso de carga" : "Registrar ingreso de carga"}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
+              {editingPurchase ? (
+                <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  Editando: <span className="font-medium text-foreground">{editingPurchase.description}</span> ·{" "}
+                  Valor pagado actual:{" "}
+                  <span className="font-medium text-foreground">{formatMoney(editingPurchase.pricePaid ?? 0)}</span>
+                </div>
+              ) : null}
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Tipo</label>
                 <Select value={purchaseType} onValueChange={(v) => setPurchaseType(v as "pieza" | "suelto")}>
@@ -504,11 +560,20 @@ export default function ProveedoresPage() {
               <Button
                 type="button"
                 className="w-full bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
-                onClick={handleCreatePurchase}
+                onClick={handleSavePurchase}
                 disabled={loadingPurchase}
               >
-                {loadingPurchase ? "Guardando..." : "Guardar ingreso"}
+                {loadingPurchase
+                  ? "Guardando..."
+                  : editingPurchaseId
+                  ? "Guardar cambios del ingreso"
+                  : "Guardar ingreso"}
               </Button>
+              {editingPurchaseId ? (
+                <Button type="button" variant="outline" onClick={resetPurchaseForm} disabled={loadingPurchase}>
+                  Cancelar edición
+                </Button>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -521,18 +586,40 @@ export default function ProveedoresPage() {
                 <div className="text-sm text-muted-foreground">No hay ingresos registrados.</div>
               )}
               {sortedPurchases.map((p) => (
-                <div key={p._id} className="flex items-center gap-3 border-b pb-2 last:border-b-0">
+                <div
+                  key={p._id}
+                  className={`flex items-center gap-3 border-b pb-2 last:border-b-0 ${
+                    editingPurchaseId === p._id ? "rounded-md bg-muted/40" : ""
+                  }`}
+                >
                   <div className="h-10 w-10 overflow-hidden rounded border bg-muted">
                     {p.photoUrl ? (
                       <img src={p.photoUrl} alt="Ingreso" className="h-full w-full object-cover" />
                     ) : null}
                   </div>
-                  <div className="flex-1 text-sm">
+                  <button
+                    type="button"
+                    className="flex-1 text-left text-sm hover:opacity-90"
+                    onClick={() => startEditingPurchase(p)}
+                    title="Ver y editar ingreso"
+                  >
                     <div className="font-medium">{p.description}</div>
                     <div className="text-xs text-muted-foreground">
-                      {p.type === "pieza" ? "Pieza" : `Suelto · ${p.grams ?? 0} g`} · {formatMoney(p.pricePaid)}
+                      {p.type === "pieza" ? "Pieza" : `Suelto · ${p.grams ?? 0} g`} · Valor pagado:{" "}
+                      {formatMoney(p.pricePaid)}
                     </div>
-                  </div>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => startEditingPurchase(p)}
+                    title="Editar ingreso"
+                    aria-label="Editar ingreso"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -571,6 +658,9 @@ export default function ProveedoresPage() {
                         : "Ajuste"}
                     </div>
                     <div className="text-xs text-muted-foreground">{m.notes ?? ""}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Fecha: {formatDateTime(m.createdAt)}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
