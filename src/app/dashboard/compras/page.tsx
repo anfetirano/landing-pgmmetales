@@ -170,13 +170,24 @@ export default function ComprasPage() {
     setLoading(true);
     try {
       const emergencyClientName = taller.trim();
-      const clientId = selectedClientId
-        ? (selectedClientId as Id<"clients">)
-        : await createClient({
-            name: emergencyClientName,
-            isEmergency: true,
-            buyerId: dbUser._id,
-          });
+      let clientId: Id<"clients">;
+      if (selectedClientId) {
+        clientId = selectedClientId as Id<"clients">;
+      } else {
+        const existingEmergencyClient = clients.find(
+          (client) =>
+            client.isEmergency === true &&
+            normalizeTextKey(client.name) === normalizeTextKey(emergencyClientName)
+        );
+
+        clientId = existingEmergencyClient
+          ? (existingEmergencyClient._id as Id<"clients">)
+          : await createClient({
+              name: emergencyClientName,
+              isEmergency: true,
+              buyerId: dbUser._id,
+            });
+      }
 
       let photoId: string | undefined = undefined;
 
@@ -221,7 +232,11 @@ export default function ComprasPage() {
       alert("Compra guardada.");
     } catch (e) {
       console.error(e);
-      alert("Error guardando la compra.");
+      const message =
+        e && typeof e === "object" && "message" in e && typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Error guardando la compra.";
+      alert(message);
     } finally {
       setLoading(false);
     }

@@ -107,6 +107,7 @@ export const listPending = query({
                 pricePaid: purchase.pricePaid,
                 commission: purchase.commission,
                 total: purchase.total,
+                pmrCatalogValue: purchase.pmrCatalogValue ?? null,
                 notes: purchase.notes,
                 createdAt: purchase.createdAt,
                 clientName: client?.name ?? "Cliente",
@@ -140,6 +141,14 @@ export const approvePurchasesInClosing = mutation({
     closingId: v.id("dayClosings"),
     adminId: v.id("users"),
     purchaseIds: v.array(v.id("purchases")),
+    pmrCatalogValues: v.optional(
+      v.array(
+        v.object({
+          purchaseId: v.id("purchases"),
+          value: v.number(),
+        })
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const admin = await ctx.db.get(args.adminId);
@@ -161,19 +170,43 @@ export const approvePurchasesInClosing = mutation({
       throw new Error("Selecciona al menos una compra del cierre.");
     }
 
+    const isPanama = tenantKey === "pa";
+    const pmrByPurchaseId = new Map<string, number>();
+    for (const row of args.pmrCatalogValues ?? []) {
+      if (!Number.isFinite(row.value) || row.value <= 0) {
+        throw new Error("Valor PMR inválido.");
+      }
+      pmrByPurchaseId.set(String(row.purchaseId), row.value);
+    }
+
     let approvedNow = 0;
     for (const purchaseId of targetIds) {
       const purchase = await ctx.db.get(purchaseId);
       if (!purchase) continue;
       if (!sameTenantKey(purchase.tenantKey, tenantKey)) continue;
       if (purchase.closingId !== args.closingId) continue;
-      if (purchase.approvedAt) continue;
+      const providedPmrValue = pmrByPurchaseId.get(String(purchaseId));
+      const effectivePmrValue =
+        typeof providedPmrValue === "number" ? providedPmrValue : purchase.pmrCatalogValue;
 
-      await ctx.db.patch(purchaseId, {
-        approvedAt: Date.now(),
-        approvedBy: args.adminId,
-      });
-      approvedNow += 1;
+      if (isPanama && (!effectivePmrValue || effectivePmrValue <= 0)) {
+        throw new Error("En Panamá debes ingresar valor PMR para cada compra seleccionada.");
+      }
+
+      const patch: Record<string, unknown> = {};
+      if (isPanama && typeof providedPmrValue === "number") {
+        patch.pmrCatalogValue = providedPmrValue;
+        patch.pmrValuedAt = Date.now();
+        patch.pmrValuedBy = args.adminId;
+      }
+      if (!purchase.approvedAt) {
+        patch.approvedAt = Date.now();
+        patch.approvedBy = args.adminId;
+        approvedNow += 1;
+      }
+      if (Object.keys(patch).length === 0) continue;
+
+      await ctx.db.patch(purchaseId, patch);
     }
 
     const purchasesAfter = await Promise.all(

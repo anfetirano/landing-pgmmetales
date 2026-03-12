@@ -50,6 +50,7 @@ export default function AdminDashboardPage() {
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [approvingClosingId, setApprovingClosingId] = useState<string | null>(null);
   const [selectedApprovals, setSelectedApprovals] = useState<Record<string, string[]>>({});
+  const [pmrValues, setPmrValues] = useState<Record<string, string>>({});
 
   const sortedMovements = useMemo(
     () => [...movements].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
@@ -169,6 +170,31 @@ export default function AdminDashboardPage() {
       alert("Selecciona al menos una compra para aprobar.");
       return;
     }
+    const isPanama = dbUser.tenantKey === "pa";
+    const closing = visiblePendingClosings.find((item) => String(item._id) === String(closingId));
+    const pmrCatalogValues: { purchaseId: Id<"purchases">; value: number }[] = [];
+
+    if (isPanama) {
+      for (const purchaseId of selectedIds) {
+        const purchase = closing?.purchases?.find((row) => String(row._id) === String(purchaseId));
+        const raw =
+          (pmrValues[purchaseId] ?? "")
+            .trim() || (purchase?.pmrCatalogValue ? String(purchase.pmrCatalogValue) : "");
+        if (!raw) {
+          alert("En Panamá debes ingresar valor PMR para cada compra seleccionada.");
+          return;
+        }
+        const numeric = Number(raw);
+        if (Number.isNaN(numeric) || numeric <= 0) {
+          alert("Valor PMR inválido.");
+          return;
+        }
+        pmrCatalogValues.push({
+          purchaseId: purchaseId as Id<"purchases">,
+          value: numeric,
+        });
+      }
+    }
 
     const ok = confirm(`¿Aprobar ${selectedIds.length} compra(s) seleccionada(s)?`);
     if (!ok) return;
@@ -179,8 +205,18 @@ export default function AdminDashboardPage() {
         closingId,
         adminId: dbUser._id,
         purchaseIds: selectedIds as Id<"purchases">[],
+        pmrCatalogValues: isPanama ? pmrCatalogValues : undefined,
       });
       setSelectedApprovals((prev) => ({ ...prev, [closingId]: [] }));
+      if (isPanama) {
+        setPmrValues((prev) => {
+          const next = { ...prev };
+          for (const purchaseId of selectedIds) {
+            delete next[purchaseId];
+          }
+          return next;
+        });
+      }
       alert(
         result.closingReceived
           ? "Compras aprobadas. Cierre completado."
@@ -424,6 +460,9 @@ export default function AdminDashboardPage() {
                         const isApproved = !!purchase.approvedAt;
                         const checked =
                           isApproved || (selectedApprovals[closing._id] ?? []).includes(purchase._id);
+                        const pmrValueInput =
+                          pmrValues[purchase._id] ??
+                          (purchase.pmrCatalogValue ? String(purchase.pmrCatalogValue) : "");
 
                         return (
                           <label
@@ -444,15 +483,36 @@ export default function AdminDashboardPage() {
                                 )
                               }
                             />
-                            <span>
-                              {purchase.clientName} ·{" "}
-                              {purchase.type === "pieza"
-                                ? `Pieza ${purchase.brand}${purchase.model ? ` ${purchase.model}` : ""}`
-                                : `Suelto ${purchase.grams ?? 0}g`}
-                              {" · "}
-                              {formatMoney(purchase.total ?? 0)}
-                              {isApproved ? " · Aprobada" : ""}
-                            </span>
+                            <div className="grid flex-1 gap-1">
+                              <span>
+                                {purchase.clientName} ·{" "}
+                                {purchase.type === "pieza"
+                                  ? `Pieza ${purchase.brand}${purchase.model ? ` ${purchase.model}` : ""}`
+                                  : `Suelto ${purchase.grams ?? 0}g`}
+                                {" · "}
+                                {formatMoney(purchase.total ?? 0)}
+                                {isApproved ? " · Aprobada" : ""}
+                              </span>
+                              {dbUser.tenantKey === "pa" ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] text-muted-foreground">PMR value</span>
+                                  <Input
+                                    type="number"
+                                    inputMode="decimal"
+                                    className="h-7 w-32 text-xs"
+                                    placeholder="USD"
+                                    value={pmrValueInput}
+                                    disabled={isApproved || approvingClosingId === closing._id}
+                                    onChange={(e) =>
+                                      setPmrValues((prev) => ({
+                                        ...prev,
+                                        [purchase._id]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              ) : null}
+                            </div>
                           </label>
                         );
                       })}

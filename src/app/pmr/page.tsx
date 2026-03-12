@@ -133,10 +133,16 @@ export default async function PmrPage({
 
       <div className="mx-auto mt-6 grid w-full max-w-7xl grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Total clients" value={`${summary.totalClients}`} />
-        <StatCard label="With location" value={`${summary.totalClientsWithLocation}`} />
         <StatCard label="Clients (30d)" value={`${summary.clientsAdded30d}`} />
         <StatCard label="Total purchases" value={`${summary.totalPurchases}`} />
         <StatCard label="Purchases (30d)" value={`${summary.purchases30d}`} />
+        <StatCard
+          label="Total ceramic (kg)"
+          value={summary.totalLooseMaterialKilos.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 3,
+          })}
+        />
         <StatCard label="Active buyers" value={`${summary.buyersActive}`} />
       </div>
 
@@ -157,6 +163,21 @@ export default async function PmrPage({
         <StatCard
           label="Invested capital (last 30 days)"
           value={formatMoneyByTenant(summary.invested30d, "pa")}
+        />
+      </div>
+      <div className="mx-auto mt-3 grid w-full max-w-7xl grid-cols-1 gap-3 md:grid-cols-3">
+        <StatCard
+          label="Total paid amount (field purchases)"
+          value={formatMoneyByTenant(summary.totalPaidToClients, "pa")}
+        />
+        <StatCard
+          label="Total PMR catalog value"
+          value={formatMoneyByTenant(summary.totalPmrCatalogValue, "pa")}
+        />
+        <StatCard
+          label="Purchases pending PMR value"
+          value={`${summary.pendingPmrValuationCount}`}
+          tone={summary.pendingPmrValuationCount > 0 ? "pending" : "success"}
         />
       </div>
 
@@ -186,7 +207,7 @@ export default async function PmrPage({
         <section className="rounded-2xl border bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold text-[#234c4b]">Recent Purchases</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Purchase log with responsible buyer.
+            Purchase log with responsible buyer. Includes emergency and unlinked client records.
           </p>
           <div className="mt-4 grid gap-3">
             {report.purchases.map((purchase) => (
@@ -194,7 +215,11 @@ export default async function PmrPage({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">{purchase.clientName}</p>
-                    <p className="text-xs text-muted-foreground">Recorded by: {purchase.buyerName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Recorded by: {purchase.buyerName}
+                      {purchase.clientIsEmergency ? " · Emergency client" : ""}
+                      {!purchase.clientRegistered ? " · Unlinked client record" : ""}
+                    </p>
                   </div>
                   <p className="text-sm font-semibold text-[#234c4b]">
                     {formatMoneyByTenant(purchase.total ?? 0, "pa")}
@@ -212,6 +237,12 @@ export default async function PmrPage({
                   {" · "}
                   {new Date(purchase.createdAt).toLocaleDateString("en-US")}
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  Paid: {formatMoneyByTenant(purchase.pricePaid ?? 0, "pa")} · PMR value:{" "}
+                  {typeof purchase.pmrCatalogValue === "number" && purchase.pmrCatalogValue > 0
+                    ? formatMoneyByTenant(purchase.pmrCatalogValue, "pa")
+                    : "Pending"}
+                </p>
               </article>
             ))}
             {report.purchases.length === 0 ? (
@@ -224,7 +255,7 @@ export default async function PmrPage({
       <div className="mx-auto mt-6 w-full max-w-7xl rounded-2xl border bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold text-[#234c4b]">Client Growth Map (Panama)</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Active locations where new clients are being registered.
+          Totals include all clients. The map displays clients with coordinates only.
         </p>
         <div className="mt-4">
           <PmrMapSection clients={mapClients} />

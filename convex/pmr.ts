@@ -48,9 +48,24 @@ export const getPanamaControlData = query({
     );
 
     const totalInvested = purchases.reduce((sum, purchase) => sum + (purchase.total ?? 0), 0);
+    const totalPaidToClients = purchases.reduce((sum, purchase) => sum + (purchase.pricePaid ?? 0), 0);
+    const totalPmrCatalogValue = purchases.reduce(
+      (sum, purchase) => sum + (purchase.pmrCatalogValue ?? 0),
+      0
+    );
+    const valuedPurchasesCount = purchases.filter(
+      (purchase) => typeof purchase.pmrCatalogValue === "number" && purchase.pmrCatalogValue > 0
+    ).length;
+    const pendingPmrValuationCount = Math.max(0, purchases.length - valuedPurchasesCount);
     const invested30d = purchases
       .filter((purchase) => (purchase.createdAt ?? 0) >= since30d)
       .reduce((sum, purchase) => sum + (purchase.total ?? 0), 0);
+    const looseMaterialPurchases = purchases.filter((purchase) => purchase.type === "suelto");
+    const totalLooseMaterialGrams = looseMaterialPurchases.reduce(
+      (sum, purchase) => sum + (purchase.grams ?? 0),
+      0
+    );
+    const totalLooseMaterialKilos = totalLooseMaterialGrams / 1000;
 
     const buyersActive = new Set(
       purchases.map((purchase) => String(purchase.buyerId)).filter((id) => buyerNameById.has(id))
@@ -62,7 +77,6 @@ export const getPanamaControlData = query({
 
     const clientCards = [...clients]
       .sort((a, b) => (b._creationTime ?? 0) - (a._creationTime ?? 0))
-      .slice(0, 240)
       .map((client) => ({
         _id: client._id,
         name: client.name,
@@ -77,9 +91,9 @@ export const getPanamaControlData = query({
 
     const purchaseCards = [...purchases]
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
-      .slice(0, 260)
       .map((purchase) => {
         const client = clientsById.get(String(purchase.clientId));
+        const fallbackClientName = client?.name?.trim() || client?.contactName?.trim() || "Unregistered client";
         return {
           _id: purchase._id,
           createdAt: purchase.createdAt ?? now,
@@ -90,9 +104,12 @@ export const getPanamaControlData = query({
           pricePaid: purchase.pricePaid,
           commission: purchase.commission,
           total: purchase.total,
+          pmrCatalogValue: purchase.pmrCatalogValue ?? null,
           buyerName: buyerNameById.get(String(purchase.buyerId)) ?? "Buyer",
-          clientName: client?.name ?? "Client",
+          clientName: fallbackClientName,
           clientContactName: client?.contactName,
+          clientRegistered: Boolean(client),
+          clientIsEmergency: client?.isEmergency === true,
           lotNumber: lotsById.get(String(purchase.lotId)) ?? null,
         };
       });
@@ -101,7 +118,6 @@ export const getPanamaControlData = query({
       generatedAt: now,
       summary: {
         totalClients: clients.length,
-        totalClientsWithLocation: clientsWithLocation.length,
         clientsAdded7d: clients.filter((client) => (client._creationTime ?? 0) >= since7d).length,
         clientsAdded30d: clients.filter((client) => (client._creationTime ?? 0) >= since30d).length,
         totalPurchases: purchases.length,
@@ -109,6 +125,13 @@ export const getPanamaControlData = query({
         purchases30d: purchases.filter((purchase) => (purchase.createdAt ?? 0) >= since30d).length,
         totalInvested,
         invested30d,
+        totalPaidToClients,
+        totalPmrCatalogValue,
+        valuedPurchasesCount,
+        pendingPmrValuationCount,
+        totalLooseMaterialGrams,
+        totalLooseMaterialKilos,
+        totalLooseMaterialPurchases: looseMaterialPurchases.length,
         buyersActive,
       },
       clients: clientCards,

@@ -59,6 +59,9 @@ export default defineSchema({
     closedAt: v.optional(v.number()),
     approvedAt: v.optional(v.number()),
     approvedBy: v.optional(v.id("users")),
+    pmrCatalogValue: v.optional(v.number()),
+    pmrValuedAt: v.optional(v.number()),
+    pmrValuedBy: v.optional(v.id("users")),
     createdAt: v.number(),
     tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
