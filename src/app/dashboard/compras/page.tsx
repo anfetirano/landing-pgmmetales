@@ -391,12 +391,16 @@ export default function ComprasPage() {
               </div>
             )}
 
-            {type === "suelto" && (
-              <div className="grid gap-2">
-                <label className="text-sm font-medium">Gramos</label>
-                <Input type="number" value={gramos} onChange={(e) => setGramos(e.target.value)} placeholder="Ej: 150" />
-              </div>
-            )}
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Gramos</label>
+              <Input
+                type="number"
+                value={gramos}
+                onChange={(e) => setGramos(e.target.value)}
+                placeholder={type === "suelto" ? "Ej: 150" : "Solo para material suelto"}
+                disabled={type !== "suelto"}
+              />
+            </div>
 
             <div className="grid gap-2">
               <label className="text-sm font-medium">Valor pagado al cliente</label>
