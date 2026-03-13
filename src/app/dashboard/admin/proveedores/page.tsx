@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -86,6 +86,7 @@ export default function ProveedoresPage() {
   const [loadingPurchase, setLoadingPurchase] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [editingPurchaseId, setEditingPurchaseId] = useState<Id<"supplierPurchases"> | null>(null);
+  const formScopeRef = useRef<string | null>(null);
 
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -122,6 +123,32 @@ export default function ProveedoresPage() {
     setPhotoPreview(null);
     setEditingPurchaseId(null);
   };
+
+  useEffect(() => {
+    const scope =
+      supplierId && activeLot?._id ? `${String(supplierId)}:${String(activeLot._id)}` : null;
+
+    if (!scope) {
+      formScopeRef.current = null;
+      return;
+    }
+
+    if (formScopeRef.current && formScopeRef.current !== scope) {
+      setAmount("");
+      setMovementNotes("");
+      resetPurchaseForm();
+    }
+
+    formScopeRef.current = scope;
+  }, [supplierId, activeLot?._id]);
+
+  useEffect(() => {
+    if (!editingPurchaseId) return;
+    const existsInCurrentList = sortedPurchases.some((purchase) => purchase._id === editingPurchaseId);
+    if (!existsInCurrentList) {
+      resetPurchaseForm();
+    }
+  }, [editingPurchaseId, sortedPurchases]);
 
   const handleCreateSupplier = async () => {
     if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
