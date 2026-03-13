@@ -88,6 +88,8 @@ export const createPurchase = mutation({
 export const updatePurchase = mutation({
   args: {
     purchaseId: v.id("supplierPurchases"),
+    supplierId: v.id("suppliers"),
+    lotId: v.id("lots"),
     type: v.union(v.literal("pieza"), v.literal("suelto")),
     description: v.string(),
     model: v.optional(v.string()),
@@ -112,6 +114,9 @@ export const updatePurchase = mutation({
     }
     if (!sameTenantKey(existing.tenantKey, tenantKey)) {
       throw new Error("No autorizado.");
+    }
+    if (existing.supplierId !== args.supplierId || existing.lotId !== args.lotId) {
+      throw new Error("La carga no corresponde al proveedor/lote activo.");
     }
 
     if (!args.description.trim()) {

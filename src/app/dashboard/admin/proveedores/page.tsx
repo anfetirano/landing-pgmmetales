@@ -262,6 +262,14 @@ export default function ProveedoresPage() {
     }
   };
 
+  const handleSelectSupplier = (nextSupplierId: Id<"suppliers">) => {
+    if (nextSupplierId === supplierId) return;
+    setSelectedSupplierId(nextSupplierId);
+    setAmount("");
+    setMovementNotes("");
+    resetPurchaseForm();
+  };
+
   const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setPhotoFile(file);
@@ -341,9 +349,17 @@ export default function ProveedoresPage() {
       }
     }
 
+    const isEditingCurrentContext =
+      !!editingPurchase &&
+      editingPurchase._id === editingPurchaseId &&
+      editingPurchase.supplierId === supplierId &&
+      editingPurchase.lotId === activeLot._id;
+
     setLoadingPurchase(true);
     try {
-      let photoId: Id<"_storage"> | undefined = editingPurchase?.photoId;
+      let photoId: Id<"_storage"> | undefined = isEditingCurrentContext
+        ? editingPurchase?.photoId
+        : undefined;
 
       if (photoFile) {
         const uploadUrl = await generateUploadUrl();
@@ -356,9 +372,11 @@ export default function ProveedoresPage() {
         photoId = storageId;
       }
 
-      if (editingPurchaseId) {
+      if (editingPurchaseId && isEditingCurrentContext) {
         await updatePurchase({
           purchaseId: editingPurchaseId,
+          supplierId,
+          lotId: activeLot._id,
           type: purchaseType,
           description: description.trim(),
           model: purchaseType === "pieza" ? model.trim() || undefined : undefined,
@@ -372,6 +390,10 @@ export default function ProveedoresPage() {
         });
         alert("Ingreso actualizado.");
       } else {
+        if (editingPurchaseId && !isEditingCurrentContext) {
+          // Evita que una edición vieja termine sobreescribiendo otra carga.
+          setEditingPurchaseId(null);
+        }
         await createPurchase({
           supplierId,
           lotId: activeLot._id,
@@ -457,7 +479,7 @@ export default function ProveedoresPage() {
                 className={`w-full rounded-md px-3 py-2 text-left text-sm ${
                   s._id === supplierId ? "bg-[#234c4b] text-white" : "hover:bg-muted"
                 }`}
-                onClick={() => setSelectedSupplierId(s._id)}
+                onClick={() => handleSelectSupplier(s._id)}
               >
                 {s.name}
                 {s.city ? ` — ${s.city}` : ""}
