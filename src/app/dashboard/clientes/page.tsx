@@ -46,9 +46,13 @@ export default function ClientesPage() {
   const [editingContactName, setEditingContactName] = useState("");
   const [editingCedula, setEditingCedula] = useState("");
   const [editingPhone, setEditingPhone] = useState("");
+  const [editingPhotoId, setEditingPhotoId] = useState<Id<"_storage"> | undefined>(undefined);
+  const [editingPhotoPreview, setEditingPhotoPreview] = useState<string | null>(null);
+  const [editingPhotoFile, setEditingPhotoFile] = useState<File | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const editPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const visibleClients = useMemo(() => {
     const sorted = [...clientsWithLocation].sort((a, b) =>
@@ -99,10 +103,18 @@ export default function ClientesPage() {
 
   const handleSave = async () => {
     if (!dbUser) return alert("Usuario no registrado.");
-    if (!name) return alert("El nombre del cliente es obligatorio.");
 
     setSaving(true);
     try {
+      const parseOptionalNumber = (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return undefined;
+        const parsed = Number(trimmed);
+        return Number.isFinite(parsed) ? parsed : undefined;
+      };
+
+      const safeName = name.trim() || "Cliente sin nombre";
+
       let photoId: Id<"_storage"> | undefined = undefined;
       if (photoFile) {
         const uploadUrl = await generateUploadUrl();
@@ -116,13 +128,13 @@ export default function ClientesPage() {
       }
 
       await createClient({
-        name,
+        name: safeName,
         contactName: contactName || undefined,
         cedula: cedula || undefined,
         phone: phone || undefined,
         photoId,
-        lat: lat ? Number(lat) : undefined,
-        lng: lng ? Number(lng) : undefined,
+        lat: parseOptionalNumber(lat),
+        lng: parseOptionalNumber(lng),
         buyerId: dbUser._id,
       });
       setName("");
@@ -170,6 +182,9 @@ export default function ClientesPage() {
     setEditingContactName(client.contactName ?? "");
     setEditingCedula(client.cedula ?? "");
     setEditingPhone(client.phone ?? "");
+    setEditingPhotoId(client.photoId);
+    setEditingPhotoPreview(client.photoUrl ?? null);
+    setEditingPhotoFile(null);
   };
 
   const toggleSelectedClient = (clientId: Id<"clients">) => {
@@ -182,6 +197,16 @@ export default function ClientesPage() {
     setEditingContactName("");
     setEditingCedula("");
     setEditingPhone("");
+    setEditingPhotoId(undefined);
+    setEditingPhotoPreview(null);
+    setEditingPhotoFile(null);
+  };
+
+  const onEditingPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setEditingPhotoFile(file);
+    if (!file) return;
+    setEditingPhotoPreview(URL.createObjectURL(file));
   };
 
   const saveEditing = async () => {
@@ -191,6 +216,18 @@ export default function ClientesPage() {
 
     setSavingEdit(true);
     try {
+      let nextPhotoId = editingPhotoId;
+      if (editingPhotoFile) {
+        const uploadUrl = await generateUploadUrl();
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": editingPhotoFile.type },
+          body: editingPhotoFile,
+        });
+        const { storageId } = await res.json();
+        nextPhotoId = storageId;
+      }
+
       await updateClient({
         clientId: editingClientId,
         buyerId: dbUser._id,
@@ -198,6 +235,7 @@ export default function ClientesPage() {
         contactName: editingContactName || undefined,
         cedula: editingCedula || undefined,
         phone: editingPhone || undefined,
+        photoId: nextPhotoId,
       });
       cancelEditing();
       alert("Cliente actualizado.");
@@ -308,6 +346,13 @@ export default function ClientesPage() {
             </Button>
           ) : null}
         </div>
+        <input
+          ref={editPhotoInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onEditingPhotoChange}
+        />
 
         <div className="grid gap-3 md:hidden">
           {visibleClients.length === 0 && (
@@ -332,8 +377,12 @@ export default function ClientesPage() {
               >
                 <CardContent className="relative grid gap-3 p-4 pr-32">
                   <div className="absolute right-4 top-4 h-24 w-24 overflow-hidden rounded border bg-muted">
-                    {c.photoUrl ? (
-                      <img src={c.photoUrl} alt={c.name} className="h-full w-full object-cover" />
+                    {(isEditing ? editingPhotoPreview : c.photoUrl) ? (
+                      <img
+                        src={(isEditing ? editingPhotoPreview : c.photoUrl) ?? ""}
+                        alt={c.name}
+                        className="h-full w-full object-cover"
+                      />
                     ) : null}
                   </div>
 
@@ -376,6 +425,22 @@ export default function ClientesPage() {
                       <span>{c.phone ?? "-"}</span>
                     )}
                   </div>
+
+                  {isEditing ? (
+                    <div className="text-sm" onClick={(e) => e.stopPropagation()}>
+                      <span className="font-medium">Foto:</span>
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => editPhotoInputRef.current?.click()}
+                          disabled={savingEdit}
+                        >
+                          Cambiar foto
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="text-sm">
                     <span className="font-medium">Ubicación:</span>{" "}
@@ -496,13 +561,27 @@ export default function ClientesPage() {
                     <td className="px-4 py-3 font-medium">
                       <div className="flex items-center gap-2">
                         <div className="h-10 w-10 overflow-hidden rounded border bg-muted">
-                          {c.photoUrl ? (
-                            <img src={c.photoUrl} alt={c.name} className="h-full w-full object-cover" />
+                          {(isEditing ? editingPhotoPreview : c.photoUrl) ? (
+                            <img
+                              src={(isEditing ? editingPhotoPreview : c.photoUrl) ?? ""}
+                              alt={c.name}
+                              className="h-full w-full object-cover"
+                            />
                           ) : null}
                         </div>
                         <div className="min-w-0">
                           {isEditing ? (
-                            <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} />
+                            <div className="grid gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => editPhotoInputRef.current?.click()}
+                                disabled={savingEdit}
+                              >
+                                Cambiar foto
+                              </Button>
+                            </div>
                           ) : (
                             c.name
                           )}

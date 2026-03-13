@@ -8,6 +8,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatMoneyByTenant } from "@/lib/currency";
+import { getTenantLocalISODate } from "@/lib/date";
 
 export default function CierrePage() {
   const { user } = useUser();
@@ -78,7 +79,7 @@ export default function CierrePage() {
       await createClosing({
         buyerId: dbUser._id,
         lotId: activeLot._id,
-        date: new Date().toISOString().slice(0, 10),
+        date: getTenantLocalISODate(dbUser.tenantKey),
         purchaseIds: purchases.map((p) => p._id),
         totalPaid: totals.totalPaid,
         totalCommission: totals.totalCommission,
