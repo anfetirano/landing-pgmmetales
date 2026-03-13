@@ -15,6 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatMoneyByTenant } from "@/lib/currency";
 import { formatLotCode } from "@/lib/lots";
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
+};
+
 export default function ProveedoresPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
@@ -173,7 +181,7 @@ export default function ProveedoresPage() {
       alert("Proveedor creado.");
     } catch (e) {
       console.error(e);
-      alert("Error creando proveedor.");
+      alert(getErrorMessage(e, "Error creando proveedor."));
     }
   };
 
@@ -201,7 +209,7 @@ export default function ProveedoresPage() {
       alert("Movimiento registrado.");
     } catch (e) {
       console.error(e);
-      alert("Error registrando movimiento.");
+      alert(getErrorMessage(e, "Error registrando movimiento."));
     } finally {
       setLoadingMovement(false);
     }
@@ -235,7 +243,7 @@ export default function ProveedoresPage() {
       alert("Base abierta.");
     } catch (e) {
       console.error(e);
-      alert("Error abriendo base.");
+      alert(getErrorMessage(e, "Error abriendo base."));
     } finally {
       setLoadingOpenBase(false);
     }
@@ -256,7 +264,7 @@ export default function ProveedoresPage() {
       alert("Movimiento eliminado.");
     } catch (e) {
       console.error(e);
-      alert("Error eliminando movimiento.");
+      alert(getErrorMessage(e, "Error eliminando movimiento."));
     } finally {
       setDeletingMovementId(null);
     }
@@ -414,7 +422,12 @@ export default function ProveedoresPage() {
       resetPurchaseForm();
     } catch (e) {
       console.error(e);
-      alert(editingPurchaseId ? "Error actualizando ingreso." : "Error registrando ingreso.");
+      alert(
+        getErrorMessage(
+          e,
+          editingPurchaseId ? "Error actualizando ingreso." : "Error registrando ingreso."
+        )
+      );
     } finally {
       setLoadingPurchase(false);
     }
@@ -438,7 +451,7 @@ export default function ProveedoresPage() {
       alert("Ingreso eliminado.");
     } catch (e) {
       console.error(e);
-      alert("Error eliminando ingreso.");
+      alert(getErrorMessage(e, "Error eliminando ingreso."));
     } finally {
       setDeletingPurchaseId(null);
     }
@@ -594,6 +607,11 @@ export default function ProveedoresPage() {
                   <span className="font-medium text-foreground">{formatMoney(editingPurchase.pricePaid ?? 0)}</span>
                 </div>
               ) : null}
+              {editingPurchaseId ? (
+                <Button type="button" variant="outline" onClick={resetPurchaseForm} disabled={loadingPurchase}>
+                  Crear ingreso nuevo
+                </Button>
+              ) : null}
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Tipo</label>
                 <Select
@@ -739,12 +757,7 @@ export default function ProveedoresPage() {
                       <img src={p.photoUrl} alt="Ingreso" className="h-full w-full object-cover" />
                     ) : null}
                   </div>
-                  <button
-                    type="button"
-                    className="flex-1 text-left text-sm hover:opacity-90"
-                    onClick={() => startEditingPurchase(p)}
-                    title="Ver y editar ingreso"
-                  >
+                  <div className="flex-1 text-left text-sm">
                     <div className="font-medium">{p.description}</div>
                     <div className="text-xs text-muted-foreground">
                       {p.type === "pieza"
@@ -757,7 +770,7 @@ export default function ProveedoresPage() {
                       · Valor pagado:{" "}
                       {formatMoney(p.pricePaid)}
                     </div>
-                  </button>
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"

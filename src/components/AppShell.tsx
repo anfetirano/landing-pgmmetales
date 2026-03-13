@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PwaAutoRefresh from "@/components/PwaAutoRefresh";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,6 +15,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <PwaAutoRefresh />
       {!hideChrome && <Header />}
       <main>{children}</main>
       {!hideChrome && <Footer />}
