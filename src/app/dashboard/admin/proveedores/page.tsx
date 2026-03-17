@@ -23,6 +23,30 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const parseMoneyInput = (rawValue: string) => {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return Number.NaN;
+
+  const isNegative = trimmed.startsWith("-");
+  const digitsOnly = trimmed.replace(/[^\d]/g, "");
+  if (!digitsOnly) return Number.NaN;
+
+  const parsed = Number(digitsOnly);
+  if (!Number.isFinite(parsed)) return Number.NaN;
+  return isNegative ? -parsed : parsed;
+};
+
+const parseCountInput = (rawValue: string) => {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return Number.NaN;
+
+  const digitsOnly = trimmed.replace(/[^\d]/g, "");
+  if (!digitsOnly) return Number.NaN;
+
+  const parsed = Number(digitsOnly);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
 export default function ProveedoresPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
@@ -191,7 +215,7 @@ export default function ProveedoresPage() {
     if (!supplierId) return alert("Selecciona un proveedor.");
     if (!amount) return alert("Ingresa un monto.");
 
-    const numeric = Number(amount);
+    const numeric = parseMoneyInput(amount);
     if (Number.isNaN(numeric) || numeric === 0) return alert("Monto inválido.");
 
     setLoadingMovement(true);
@@ -221,7 +245,7 @@ export default function ProveedoresPage() {
     if (!supplierId) return alert("Selecciona un proveedor.");
     if (!amount) return alert("Ingresa un monto base.");
 
-    const numeric = Number(amount);
+    const numeric = parseMoneyInput(amount);
     if (Number.isNaN(numeric) || numeric <= 0) return alert("Monto inválido.");
 
     const ok = confirm(
@@ -331,23 +355,23 @@ export default function ProveedoresPage() {
 
     if (purchaseType === "pieza") {
       if (!pricePaid) return alert("Completa el valor pagado.");
-      parsedQuantity = Number(quantity || 0);
+      parsedQuantity = parseCountInput(quantity || "0");
       if (Number.isNaN(parsedQuantity) || parsedQuantity < 1) {
         return alert("Unidades inválidas para pieza.");
       }
       parsedQuantity = Math.max(1, Math.trunc(parsedQuantity));
-      finalPricePaid = Number(pricePaid);
+      finalPricePaid = parseMoneyInput(pricePaid);
       if (Number.isNaN(finalPricePaid) || finalPricePaid <= 0) {
         return alert("Valor pagado inválido.");
       }
     }
 
     if (purchaseType === "suelto") {
-      parsedGrams = Number(grams || 0);
+      parsedGrams = parseCountInput(grams || "0");
       if (Number.isNaN(parsedGrams) || parsedGrams <= 0) {
         return alert("Gramos inválidos para material suelto.");
       }
-      parsedUnitPrice = Number(unitPrice || 0);
+      parsedUnitPrice = parseMoneyInput(unitPrice || "0");
       if (Number.isNaN(parsedUnitPrice) || parsedUnitPrice <= 0) {
         return alert("Valor por gramo inválido.");
       }
