@@ -86,6 +86,7 @@ export default function ProveedoresPage() {
     ) ?? [];
 
   const createSupplier = useMutation(api.suppliers.createSupplier);
+  const deleteSupplier = useMutation(api.suppliers.deleteSupplier);
   const addMovement = useMutation(api.supplierMovements.addMovement);
   const openBase = useMutation(api.supplierMovements.openBase);
   const deleteMovement = useMutation(api.supplierMovements.deleteMovement);
@@ -106,6 +107,7 @@ export default function ProveedoresPage() {
   const [loadingMovement, setLoadingMovement] = useState(false);
   const [loadingOpenBase, setLoadingOpenBase] = useState(false);
   const [deletingMovementId, setDeletingMovementId] = useState<string | null>(null);
+  const [deletingSupplierId, setDeletingSupplierId] = useState<string | null>(null);
 
   const [purchaseType, setPurchaseType] = useState<"pieza" | "suelto">("pieza");
   const [description, setDescription] = useState("");
@@ -300,6 +302,33 @@ export default function ProveedoresPage() {
     setAmount("");
     setMovementNotes("");
     resetPurchaseForm();
+  };
+
+  const handleDeleteSupplier = async (targetSupplierId: Id<"suppliers">, targetName: string) => {
+    if (!dbUser || dbUser.role !== "admin") return alert("No autorizado.");
+
+    const ok = confirm(`¿Está seguro de eliminar a ${targetName}?`);
+    if (!ok) return;
+
+    setDeletingSupplierId(targetSupplierId);
+    try {
+      await deleteSupplier({
+        supplierId: targetSupplierId,
+        deletedBy: dbUser._id,
+      });
+      if (supplierId === targetSupplierId) {
+        setSelectedSupplierId(null);
+        setAmount("");
+        setMovementNotes("");
+        resetPurchaseForm();
+      }
+      alert("Proveedor eliminado.");
+    } catch (e) {
+      console.error(e);
+      alert(getErrorMessage(e, "Error eliminando proveedor."));
+    } finally {
+      setDeletingSupplierId(null);
+    }
   };
 
   const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -511,16 +540,35 @@ export default function ProveedoresPage() {
           </CardHeader>
           <CardContent className="grid gap-2">
             {suppliers.map((s) => (
-              <button
+              <div
                 key={s._id}
-                className={`w-full rounded-md px-3 py-2 text-left text-sm ${
+                className={`flex items-center gap-2 rounded-md ${
                   s._id === supplierId ? "bg-[#234c4b] text-white" : "hover:bg-muted"
                 }`}
-                onClick={() => handleSelectSupplier(s._id)}
               >
-                {s.name}
-                {s.city ? ` — ${s.city}` : ""}
-              </button>
+                <button
+                  type="button"
+                  className="flex-1 px-3 py-2 text-left text-sm"
+                  onClick={() => handleSelectSupplier(s._id)}
+                >
+                  {s.name}
+                  {s.city ? ` — ${s.city}` : ""}
+                </button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={`mr-2 h-8 w-8 ${
+                    s._id === supplierId ? "text-white hover:bg-white/10 hover:text-white" : ""
+                  }`}
+                  onClick={() => handleDeleteSupplier(s._id, `${s.name}${s.city ? ` — ${s.city}` : ""}`)}
+                  disabled={deletingSupplierId === s._id}
+                  title="Eliminar proveedor"
+                  aria-label="Eliminar proveedor"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             ))}
             {suppliers.length === 0 && (
               <div className="text-sm text-muted-foreground">No hay proveedores.</div>
