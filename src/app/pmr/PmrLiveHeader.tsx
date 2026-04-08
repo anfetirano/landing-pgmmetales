@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Clock3 } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type LatestClient = {
@@ -18,18 +18,6 @@ type AlertItem = {
   createdAt: number;
 };
 
-const COUNTDOWN_TARGET = "2026-03-16T00:00:00-05:00";
-
-const formatCountdown = (ms: number) => {
-  if (ms <= 0) return "00d 00h 00m 00s";
-  const totalSeconds = Math.floor(ms / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(days).padStart(2, "0")}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
-};
-
 export default function PmrLiveHeader({
   initialLatestClients,
 }: {
@@ -38,19 +26,7 @@ export default function PmrLiveHeader({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AlertItem[]>([]);
-  const [countdownText, setCountdownText] = useState(() =>
-    formatCountdown(new Date(COUNTDOWN_TARGET).getTime() - Date.now())
-  );
   const knownClientIds = useRef<Set<string>>(new Set(initialLatestClients.map((c) => c._id)));
-
-  useEffect(() => {
-    const tick = () => {
-      setCountdownText(formatCountdown(new Date(COUNTDOWN_TARGET).getTime() - Date.now()));
-    };
-    const id = window.setInterval(tick, 1000);
-    tick();
-    return () => window.clearInterval(id);
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -110,12 +86,6 @@ export default function PmrLiveHeader({
 
   return (
     <div className="relative flex flex-wrap items-center gap-2">
-      <div className="inline-flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-xs text-muted-foreground">
-        <Clock3 className="h-4 w-4 text-[#234c4b]" />
-        <span className="font-medium text-[#234c4b]">Countdown to Monday, March 16</span>
-        <span className="font-semibold">{countdownText}</span>
-      </div>
-
       <button
         type="button"
         onClick={toggleBell}

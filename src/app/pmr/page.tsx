@@ -16,7 +16,7 @@ import {
 
 export const dynamic = "force-dynamic";
 const PMR_INITIAL_CAPITAL_USD = 15000;
-const PMR_INITIAL_CAPITAL_STATUS: "pending" | "received" = "pending";
+const PMR_INITIAL_CAPITAL_STATUS: "pending" | "received" = "received";
 
 async function loginPmr(formData: FormData) {
   "use server";
