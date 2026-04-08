@@ -13,6 +13,11 @@ export default function DashboardHome() {
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
   const buyerId = dbUser?.role === "buyer" ? dbUser._id : undefined;
+  const hasBuyerExpenses =
+    dbUser?.role === "buyer" &&
+    dbUser?.tenantKey === "pa" &&
+    Array.isArray(dbUser?.features) &&
+    dbUser.features.includes("buyer_expenses");
 
   const purchases =
     useQuery(api.purchases.listOpenByBuyer, buyerId ? { buyerId } : "skip") ?? [];
@@ -20,6 +25,10 @@ export default function DashboardHome() {
   const balance = useQuery(
     api.cashMovements.getBalanceByBuyer,
     buyerId ? { buyerId } : "skip"
+  );
+  const expenseSummary = useQuery(
+    api.buyerExpenses.getExpenseSummaryByBuyer,
+    buyerId && hasBuyerExpenses ? { buyerId, viewerId: buyerId } : "skip"
   );
 
   const summary = useMemo(() => {
@@ -84,6 +93,11 @@ export default function DashboardHome() {
       <div className="mt-2 text-xs text-muted-foreground">
         Pendiente por aprobar: {formatMoney(balance?.pendingSpent ?? 0)}
       </div>
+      {hasBuyerExpenses ? (
+        <div className="mt-2 text-xs text-muted-foreground">
+          Gastos operativos del lote activo: {formatMoney(balance?.totalExpenses ?? 0)}
+        </div>
+      ) : null}
 
       {/* Tarjetas de resumen de compras */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -112,6 +126,71 @@ export default function DashboardHome() {
           <CardContent className="text-2xl font-semibold">{summary.totalGrams}</CardContent>
         </Card>
       </div>
+
+      {hasBuyerExpenses ? (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-[#234c4b]">Gastos operativos</h2>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm text-muted-foreground">Total gastos lote activo</CardTitle>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold text-red-600">
+                {formatMoney(expenseSummary?.totalExpenses ?? 0)}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm text-muted-foreground">Cantidad de gastos</CardTitle>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">
+                {expenseSummary?.expenseCount ?? 0}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm text-muted-foreground">Lote activo</CardTitle>
+              </CardHeader>
+              <CardContent className="text-2xl font-semibold">
+                {expenseSummary?.activeLotNumber ?? "-"}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-4 grid gap-4">
+            {(expenseSummary?.latestExpenses ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Todavía no hay gastos registrados.</p>
+            ) : (
+              (expenseSummary?.latestExpenses ?? []).map((expense) => (
+                <Card key={expense._id}>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className="h-12 w-12 overflow-hidden rounded-md border bg-muted">
+                      {expense.receiptPhotoUrl ? (
+                        <img
+                          src={expense.receiptPhotoUrl}
+                          alt="Recibo"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">
+                        {expense.category} — {expense.description}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(expense.createdAt).toLocaleDateString("es-PA")}
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-red-600">
+                      {formatMoney(expense.amount ?? 0)}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-8">
         <h2 className="text-lg font-semibold text-[#234c4b]">Últimas 5 compras</h2>

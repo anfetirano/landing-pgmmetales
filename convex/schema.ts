@@ -7,6 +7,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     name: v.string(),
     role: v.union(v.literal("buyer"), v.literal("admin")),
+    features: v.optional(v.array(v.string())),
     tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
     phone: v.optional(v.string()),
     city: v.optional(v.string()),
@@ -163,6 +164,27 @@ export default defineSchema({
     tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_supplierId", ["supplierId"])
+    .index("by_lotId", ["lotId"])
+    .index("by_createdAt", ["createdAt"]),
+
+  buyerExpenses: defineTable({
+    buyerId: v.id("users"),
+    lotId: v.id("lots"),
+    category: v.union(
+      v.literal("gasolina"),
+      v.literal("comida"),
+      v.literal("parqueadero"),
+      v.literal("otros")
+    ),
+    description: v.string(),
+    amount: v.number(),
+    receiptPhotoId: v.optional(v.id("_storage")),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
+  })
+    .index("by_buyerId", ["buyerId"])
     .index("by_lotId", ["lotId"])
     .index("by_createdAt", ["createdAt"]),
 });

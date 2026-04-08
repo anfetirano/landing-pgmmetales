@@ -9,6 +9,18 @@ const PANAMA_BUYER_EMAILS = new Set([
   "richie@pmgmetales.com",
   "andrescompra@pmgmetales.com",
 ]);
+const BUYER_EXPENSE_FEATURE_EMAILS = new Set(["andrescompra@pmgmetales.com"]);
+
+const inferFeaturesFromEmail = (email?: string): string[] | undefined => {
+  const normalized = (email ?? "").trim().toLowerCase();
+  const features: string[] = [];
+
+  if (BUYER_EXPENSE_FEATURE_EMAILS.has(normalized)) {
+    features.push("buyer_expenses");
+  }
+
+  return features.length ? features : undefined;
+};
 
 const inferIdentityFromEmail = (
   email?: string
@@ -42,6 +54,7 @@ export const upsertUser = mutation({
   handler: async (ctx, args) => {
     const normalizedEmail = args.email?.trim().toLowerCase();
     const inferred = inferIdentityFromEmail(normalizedEmail);
+    const inferredFeatures = inferFeaturesFromEmail(normalizedEmail);
     if (normalizedEmail && !inferred) {
       throw new Error("Usuario no autorizado en esta aplicación.");
     }
@@ -56,6 +69,7 @@ export const upsertUser = mutation({
         email: normalizedEmail || existing.email,
         name: args.name,
         role: inferred?.role ?? args.role,
+        features: inferredFeatures ?? existing.features,
         tenantKey: inferred?.tenantKey ?? args.tenantKey ?? existing.tenantKey,
         phone: args.phone,
         city: args.city,
@@ -72,6 +86,7 @@ export const upsertUser = mutation({
       email: normalizedEmail,
       name: args.name,
       role: inferred.role,
+      features: inferredFeatures,
       tenantKey: inferred.tenantKey,
       phone: args.phone,
       city: args.city,
@@ -94,6 +109,7 @@ export const syncFromClerk = mutation({
 
     const normalizedEmail = args.email?.trim().toLowerCase();
     const inferred = inferIdentityFromEmail(normalizedEmail);
+    const inferredFeatures = inferFeaturesFromEmail(normalizedEmail);
     if (!inferred) {
       throw new Error("Usuario no autorizado en esta aplicación.");
     }
@@ -104,6 +120,7 @@ export const syncFromClerk = mutation({
         name: nextName,
         email: normalizedEmail || existing.email,
         role: inferred.role,
+        features: inferredFeatures ?? existing.features,
         tenantKey: inferred.tenantKey,
       });
       return existing._id;
@@ -119,6 +136,7 @@ export const syncFromClerk = mutation({
       email: normalizedEmail,
       name,
       role: inferred.role,
+      features: inferredFeatures,
       tenantKey: inferred.tenantKey,
       active: true,
     });

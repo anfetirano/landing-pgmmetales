@@ -18,7 +18,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const BuyerLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
+const BuyerLinks = ({
+  onNavigate,
+  showExpenses,
+}: {
+  onNavigate?: () => void;
+  showExpenses?: boolean;
+}) => (
   <nav className="flex flex-col gap-2 text-sm">
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard" onClick={onNavigate}>
       Dashboard
@@ -29,6 +35,11 @@ const BuyerLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/clientes" onClick={onNavigate}>
       Clientes
     </Link>
+    {showExpenses ? (
+      <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/gastos" onClick={onNavigate}>
+        Gastos
+      </Link>
+    ) : null}
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/cierre" onClick={onNavigate}>
       Cierre del día
     </Link>
@@ -115,6 +126,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const role = dbUser?.role;
   const isAdmin = role === "admin";
+  const showBuyerExpenses =
+    dbUser?.role === "buyer" &&
+    dbUser?.tenantKey === "pa" &&
+    Array.isArray(dbUser?.features) &&
+    dbUser.features.includes("buyer_expenses");
 
   useEffect(() => {
     setMounted(true);
@@ -148,7 +164,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <h2 className="text-lg font-bold text-[#234c4b]">PMG Metales</h2>
             <p className="text-xs text-muted-foreground">{title}</p>
           </div>
-          {isAdmin ? <AdminLinks /> : <BuyerLinks />}
+          {isAdmin ? <AdminLinks /> : <BuyerLinks showExpenses={showBuyerExpenses} />}
           {mounted ? (
             <SidebarUser />
           ) : (
@@ -174,7 +190,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   {isAdmin ? (
                     <AdminLinks onNavigate={() => setOpen(false)} />
                   ) : (
-                    <BuyerLinks onNavigate={() => setOpen(false)} />
+                    <BuyerLinks onNavigate={() => setOpen(false)} showExpenses={showBuyerExpenses} />
                   )}
                   <div className="mt-auto pt-6">
                     <SidebarUser />

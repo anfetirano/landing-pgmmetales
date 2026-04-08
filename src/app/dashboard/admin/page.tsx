@@ -1,17 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import type { Id } from "@convex/_generated/dataModel";
-import { Trash2 } from "lucide-react";
+import { Camera, Pencil, Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatMoneyByTenant } from "@/lib/currency";
 import { formatLotCode } from "@/lib/lots";
+
+const EXPENSE_CATEGORY_LABELS = {
+  gasolina: "Gasolina",
+  comida: "Comida",
+  parqueadero: "Parqueadero",
+  otros: "Otros",
+} as const;
+
+type ExpenseCategory = keyof typeof EXPENSE_CATEGORY_LABELS;
 
 export default function AdminDashboardPage() {
   const { user } = useUser();
@@ -25,6 +42,13 @@ export default function AdminDashboardPage() {
   const [showAllPurchases, setShowAllPurchases] = useState(false);
 
   const buyerId: Id<"users"> | null = selectedBuyerId ?? buyers[0]?._id ?? null;
+  const selectedBuyer = buyers.find((b) => String(b._id) === String(buyerId));
+  const selectedBuyerHasExpenses = Array.isArray(selectedBuyer?.features)
+    && selectedBuyer.features.includes("buyer_expenses");
+  const activeLot = useQuery(
+    api.lots.getActiveLot,
+    dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
+  );
 
   const balance = useQuery(api.cashMovements.getBalanceByBuyer, buyerId ? { buyerId } : "skip");
   const movements = useQuery(api.cashMovements.listByBuyer, buyerId ? { buyerId } : "skip") ?? [];
@@ -37,11 +61,26 @@ export default function AdminDashboardPage() {
     buyerId ? { buyerId, limit: 1000 } : "skip"
   ) ?? [];
   const pendingClosings = useQuery(api.closings.listPending, adminArgs) ?? [];
+  const expenseSummary = useQuery(
+    api.buyerExpenses.getExpenseSummaryByBuyer,
+    buyerId && selectedBuyerHasExpenses && dbUser
+      ? { buyerId, viewerId: dbUser._id }
+      : "skip"
+  );
+  const lotExpenses = useQuery(
+    api.buyerExpenses.listByLotForAdmin,
+    buyerId && selectedBuyerHasExpenses && activeLot?._id && dbUser
+      ? { adminId: dbUser._id, buyerId, lotId: activeLot._id }
+      : "skip"
+  ) ?? [];
 
   const addMovement = useMutation(api.cashMovements.addMovement);
   const openBase = useMutation(api.cashMovements.openBase);
   const deletePurchaseAsAdmin = useMutation(api.purchases.deletePurchaseAsAdmin);
   const approvePurchasesInClosing = useMutation(api.closings.approvePurchasesInClosing);
+  const updateExpense = useMutation(api.buyerExpenses.updateExpense);
+  const deleteExpense = useMutation(api.buyerExpenses.deleteExpense);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -51,6 +90,18 @@ export default function AdminDashboardPage() {
   const [approvingClosingId, setApprovingClosingId] = useState<string | null>(null);
   const [selectedApprovals, setSelectedApprovals] = useState<Record<string, string[]>>({});
   const [pmrValues, setPmrValues] = useState<Record<string, string>>({});
+  const [editingExpenseId, setEditingExpenseId] = useState<Id<"buyerExpenses"> | null>(null);
+  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>("gasolina");
+  const [expenseDescription, setExpenseDescription] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseNotes, setExpenseNotes] = useState("");
+  const [expensePhotoPreview, setExpensePhotoPreview] = useState<string | null>(null);
+  const [expensePhotoFile, setExpensePhotoFile] = useState<File | null>(null);
+  const [showExpensePhotoOptions, setShowExpensePhotoOptions] = useState(false);
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const expenseCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const expenseGalleryInputRef = useRef<HTMLInputElement | null>(null);
 
   const sortedMovements = useMemo(
     () => [...movements].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
@@ -66,6 +117,30 @@ export default function AdminDashboardPage() {
 
   const purchaseList = showAllPurchases ? allPurchases : latest;
   const buyerName = buyers.find((b) => b._id === buyerId)?.name ?? "Comprador";
+
+  const resetExpenseForm = () => {
+    setEditingExpenseId(null);
+    setExpenseCategory("gasolina");
+    setExpenseDescription("");
+    setExpenseAmount("");
+    setExpenseNotes("");
+    setExpensePhotoPreview(null);
+    setExpensePhotoFile(null);
+    setShowExpensePhotoOptions(false);
+  };
+
+  const onExpensePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setExpensePhotoFile(file);
+    setShowExpensePhotoOptions(false);
+
+    if (!file) {
+      setExpensePhotoPreview(null);
+      return;
+    }
+
+    setExpensePhotoPreview(URL.createObjectURL(file));
+  };
 
   const handleMovement = async (type: "fund" | "adjustment" | "expense") => {
     if (!dbUser) return alert("Usuario no registrado.");
@@ -147,6 +222,82 @@ export default function AdminDashboardPage() {
       alert("Error eliminando compra.");
     } finally {
       setDeletingPurchaseId(null);
+    }
+  };
+
+  const handleEditExpense = (expense: (typeof lotExpenses)[number]) => {
+    setEditingExpenseId(expense._id);
+    setExpenseCategory(expense.category as ExpenseCategory);
+    setExpenseDescription(expense.description ?? "");
+    setExpenseAmount(String(expense.amount ?? ""));
+    setExpenseNotes(expense.notes ?? "");
+    setExpensePhotoPreview(expense.receiptPhotoUrl ?? null);
+    setExpensePhotoFile(null);
+    setShowExpensePhotoOptions(false);
+  };
+
+  const handleSaveExpense = async () => {
+    if (!dbUser || !editingExpenseId) return;
+
+    const numericAmount = Number(expenseAmount);
+    if (!expenseDescription.trim()) return alert("La descripción es obligatoria.");
+    if (Number.isNaN(numericAmount) || numericAmount <= 0) return alert("Monto inválido.");
+
+    setSavingExpense(true);
+    try {
+      let receiptPhotoId: Id<"_storage"> | undefined = undefined;
+
+      if (expensePhotoFile) {
+        const uploadUrl = await generateUploadUrl();
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": expensePhotoFile.type },
+          body: expensePhotoFile,
+        });
+        const { storageId } = await res.json();
+        receiptPhotoId = storageId;
+      }
+
+      await updateExpense({
+        expenseId: editingExpenseId,
+        category: expenseCategory,
+        description: expenseDescription.trim(),
+        amount: numericAmount,
+        notes: expenseNotes.trim() || undefined,
+        receiptPhotoId,
+        updatedBy: dbUser._id,
+      });
+
+      alert("Gasto actualizado.");
+      resetExpenseForm();
+    } catch (error) {
+      console.error(error);
+      alert("Error actualizando el gasto.");
+    } finally {
+      setSavingExpense(false);
+    }
+  };
+
+  const handleDeleteExpense = async (expenseId: Id<"buyerExpenses">) => {
+    if (!dbUser) return;
+    const ok = confirm("¿Eliminar este gasto? Esta acción no se puede deshacer.");
+    if (!ok) return;
+
+    setDeletingExpenseId(expenseId);
+    try {
+      await deleteExpense({
+        expenseId,
+        deletedBy: dbUser._id,
+      });
+      if (editingExpenseId === expenseId) {
+        resetExpenseForm();
+      }
+      alert("Gasto eliminado.");
+    } catch (error) {
+      console.error(error);
+      alert("Error eliminando el gasto.");
+    } finally {
+      setDeletingExpenseId(null);
     }
   };
 
@@ -290,9 +441,176 @@ export default function AdminDashboardPage() {
                 Gastado aprobado (pagado + comisión): {formatMoney(balance?.totalSpent ?? 0)}
               </div>
               <div>Pendiente por aprobar: {formatMoney(balance?.pendingSpent ?? 0)}</div>
+              {selectedBuyerHasExpenses ? (
+                <div>Gastos operativos: {formatMoney(balance?.totalExpenses ?? 0)}</div>
+              ) : null}
               <div className="text-lg font-semibold">Saldo actual: {formatMoney(balance?.balance ?? 0)}</div>
             </CardContent>
           </Card>
+
+          {selectedBuyerHasExpenses ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Gastos operativos de {buyerName}</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="rounded-xl border bg-white p-4">
+                    <p className="text-xs text-muted-foreground">Lote activo</p>
+                    <p className="mt-2 text-2xl font-semibold">
+                      {expenseSummary?.activeLotNumber ?? activeLot?.number ?? "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-white p-4">
+                    <p className="text-xs text-muted-foreground">Total gastos lote activo</p>
+                    <p className="mt-2 text-2xl font-semibold text-red-600">
+                      {formatMoney(expenseSummary?.totalExpenses ?? 0)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-white p-4">
+                    <p className="text-xs text-muted-foreground">Cantidad de gastos</p>
+                    <p className="mt-2 text-2xl font-semibold">
+                      {expenseSummary?.expenseCount ?? 0}
+                    </p>
+                  </div>
+                </div>
+
+                {editingExpenseId ? (
+                  <div className="grid gap-4 rounded-xl border p-4">
+                    <div className="flex justify-center">
+                      <div className="w-fit">
+                        <input
+                          ref={expenseCameraInputRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={onExpensePhotoChange}
+                        />
+                        <input
+                          ref={expenseGalleryInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={onExpensePhotoChange}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => setShowExpensePhotoOptions((value) => !value)}
+                          className="h-32 w-32 overflow-hidden rounded-xl border border-dashed border-gray-300 bg-white text-gray-500"
+                        >
+                          {expensePhotoPreview ? (
+                            <img
+                              src={expensePhotoPreview}
+                              alt="Recibo"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full flex-col items-center justify-center gap-1">
+                              <Camera className="h-12 w-12" />
+                              <span className="text-xs">Toca para foto</span>
+                            </div>
+                          )}
+                        </button>
+
+                        {showExpensePhotoOptions ? (
+                          <div className="mt-2 grid gap-2">
+                            <Button type="button" variant="outline" onClick={() => expenseCameraInputRef.current?.click()}>
+                              Tomar foto
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => expenseGalleryInputRef.current?.click()}>
+                              Elegir de galería
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <Select value={expenseCategory} onValueChange={(value) => setExpenseCategory(value as ExpenseCategory)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(EXPENSE_CATEGORY_LABELS).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input value={expenseAmount} onChange={(e) => setExpenseAmount(e.target.value)} type="number" placeholder="Monto" />
+                    <Input value={expenseDescription} onChange={(e) => setExpenseDescription(e.target.value)} placeholder="Descripción" />
+                    <Textarea value={expenseNotes} onChange={(e) => setExpenseNotes(e.target.value)} placeholder="Notas" />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        className="bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                        onClick={handleSaveExpense}
+                        disabled={savingExpense}
+                      >
+                        {savingExpense ? "Guardando..." : "Guardar cambios"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={resetExpenseForm} disabled={savingExpense}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="grid gap-3">
+                  {lotExpenses.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No hay gastos operativos registrados.</div>
+                  ) : (
+                    lotExpenses.map((expense) => (
+                      <div key={expense._id} className="flex items-center gap-3 border-b pb-2 last:border-b-0">
+                        <div className="h-12 w-12 overflow-hidden rounded-md border bg-muted">
+                          {expense.receiptPhotoUrl ? (
+                            <img
+                              src={expense.receiptPhotoUrl}
+                              alt="Recibo"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="flex-1 text-sm">
+                          <div className="font-medium">
+                            {EXPENSE_CATEGORY_LABELS[expense.category as ExpenseCategory]} — {expense.description}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(expense.createdAt).toLocaleDateString("es-PA")}
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-red-600">
+                          {formatMoney(expense.amount ?? 0)}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditExpense(expense)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteExpense(expense._id)}
+                            disabled={deletingExpenseId === expense._id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>

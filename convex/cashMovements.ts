@@ -96,6 +96,7 @@ export const getBalanceByBuyer = query({
         totalSpent: 0,
         pendingSpent: 0,
         openSpent: 0,
+        totalExpenses: 0,
         balance: 0,
         projectedBalance: 0,
         lastOpeningAt: 0,
@@ -139,6 +140,14 @@ export const getBalanceByBuyer = query({
     const effectivePurchases = purchases.filter(
       (p) => (p.createdAt ?? 0) >= lastOpeningAt && sameTenantKey(p.tenantKey, tenantKey)
     );
+    const buyerExpenses = await ctx.db
+      .query("buyerExpenses")
+      .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
+      .collect();
+
+    const effectiveExpenses = buyerExpenses.filter(
+      (expense) => (expense.createdAt ?? 0) >= lastOpeningAt && sameTenantKey(expense.tenantKey, tenantKey)
+    );
     let approvedSpent = 0;
     let pendingSpent = 0;
     let openSpent = 0;
@@ -165,13 +174,15 @@ export const getBalanceByBuyer = query({
       }
     }
 
-    const balance = totalFunds - approvedSpent - pendingSpent;
+    const totalExpenses = effectiveExpenses.reduce((sum, expense) => sum + (expense.amount ?? 0), 0);
+    const balance = totalFunds - approvedSpent - pendingSpent - totalExpenses;
 
     return {
       totalFunds,
       totalSpent: approvedSpent,
       pendingSpent,
       openSpent,
+      totalExpenses,
       balance,
       projectedBalance: balance - openSpent,
       lastOpeningAt,
