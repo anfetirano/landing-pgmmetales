@@ -75,19 +75,22 @@ export const getPanamaControlData = query({
       (client) => typeof client.lat === "number" && typeof client.lng === "number"
     );
 
-    const clientCards = [...clients]
-      .sort((a, b) => (b._creationTime ?? 0) - (a._creationTime ?? 0))
-      .map((client) => ({
-        _id: client._id,
-        name: client.name,
-        contactName: client.contactName,
-        buyerName: buyerNameById.get(String(client.buyerId)) ?? "Buyer",
-        phone: client.phone,
-        lat: client.lat,
-        lng: client.lng,
-        createdAt: client._creationTime ?? now,
-        isEmergency: client.isEmergency === true,
-      }));
+    const clientCards = await Promise.all(
+      [...clients]
+        .sort((a, b) => (b._creationTime ?? 0) - (a._creationTime ?? 0))
+        .map(async (client) => ({
+          _id: client._id,
+          name: client.name,
+          contactName: client.contactName,
+          buyerName: buyerNameById.get(String(client.buyerId)) ?? "Buyer",
+          phone: client.phone,
+          lat: client.lat,
+          lng: client.lng,
+          photoUrl: client.photoId ? await ctx.storage.getUrl(client.photoId) : null,
+          createdAt: client._creationTime ?? now,
+          isEmergency: client.isEmergency === true,
+        }))
+    );
 
     const purchaseCards = [...purchases]
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))

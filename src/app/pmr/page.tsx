@@ -5,6 +5,7 @@ import { api } from "@convex/_generated/api";
 
 import PmrMapSection from "./PmrMapSection";
 import PmrLiveHeader from "./PmrLiveHeader";
+import PmrClientsSection from "./PmrClientsSection";
 import { formatMoneyByTenant } from "@/lib/currency";
 import { formatLotCode } from "@/lib/lots";
 import {
@@ -182,27 +183,17 @@ export default async function PmrPage({
       </div>
 
       <div className="mx-auto mt-6 grid w-full max-w-7xl gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <section className="rounded-2xl border bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#234c4b]">Added Clients (Panama)</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Latest {report.clients.length} registered clients.
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {report.clients.map((client) => (
-              <article key={String(client._id)} className="rounded-xl border p-3">
-                <p className="text-sm font-semibold">{client.name}</p>
-                <p className="text-xs text-muted-foreground">{client.contactName || "No contact"}</p>
-                <p className="mt-2 text-xs text-muted-foreground">Buyer: {client.buyerName}</p>
-                <p className="text-xs text-muted-foreground">
-                  Date: {new Date(client.createdAt).toLocaleDateString("en-US")}
-                </p>
-              </article>
-            ))}
-            {report.clients.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No clients registered yet.</p>
-            ) : null}
-          </div>
-        </section>
+        <PmrClientsSection
+          clients={report.clients.map((client) => ({
+            _id: String(client._id),
+            name: client.name,
+            contactName: client.contactName,
+            buyerName: client.buyerName,
+            phone: client.phone,
+            photoUrl: client.photoUrl,
+            createdAt: client.createdAt,
+          }))}
+        />
 
         <section className="rounded-2xl border bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold text-[#234c4b]">Recent Purchases</h2>
