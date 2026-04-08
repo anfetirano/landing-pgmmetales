@@ -21,10 +21,23 @@ export const createClient = mutation({
       throw new Error("Comprador no encontrado.");
     }
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
+    const safeName = args.name.trim();
+
+    if (!safeName) {
+      throw new Error("El nombre del cliente es obligatorio.");
+    }
 
     return await ctx.db.insert("clients", {
-      ...args,
+      name: safeName,
       isEmergency: args.isEmergency === true ? true : undefined,
+      contactName: args.contactName?.trim() || undefined,
+      cedula: args.cedula?.trim() || undefined,
+      phone: args.phone?.trim() || undefined,
+      photoId: args.photoId,
+      address: args.address?.trim() || undefined,
+      lat: args.lat,
+      lng: args.lng,
+      buyerId: args.buyerId,
       tenantKey,
     });
   },
@@ -37,18 +50,25 @@ export const listByBuyer = query({
     if (!buyer) return [];
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
-    const items = await ctx.db
-      .query("clients")
-      .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
-      .collect();
+    const items =
+      tenantKey === "pa"
+        ? await ctx.db.query("clients").collect()
+        : await ctx.db
+            .query("clients")
+            .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
+            .collect();
 
     return await Promise.all(
       items
         .filter((c) => sameTenantKey(c.tenantKey, tenantKey))
-        .map(async (c) => ({
-        ...c,
-        photoUrl: c.photoId ? await ctx.storage.getUrl(c.photoId) : null,
-      }))
+        .map(async (c) => {
+          const owner = await ctx.db.get(c.buyerId);
+          return {
+            ...c,
+            buyerName: owner?.name ?? "Comprador",
+            photoUrl: c.photoId ? await ctx.storage.getUrl(c.photoId) : null,
+          };
+        })
     );
   },
 });
@@ -92,7 +112,17 @@ export const updateClient = mutation({
     if (!existing) {
       throw new Error("Cliente no encontrado.");
     }
-    if (existing.buyerId !== args.buyerId) {
+    const buyer = await ctx.db.get(args.buyerId);
+    if (!buyer) {
+      throw new Error("Comprador no encontrado.");
+    }
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+    const canEdit =
+      tenantKey === "pa"
+        ? sameTenantKey(existing.tenantKey, tenantKey)
+        : existing.buyerId === args.buyerId;
+
+    if (!canEdit) {
       throw new Error("No autorizado para editar este cliente.");
     }
     if (!args.name.trim()) {

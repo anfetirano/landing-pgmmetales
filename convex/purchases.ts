@@ -32,11 +32,16 @@ export const createPurchase = mutation({
     const lot = await ctx.db.get(args.lotId);
     if (!lot || lot.status !== "open") throw new Error("Lote no válido.");
 
-    if (client.buyerId !== args.buyerId) {
+    const tenantKey = normalizeTenantKey(buyer.tenantKey);
+    const canUseClient =
+      tenantKey === "pa"
+        ? sameTenantKey(client.tenantKey, tenantKey)
+        : client.buyerId === args.buyerId;
+
+    if (!canUseClient) {
       throw new Error("Cliente no corresponde al comprador.");
     }
 
-    const tenantKey = normalizeTenantKey(buyer.tenantKey);
     if (!sameTenantKey(client.tenantKey, tenantKey) || !sameTenantKey(lot.tenantKey, tenantKey)) {
       throw new Error("No autorizado.");
     }
@@ -202,21 +207,24 @@ export const getClientSheetByBuyer = query({
 
     const client = await ctx.db.get(args.clientId);
     if (!client) throw new Error("Cliente no encontrado.");
-    if (client.buyerId !== args.buyerId) {
+    if (!sameTenantKey(client.tenantKey, tenantKey)) {
       throw new Error("No autorizado.");
     }
-    if (!sameTenantKey(client.tenantKey, tenantKey)) {
+    if (tenantKey !== "pa" && client.buyerId !== args.buyerId) {
       throw new Error("No autorizado.");
     }
 
     const selectedNameKey = normalizeClientNameKey(client.name);
-    const buyerClients = await ctx.db
-      .query("clients")
-      .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
-      .collect();
+    const scopedClients =
+      tenantKey === "pa"
+        ? await ctx.db.query("clients").collect()
+        : await ctx.db
+            .query("clients")
+            .withIndex("by_buyerId", (q) => q.eq("buyerId", args.buyerId))
+            .collect();
 
     const selectedIsEmergency = client.isEmergency === true;
-    const relatedClientIds = buyerClients
+    const relatedClientIds = scopedClients
       .filter(
         (item) =>
           sameTenantKey(item.tenantKey, tenantKey) &&
@@ -242,9 +250,10 @@ export const getClientSheetByBuyer = query({
     const lotNumberById = new Map<string, number | null>();
     const seenPurchaseIds = new Set<string>();
     const sortedPurchases = purchases
-      .filter(
-        (purchase) =>
-          purchase.buyerId === args.buyerId && sameTenantKey(purchase.tenantKey, tenantKey)
+      .filter((purchase) =>
+        tenantKey === "pa"
+          ? sameTenantKey(purchase.tenantKey, tenantKey)
+          : purchase.buyerId === args.buyerId && sameTenantKey(purchase.tenantKey, tenantKey)
       )
       .filter((purchase) => {
         const key = String(purchase._id);
@@ -325,13 +334,16 @@ export const getClientSheetByAdmin = query({
 
     const buyer = await ctx.db.get(client.buyerId);
     const selectedNameKey = normalizeClientNameKey(client.name);
-    const buyerClients = await ctx.db
-      .query("clients")
-      .withIndex("by_buyerId", (q) => q.eq("buyerId", client.buyerId))
-      .collect();
+    const scopedClients =
+      tenantKey === "pa"
+        ? await ctx.db.query("clients").collect()
+        : await ctx.db
+            .query("clients")
+            .withIndex("by_buyerId", (q) => q.eq("buyerId", client.buyerId))
+            .collect();
 
     const selectedIsEmergency = client.isEmergency === true;
-    const relatedClientIds = buyerClients
+    const relatedClientIds = scopedClients
       .filter(
         (item) =>
           sameTenantKey(item.tenantKey, tenantKey) &&

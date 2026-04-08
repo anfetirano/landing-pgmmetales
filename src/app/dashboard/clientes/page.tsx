@@ -15,9 +15,24 @@ import { Button } from "@/components/ui/button";
 
 const ClientsMap = dynamic(() => import("@/components/ClientsMap"), { ssr: false });
 
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("No se pudo leer la imagen."));
+    };
+    reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+    reader.readAsDataURL(file);
+  });
+
 export default function ClientesPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
+  const isPanama = dbUser?.tenantKey === "pa";
   const clients =
     useQuery(api.clients.listByBuyer, dbUser?._id ? { buyerId: dbUser._id } : "skip") ?? [];
   const clientsWithLocation = clients.filter(
@@ -90,7 +105,7 @@ export default function ClientesPage() {
   const buildWhatsAppUrl = (rawPhone: string) =>
     `https://wa.me/${rawPhone.replace(/\D/g, "")}`;
 
-  const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setPhotoFile(file);
     setShowPhotoOptions(false);
@@ -98,7 +113,14 @@ export default function ClientesPage() {
       setPhotoPreview(null);
       return;
     }
-    setPhotoPreview(URL.createObjectURL(file));
+    try {
+      const preview = await readFileAsDataUrl(file);
+      setPhotoPreview(preview);
+    } catch (error) {
+      console.error(error);
+      setPhotoPreview(null);
+      alert("No se pudo cargar la vista previa de la foto.");
+    }
   };
 
   const handleSave = async () => {
@@ -149,7 +171,14 @@ export default function ClientesPage() {
       alert("Cliente guardado.");
     } catch (e) {
       console.error(e);
-      alert("Error guardando cliente.");
+      const message =
+        e &&
+        typeof e === "object" &&
+        "message" in e &&
+        typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Error guardando cliente.";
+      alert(message);
     } finally {
       setSaving(false);
     }
@@ -202,11 +231,21 @@ export default function ClientesPage() {
     setEditingPhotoFile(null);
   };
 
-  const onEditingPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onEditingPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setEditingPhotoFile(file);
-    if (!file) return;
-    setEditingPhotoPreview(URL.createObjectURL(file));
+    if (!file) {
+      setEditingPhotoPreview(null);
+      return;
+    }
+    try {
+      const preview = await readFileAsDataUrl(file);
+      setEditingPhotoPreview(preview);
+    } catch (error) {
+      console.error(error);
+      setEditingPhotoPreview(null);
+      alert("No se pudo cargar la vista previa de la foto.");
+    }
   };
 
   const saveEditing = async () => {
@@ -446,6 +485,12 @@ export default function ClientesPage() {
                     <span className="font-medium">Ubicación:</span>{" "}
                     <span>{hasCoords ? `${c.lat?.toFixed(6)}, ${c.lng?.toFixed(6)}` : "Sin ubicación"}</span>
                   </div>
+                  {isPanama ? (
+                    <div className="text-sm">
+                      <span className="font-medium">Registrado por:</span>{" "}
+                      <span>{c.buyerName ?? "-"}</span>
+                    </div>
+                  ) : null}
 
                   {isEditing ? (
                     <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
@@ -583,7 +628,14 @@ export default function ClientesPage() {
                               </Button>
                             </div>
                           ) : (
-                            c.name
+                            <div className="grid gap-0.5">
+                              <span>{c.name}</span>
+                              {isPanama ? (
+                                <span className="text-xs font-normal text-muted-foreground">
+                                  Registrado por: {c.buyerName ?? "-"}
+                                </span>
+                              ) : null}
+                            </div>
                           )}
                         </div>
                       </div>
