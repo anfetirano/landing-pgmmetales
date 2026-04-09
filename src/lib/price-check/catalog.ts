@@ -45,6 +45,7 @@ export async function lookupInInternalCatalog(
       currency: "USD" as const,
       confidence: item.confidence,
       url: item.samplePhotoUrl ?? null,
+      imageUrl: item.samplePhotoUrl ?? null,
       notes: [
         item.notes ?? "Saved in internal catalog",
         `Source: ${item.source}`,

@@ -7,6 +7,11 @@ export type TelegramIncomingMessage = {
   fromId?: number | null;
 };
 
+type TelegramReplyOptions = {
+  keyboard?: string[][];
+  removeKeyboard?: boolean;
+};
+
 type TelegramPayload = {
   message?: {
     text?: string;
@@ -79,10 +84,24 @@ export async function parseTelegramUpdate(payload: unknown): Promise<TelegramInc
   };
 }
 
-export async function sendTelegramMessage(chatId: number, text: string) {
+export async function sendTelegramMessage(
+  chatId: number,
+  text: string,
+  options?: TelegramReplyOptions
+) {
   if (!hasTelegramBot) {
     throw new Error("Telegram bot token is not configured.");
   }
+
+  const replyMarkup = options?.removeKeyboard
+    ? { remove_keyboard: true }
+    : options?.keyboard
+    ? {
+        keyboard: options.keyboard.map((row) => row.map((label) => ({ text: label }))),
+        resize_keyboard: true,
+        one_time_keyboard: false,
+      }
+    : undefined;
 
   const response = await fetch(
     `https://api.telegram.org/bot${priceCheckConfig.telegramBotToken}/sendMessage`,
@@ -94,6 +113,7 @@ export async function sendTelegramMessage(chatId: number, text: string) {
       body: JSON.stringify({
         chat_id: chatId,
         text,
+        reply_markup: replyMarkup,
       }),
     }
   );
@@ -101,5 +121,35 @@ export async function sendTelegramMessage(chatId: number, text: string) {
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`Telegram sendMessage failed: ${body}`);
+  }
+}
+
+export async function sendTelegramPhoto(
+  chatId: number,
+  photoUrl: string,
+  caption?: string
+) {
+  if (!hasTelegramBot) {
+    throw new Error("Telegram bot token is not configured.");
+  }
+
+  const response = await fetch(
+    `https://api.telegram.org/bot${priceCheckConfig.telegramBotToken}/sendPhoto`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        photo: photoUrl,
+        caption,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Telegram sendPhoto failed: ${body}`);
   }
 }

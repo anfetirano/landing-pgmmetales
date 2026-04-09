@@ -1,3 +1,11 @@
+function getOrigin(input: string, fallback: string) {
+  try {
+    return new URL(input).origin;
+  } catch {
+    return fallback;
+  }
+}
+
 export const priceCheckConfig = {
   privateApiToken: process.env.PRICE_CHECK_PRIVATE_TOKEN ?? "",
   connectorMode: process.env.PRICE_CHECK_CONNECTOR_MODE ?? "stub",
@@ -6,9 +14,12 @@ export const priceCheckConfig = {
   pmrBaseUrl: process.env.PMR_SUPPLIERS_BASE_URL ?? "https://suppliers.pmrcc.com",
   pmrUsername: process.env.PMR_SUPPLIERS_USERNAME ?? "",
   pmrPassword: process.env.PMR_SUPPLIERS_PASSWORD ?? "",
-  ecotradeBaseUrl:
-    process.env.ECOTRADE_BASE_URL ??
-    "https://www.ecotradegroup.com/es/catalogo-de-convertidores-cataliticos",
+  ecotradeBaseUrl: getOrigin(
+    process.env.ECOTRADE_BASE_URL ?? "https://www.ecotradegroup.com",
+    "https://www.ecotradegroup.com"
+  ),
+  ecotradeUsername: process.env.ECOTRADE_USERNAME ?? "",
+  ecotradePassword: process.env.ECOTRADE_PASSWORD ?? "",
   telegramBotToken: process.env.TELEGRAM_PRICE_CHECK_BOT_TOKEN ?? "",
   telegramWebhookSecret: process.env.TELEGRAM_PRICE_CHECK_WEBHOOK_SECRET ?? "",
   telegramAllowedUserIds:
@@ -20,4 +31,7 @@ export const priceCheckConfig = {
 export const hasTelegramBot = Boolean(priceCheckConfig.telegramBotToken);
 export const hasPmrCredentials = Boolean(
   priceCheckConfig.pmrUsername && priceCheckConfig.pmrPassword
+);
+export const hasEcotradeCredentials = Boolean(
+  priceCheckConfig.ecotradeUsername && priceCheckConfig.ecotradePassword
 );

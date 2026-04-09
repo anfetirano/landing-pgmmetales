@@ -15,6 +15,7 @@ import type * as clients from "../clients.js";
 import type * as closings from "../closings.js";
 import type * as lots from "../lots.js";
 import type * as pmr from "../pmr.js";
+import type * as priceCheckSessions from "../priceCheckSessions.js";
 import type * as priceChecks from "../priceChecks.js";
 import type * as purchases from "../purchases.js";
 import type * as storage from "../storage.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   closings: typeof closings;
   lots: typeof lots;
   pmr: typeof pmr;
+  priceCheckSessions: typeof priceCheckSessions;
   priceChecks: typeof priceChecks;
   purchases: typeof purchases;
   storage: typeof storage;

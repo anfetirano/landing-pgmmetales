@@ -34,6 +34,7 @@ export type LookupMatch = {
   currency: "USD";
   confidence: "exact" | "probable" | "review_manually";
   url: string | null;
+  imageUrl?: string | null;
   notes: string[];
   score?: number;
   reasons?: string[];
