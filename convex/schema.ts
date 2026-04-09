@@ -187,4 +187,56 @@ export default defineSchema({
     .index("by_buyerId", ["buyerId"])
     .index("by_lotId", ["lotId"])
     .index("by_createdAt", ["createdAt"]),
+
+  catalogPieces: defineTable({
+    tenantKey: v.union(v.literal("co"), v.literal("pa")),
+    reference: v.optional(v.string()),
+    altReferences: v.optional(v.array(v.string())),
+    brand: v.optional(v.string()),
+    canonicalName: v.string(),
+    internalPrice: v.number(),
+    currency: v.literal("USD"),
+    samplePhotoUrl: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    source: v.union(
+      v.literal("manual"),
+      v.literal("pmr"),
+      v.literal("ecotrade"),
+      v.literal("confirmed_field")
+    ),
+    confidence: v.union(
+      v.literal("exact"),
+      v.literal("probable"),
+      v.literal("review_manually")
+    ),
+    createdByLabel: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenantKey", ["tenantKey"])
+    .index("by_reference", ["reference"]),
+
+  priceCheckRequests: defineTable({
+    channel: v.union(v.literal("telegram"), v.literal("private_api")),
+    requesterId: v.optional(v.string()),
+    requesterLabel: v.optional(v.string()),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
+    queryText: v.string(),
+    photoUrl: v.optional(v.string()),
+    catalogStatus: v.optional(v.string()),
+    normalizedReference: v.optional(v.string()),
+    normalizedBrand: v.optional(v.string()),
+    pmrStatus: v.string(),
+    ecotradeStatus: v.string(),
+    overallConfidence: v.union(
+      v.literal("exact"),
+      v.literal("probable"),
+      v.literal("review_manually")
+    ),
+    summaryText: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_requesterId", ["requesterId"])
+    .index("by_tenantKey", ["tenantKey"]),
 });
