@@ -48,7 +48,11 @@ function formatSourceBlock(
   }
 
   const detailBits = [formatPrice(match.price), match.reference, compactNotes(match.notes)].filter(Boolean);
-  return `${label}: ${match.title} · ${detailBits.join(" · ")}`;
+  const lines = [`${label}: ${match.title} · ${detailBits.join(" · ")}`];
+  if (match.url) {
+    lines.push(`Link ${label}: ${match.url}`);
+  }
+  return lines.join("\n");
 }
 
 function computeOverallConfidence(

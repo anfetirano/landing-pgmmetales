@@ -3,6 +3,10 @@ import type { LookupMatch, LookupResult, NormalizedPriceQuery } from "./types";
 
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
+const ECOTRADE_BOOT_PAGES = [
+  "/en/",
+  "/es/catalogo-de-convertidores-catal%C3%ADticos",
+];
 
 const BRAND_SLUGS: Record<string, string> = {
   AUDI: "audi",
@@ -230,26 +234,44 @@ function parseProductImage(html: string) {
 }
 
 async function loginToEcotrade() {
-  const homeResponse = await fetch(`${priceCheckConfig.ecotradeBaseUrl}/en/`, {
-    headers: {
-      "User-Agent": USER_AGENT,
-      Accept: "text/html,application/xhtml+xml",
-    },
-    cache: "no-store",
-  });
+  let homeHtml = "";
+  let homeCookies = new Map<string, string>();
+  let csrfToken: string | null = null;
+  let lastStatus: number | null = null;
 
-  if (!homeResponse.ok) {
-    throw new Error(`Ecotrade home responded with ${homeResponse.status}.`);
+  for (const page of ECOTRADE_BOOT_PAGES) {
+    const homeResponse = await fetch(`${priceCheckConfig.ecotradeBaseUrl}${page}`, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
+        Referer: priceCheckConfig.ecotradeBaseUrl,
+      },
+      cache: "no-store",
+    });
+
+    lastStatus = homeResponse.status;
+    if (!homeResponse.ok) {
+      continue;
+    }
+
+    homeHtml = await homeResponse.text();
+    homeCookies = getResponseCookies(homeResponse);
+    csrfToken = parseCsrfToken(homeHtml);
+
+    if (csrfToken) {
+      break;
+    }
   }
-
-  const homeHtml = await homeResponse.text();
-  const csrfToken = parseCsrfToken(homeHtml);
 
   if (!csrfToken) {
-    throw new Error("Ecotrade login form token was not found.");
+    throw new Error(
+      lastStatus
+        ? `Ecotrade home responded with ${lastStatus}.`
+        : "Ecotrade login form token was not found."
+    );
   }
 
-  const homeCookies = getResponseCookies(homeResponse);
   const loginBody = new URLSearchParams({
     _username: priceCheckConfig.ecotradeUsername,
     _password: priceCheckConfig.ecotradePassword,
@@ -261,8 +283,10 @@ async function loginToEcotrade() {
     headers: {
       "User-Agent": USER_AGENT,
       Accept: "text/html,application/xhtml+xml",
+      "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
       "Content-Type": "application/x-www-form-urlencoded",
       Cookie: mergeCookies(homeCookies),
+      Referer: `${priceCheckConfig.ecotradeBaseUrl}/login`,
     },
     body: loginBody.toString(),
     redirect: "manual",
@@ -276,7 +300,9 @@ async function loginToEcotrade() {
     headers: {
       "User-Agent": USER_AGENT,
       Accept: "text/html,application/xhtml+xml",
+      "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
       Cookie: cookieHeader,
+      Referer: `${priceCheckConfig.ecotradeBaseUrl}/login`,
     },
     cache: "no-store",
   });

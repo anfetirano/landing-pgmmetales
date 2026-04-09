@@ -29,6 +29,11 @@ function buildEvidenceCaption(sourceLabel: string, title: string, price: number 
   return bits.join(" · ");
 }
 
+function buildEvidenceUrl(match: { source: "catalog" | "pmr" | "ecotrade"; url: string | null }) {
+  if (!match.url) return null;
+  return match.source === "catalog" ? `Catálogo: ${match.url}` : `Abrir resultado: ${match.url}`;
+}
+
 function sourceWeight(source: "catalog" | "pmr" | "ecotrade") {
   if (source === "pmr") return 3;
   if (source === "ecotrade") return 2;
@@ -169,14 +174,16 @@ export async function POST(req: NextRequest) {
 
     for (const [index, match] of evidenceMatches.entries()) {
       if (!match.imageUrl) continue;
+      const caption = buildEvidenceCaption(
+        index === 0 ? `${sourceLabel(match.source)} evidencia` : sourceLabel(match.source),
+        match.title,
+        match.price
+      );
+      const evidenceUrl = buildEvidenceUrl(match);
       await sendTelegramPhoto(
         message.chatId,
         match.imageUrl,
-        buildEvidenceCaption(
-          index === 0 ? `${sourceLabel(match.source)} evidencia` : sourceLabel(match.source),
-          match.title,
-          match.price
-        )
+        evidenceUrl ? `${caption}\n${evidenceUrl}` : caption
       );
     }
   } catch (error) {
