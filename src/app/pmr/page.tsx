@@ -94,6 +94,7 @@ export default async function PmrPage({
 
   const report = await fetchQuery(api.pmr.getPanamaControlData, {});
   const summary = report.summary;
+  const remainingInitialCapital = PMR_INITIAL_CAPITAL_USD - summary.totalInvested;
   const initialLatestClients = report.clients.slice(0, 20).map((client) => ({
     _id: String(client._id),
     name: client.name,
@@ -152,18 +153,25 @@ export default async function PmrPage({
           label={
             PMR_INITIAL_CAPITAL_STATUS === "pending"
               ? "Initial capital commitment (pending transfer)"
-              : "Initial capital received"
+              : "Initial capital remaining"
           }
-          value={formatMoneyByTenant(PMR_INITIAL_CAPITAL_USD, "pa")}
-          tone={PMR_INITIAL_CAPITAL_STATUS === "pending" ? "pending" : "success"}
+          value={formatMoneyByTenant(remainingInitialCapital, "pa")}
+          tone={
+            PMR_INITIAL_CAPITAL_STATUS === "pending"
+              ? "pending"
+              : remainingInitialCapital > 0
+                ? "success"
+                : "pending"
+          }
         />
         <StatCard
           label="Total invested capital"
           value={formatMoneyByTenant(summary.totalInvested, "pa")}
         />
         <StatCard
-          label="Invested capital (last 30 days)"
-          value={formatMoneyByTenant(summary.invested30d, "pa")}
+          label="First deposit / first advance"
+          value={formatMoneyByTenant(PMR_INITIAL_CAPITAL_USD, "pa")}
+          tone={PMR_INITIAL_CAPITAL_STATUS === "pending" ? "pending" : "success"}
         />
       </div>
       <div className="mx-auto mt-3 grid w-full max-w-7xl grid-cols-1 gap-3 md:grid-cols-3">
