@@ -203,12 +203,12 @@ export default async function PmrPage({
           }))}
         />
 
-        <section className="flex flex-col rounded-2xl border bg-white p-4 shadow-sm lg:h-[620px]">
+        <section className="flex flex-col overflow-hidden rounded-2xl border bg-white p-4 shadow-sm lg:h-[620px]">
           <h2 className="text-lg font-semibold text-[#234c4b]">Recent Purchases</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Purchase log with responsible buyer. Includes emergency and unlinked client records.
           </p>
-          <div className="mt-4 grid gap-3 overflow-y-auto pr-1">
+          <div className="mt-4 grid min-h-0 flex-1 gap-3 overflow-y-auto pr-2">
             {report.purchases.map((purchase) => (
               <article key={String(purchase._id)} className="rounded-xl border p-3">
                 <div className="flex items-start gap-3">

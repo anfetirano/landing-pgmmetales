@@ -25,7 +25,7 @@ export default function PmrClientsSection({
   );
 
   return (
-    <section className="flex flex-col rounded-2xl border bg-white p-4 shadow-sm lg:h-[620px]">
+    <section className="flex flex-col overflow-hidden rounded-2xl border bg-white p-4 shadow-sm lg:h-[620px]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-[#234c4b]">Added Clients (Panama)</h2>
@@ -44,7 +44,7 @@ export default function PmrClientsSection({
         ) : null}
       </div>
 
-      <div className="mt-4 grid gap-3 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-4 grid min-h-0 flex-1 gap-3 overflow-y-auto pr-2 sm:grid-cols-2 xl:grid-cols-3">
         {visibleClients.map((client) => (
           <article
             key={client._id}
