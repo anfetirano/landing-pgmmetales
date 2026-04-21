@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
 type PmrClientCard = {
   _id: string;
   name: string;
@@ -17,13 +15,6 @@ export default function PmrClientsSection({
 }: {
   clients: PmrClientCard[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const visibleClients = useMemo(
-    () => (expanded ? clients : clients.slice(0, 3)),
-    [clients, expanded]
-  );
-
   return (
     <section className="flex flex-col overflow-hidden rounded-2xl border bg-white p-4 shadow-sm lg:h-[620px]">
       <div className="flex items-start justify-between gap-3">
@@ -33,19 +24,10 @@ export default function PmrClientsSection({
             Latest registered clients with buyer attribution.
           </p>
         </div>
-        {clients.length > 3 ? (
-          <button
-            type="button"
-            onClick={() => setExpanded((value) => !value)}
-            className="text-sm font-medium text-[#234c4b] underline-offset-4 hover:underline"
-          >
-            {expanded ? "Show less" : "View more"}
-          </button>
-        ) : null}
       </div>
 
       <div className="mt-4 grid min-h-0 flex-1 gap-3 overflow-y-auto pr-2 sm:grid-cols-2 xl:grid-cols-3">
-        {visibleClients.map((client) => (
+        {clients.map((client) => (
           <article
             key={client._id}
             className="flex items-start gap-3 rounded-xl border p-3"
