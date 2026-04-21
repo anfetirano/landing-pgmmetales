@@ -203,37 +203,54 @@ export default async function PmrPage({
           <div className="mt-4 grid gap-3">
             {report.purchases.map((purchase) => (
               <article key={String(purchase._id)} className="rounded-xl border p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{purchase.clientName}</p>
+                <div className="flex items-start gap-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border bg-slate-100">
+                    {purchase.photoUrl ? (
+                      <img
+                        src={purchase.photoUrl}
+                        alt={`Purchase from ${purchase.clientName}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                        No photo
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">{purchase.clientName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Recorded by: {purchase.buyerName}
+                          {purchase.clientIsEmergency ? " · Emergency client" : ""}
+                          {!purchase.clientRegistered ? " · Unlinked client record" : ""}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-[#234c4b]">
+                        {formatMoneyByTenant(purchase.total ?? 0, "pa")}
+                      </p>
+                    </div>
+
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {purchase.type === "pieza"
+                        ? `Part ${purchase.brand}${purchase.model ? ` ${purchase.model}` : ""}`
+                        : `Loose ${purchase.grams ?? 0}g - ${purchase.brand}`}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      Recorded by: {purchase.buyerName}
-                      {purchase.clientIsEmergency ? " · Emergency client" : ""}
-                      {!purchase.clientRegistered ? " · Unlinked client record" : ""}
+                      Lot:{" "}
+                      {purchase.lotNumber != null ? formatLotCode(purchase.lotNumber, "pa") : "No lot"}
+                      {" · "}
+                      {new Date(purchase.createdAt).toLocaleDateString("en-US")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Paid: {formatMoneyByTenant(purchase.pricePaid ?? 0, "pa")} · PMR value:{" "}
+                      {typeof purchase.pmrCatalogValue === "number" && purchase.pmrCatalogValue > 0
+                        ? formatMoneyByTenant(purchase.pmrCatalogValue, "pa")
+                        : "Pending"}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold text-[#234c4b]">
-                    {formatMoneyByTenant(purchase.total ?? 0, "pa")}
-                  </p>
                 </div>
-
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {purchase.type === "pieza"
-                    ? `Part ${purchase.brand}${purchase.model ? ` ${purchase.model}` : ""}`
-                    : `Loose ${purchase.grams ?? 0}g - ${purchase.brand}`}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Lot:{" "}
-                  {purchase.lotNumber != null ? formatLotCode(purchase.lotNumber, "pa") : "No lot"}
-                  {" · "}
-                  {new Date(purchase.createdAt).toLocaleDateString("en-US")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Paid: {formatMoneyByTenant(purchase.pricePaid ?? 0, "pa")} · PMR value:{" "}
-                  {typeof purchase.pmrCatalogValue === "number" && purchase.pmrCatalogValue > 0
-                    ? formatMoneyByTenant(purchase.pmrCatalogValue, "pa")
-                    : "Pending"}
-                </p>
               </article>
             ))}
             {report.purchases.length === 0 ? (

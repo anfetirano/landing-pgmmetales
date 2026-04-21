@@ -92,9 +92,10 @@ export const getPanamaControlData = query({
         }))
     );
 
-    const purchaseCards = [...purchases]
+    const purchaseCards = await Promise.all(
+      [...purchases]
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
-      .map((purchase) => {
+      .map(async (purchase) => {
         const client = clientsById.get(String(purchase.clientId));
         const fallbackClientName = client?.name?.trim() || client?.contactName?.trim() || "Unregistered client";
         return {
@@ -114,8 +115,10 @@ export const getPanamaControlData = query({
           clientRegistered: Boolean(client),
           clientIsEmergency: client?.isEmergency === true,
           lotNumber: lotsById.get(String(purchase.lotId)) ?? null,
+          photoUrl: purchase.photoId ? await ctx.storage.getUrl(purchase.photoId) : null,
         };
-      });
+      })
+    );
 
     return {
       generatedAt: now,
