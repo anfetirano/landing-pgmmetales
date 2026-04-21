@@ -24,6 +24,8 @@ import type * as supplierPurchases from "../supplierPurchases.js";
 import type * as suppliers from "../suppliers.js";
 import type * as tenants from "../tenants.js";
 import type * as users from "../users.js";
+import type * as whatsappCampaignActions from "../whatsappCampaignActions.js";
+import type * as whatsappCampaigns from "../whatsappCampaigns.js";
 
 import type {
   ApiFromModules,
@@ -48,6 +50,8 @@ declare const fullApi: ApiFromModules<{
   suppliers: typeof suppliers;
   tenants: typeof tenants;
   users: typeof users;
+  whatsappCampaignActions: typeof whatsappCampaignActions;
+  whatsappCampaigns: typeof whatsappCampaigns;
 }>;
 
 /**

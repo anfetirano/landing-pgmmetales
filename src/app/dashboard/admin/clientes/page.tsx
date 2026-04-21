@@ -12,6 +12,7 @@ import { FileText, Map, MessageCircle, Navigation, Pencil, Trash2 } from "lucide
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CLIENT_ZONE_LABELS, CLIENT_ZONES, type ClientZone } from "../../../../../shared_client_campaigns";
 
 const ClientsMap = dynamic(() => import("@/components/ClientsMap"), { ssr: false });
 
@@ -35,6 +36,7 @@ export default function AdminClientsPage() {
   const [editingContactName, setEditingContactName] = useState("");
   const [editingCedula, setEditingCedula] = useState("");
   const [editingPhone, setEditingPhone] = useState("");
+  const [editingZone, setEditingZone] = useState<ClientZone>("panama");
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingClientId, setDeletingClientId] = useState<Id<"clients"> | null>(null);
 
@@ -47,7 +49,7 @@ export default function AdminClientsPage() {
     if (!term) return sorted;
 
     return sorted.filter((c) => {
-      const text = [c.name, c.contactName, c.cedula, c.phone, c.buyerName]
+      const text = [c.name, c.contactName, c.cedula, c.phone, c.buyerName, c.zone ? CLIENT_ZONE_LABELS[c.zone as ClientZone] : ""]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -113,6 +115,7 @@ export default function AdminClientsPage() {
     setEditingContactName(client.contactName ?? "");
     setEditingCedula(client.cedula ?? "");
     setEditingPhone(client.phone ?? "");
+    setEditingZone((client.zone as ClientZone | undefined) ?? "panama");
   };
 
   const cancelEditing = () => {
@@ -121,6 +124,7 @@ export default function AdminClientsPage() {
     setEditingContactName("");
     setEditingCedula("");
     setEditingPhone("");
+    setEditingZone("panama");
   };
 
   const saveEditing = async () => {
@@ -137,6 +141,7 @@ export default function AdminClientsPage() {
         contactName: editingContactName || undefined,
         cedula: editingCedula || undefined,
         phone: editingPhone || undefined,
+        zone: dbUser?.tenantKey === "pa" ? editingZone : undefined,
       });
       cancelEditing();
       alert("Cliente actualizado.");
@@ -272,6 +277,26 @@ export default function AdminClientsPage() {
                       c.phone ?? "-"
                     )}
                   </div>
+                {dbUser?.tenantKey === "pa" ? (
+                  <div>
+                    <span className="font-medium">Zona:</span>{" "}
+                    {isEditing ? (
+                      <select
+                        className="mt-2 h-10 w-full rounded-md border px-3 text-sm"
+                        value={editingZone}
+                        onChange={(e) => setEditingZone(e.target.value as ClientZone)}
+                      >
+                        {CLIENT_ZONES.map((zoneValue) => (
+                          <option key={zoneValue} value={zoneValue}>
+                            {CLIENT_ZONE_LABELS[zoneValue]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      c.zone ? CLIENT_ZONE_LABELS[c.zone as ClientZone] : "Sin zona"
+                    )}
+                  </div>
+                ) : null}
                 <div>
                   <span className="font-medium">Ubicación:</span>{" "}
                   {typeof c.lat === "number" && typeof c.lng === "number"
@@ -374,6 +399,7 @@ export default function AdminClientsPage() {
                 <th className="px-4 py-3 text-left">Contacto</th>
                 <th className="px-4 py-3 text-left">Cédula</th>
                 <th className="px-4 py-3 text-left">WhatsApp</th>
+                {dbUser?.tenantKey === "pa" ? <th className="px-4 py-3 text-left">Zona</th> : null}
                 <th className="px-4 py-3 text-left">Ubicación</th>
                 <th className="px-4 py-3 text-left">Acciones</th>
               </tr>
@@ -381,7 +407,7 @@ export default function AdminClientsPage() {
             <tbody>
               {visibleClients.length === 0 && (
                 <tr>
-                  <td className="px-4 py-4 text-muted-foreground" colSpan={7}>
+                  <td className="px-4 py-4 text-muted-foreground" colSpan={dbUser?.tenantKey === "pa" ? 8 : 7}>
                     No hay clientes con ubicación guardada.
                   </td>
                 </tr>
@@ -453,6 +479,25 @@ export default function AdminClientsPage() {
                         </div>
                       )}
                   </td>
+                  {dbUser?.tenantKey === "pa" ? (
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      {isEditing ? (
+                        <select
+                          className="h-10 w-full rounded-md border px-3 text-sm"
+                          value={editingZone}
+                          onChange={(e) => setEditingZone(e.target.value as ClientZone)}
+                        >
+                          {CLIENT_ZONES.map((zoneValue) => (
+                            <option key={zoneValue} value={zoneValue}>
+                              {CLIENT_ZONE_LABELS[zoneValue]}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        c.zone ? CLIENT_ZONE_LABELS[c.zone as ClientZone] : "Sin zona"
+                      )}
+                    </td>
+                  ) : null}
                   <td className="px-4 py-3">{`${(c.lat as number).toFixed(6)}, ${(c.lng as number).toFixed(6)}`}</td>
                   <td className="px-4 py-3">
                       {isEditing ? (

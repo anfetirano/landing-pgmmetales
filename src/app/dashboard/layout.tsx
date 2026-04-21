@@ -46,7 +46,13 @@ const BuyerLinks = ({
   </nav>
 );
 
-const AdminLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
+const AdminLinks = ({
+  onNavigate,
+  showCampaigns,
+}: {
+  onNavigate?: () => void;
+  showCampaigns?: boolean;
+}) => (
   <nav className="flex flex-col gap-2 text-sm">
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/control" onClick={onNavigate}>
       Área de control
@@ -63,6 +69,11 @@ const AdminLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/catalogo" onClick={onNavigate}>
       Catalogo
     </Link>
+    {showCampaigns ? (
+      <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/campanas" onClick={onNavigate}>
+        Campañas
+      </Link>
+    ) : null}
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/metals" onClick={onNavigate}>
       Precios metales
     </Link>
@@ -129,6 +140,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
   const role = dbUser?.role;
   const isAdmin = role === "admin";
+  const showPanamaCampaigns = dbUser?.role === "admin" && dbUser?.tenantKey === "pa";
   const showBuyerExpenses =
     dbUser?.role === "buyer" &&
     dbUser?.tenantKey === "pa" &&
@@ -167,7 +179,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <h2 className="text-lg font-bold text-[#234c4b]">PMG Metales</h2>
             <p className="text-xs text-muted-foreground">{title}</p>
           </div>
-          {isAdmin ? <AdminLinks /> : <BuyerLinks showExpenses={showBuyerExpenses} />}
+          {isAdmin ? <AdminLinks showCampaigns={showPanamaCampaigns} /> : <BuyerLinks showExpenses={showBuyerExpenses} />}
           {mounted ? (
             <SidebarUser />
           ) : (
@@ -191,7 +203,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="text-xs text-muted-foreground">{title}</p>
                   </div>
                   {isAdmin ? (
-                    <AdminLinks onNavigate={() => setOpen(false)} />
+                    <AdminLinks onNavigate={() => setOpen(false)} showCampaigns={showPanamaCampaigns} />
                   ) : (
                     <BuyerLinks onNavigate={() => setOpen(false)} showExpenses={showBuyerExpenses} />
                   )}

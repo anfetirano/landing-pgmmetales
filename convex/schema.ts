@@ -20,6 +20,14 @@ export default defineSchema({
     contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
+    zone: v.optional(
+      v.union(
+        v.literal("panama"),
+        v.literal("colon"),
+        v.literal("chorrera"),
+        v.literal("interior")
+      )
+    ),
     photoId: v.optional(v.id("_storage")),
     address: v.optional(v.string()),
     lat: v.optional(v.number()),
@@ -272,4 +280,54 @@ export default defineSchema({
   })
     .index("by_requesterId", ["requesterId"])
     .index("by_chatId", ["chatId"]),
+
+  whatsappCampaigns: defineTable({
+    tenantKey: v.union(v.literal("co"), v.literal("pa")),
+    zone: v.union(
+      v.literal("panama"),
+      v.literal("colon"),
+      v.literal("chorrera"),
+      v.literal("interior")
+    ),
+    templateKey: v.union(v.literal("morning_route"), v.literal("availability_check")),
+    templateLabel: v.string(),
+    metaTemplateName: v.string(),
+    messageBody: v.string(),
+    previewText: v.string(),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+    totalRecipients: v.number(),
+    sentCount: v.number(),
+    failedCount: v.number(),
+    status: v.union(
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("completed_with_errors"),
+      v.literal("failed")
+    ),
+  })
+    .index("by_tenantKey", ["tenantKey"])
+    .index("by_createdAt", ["createdAt"]),
+
+  whatsappCampaignRecipients: defineTable({
+    campaignId: v.id("whatsappCampaigns"),
+    clientId: v.id("clients"),
+    tenantKey: v.union(v.literal("co"), v.literal("pa")),
+    zone: v.union(
+      v.literal("panama"),
+      v.literal("colon"),
+      v.literal("chorrera"),
+      v.literal("interior")
+    ),
+    clientName: v.string(),
+    phone: v.string(),
+    status: v.union(v.literal("queued"), v.literal("sent"), v.literal("failed")),
+    providerMessageId: v.optional(v.string()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    sentAt: v.optional(v.number()),
+  })
+    .index("by_campaignId", ["campaignId"])
+    .index("by_tenantKey", ["tenantKey"])
+    .index("by_createdAt", ["createdAt"]),
 });

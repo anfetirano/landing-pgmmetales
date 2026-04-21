@@ -9,6 +9,14 @@ export const createClient = mutation({
     contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
+    zone: v.optional(
+      v.union(
+        v.literal("panama"),
+        v.literal("colon"),
+        v.literal("chorrera"),
+        v.literal("interior")
+      )
+    ),
     photoId: v.optional(v.id("_storage")),
     address: v.optional(v.string()),
     lat: v.optional(v.number()),
@@ -33,6 +41,7 @@ export const createClient = mutation({
       contactName: args.contactName?.trim() || undefined,
       cedula: args.cedula?.trim() || undefined,
       phone: args.phone?.trim() || undefined,
+      zone: tenantKey === "pa" ? args.zone : undefined,
       photoId: args.photoId,
       address: args.address?.trim() || undefined,
       lat: args.lat,
@@ -105,6 +114,14 @@ export const updateClient = mutation({
     contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
+    zone: v.optional(
+      v.union(
+        v.literal("panama"),
+        v.literal("colon"),
+        v.literal("chorrera"),
+        v.literal("interior")
+      )
+    ),
     photoId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
@@ -138,6 +155,7 @@ export const updateClient = mutation({
       contactName: args.contactName?.trim() || undefined,
       cedula: args.cedula?.trim() || undefined,
       phone: args.phone?.trim() || undefined,
+      zone: tenantKey === "pa" ? args.zone : undefined,
       photoId: args.photoId,
     });
 
@@ -153,6 +171,14 @@ export const updateClientAsAdmin = mutation({
     contactName: v.optional(v.string()),
     cedula: v.optional(v.string()),
     phone: v.optional(v.string()),
+    zone: v.optional(
+      v.union(
+        v.literal("panama"),
+        v.literal("colon"),
+        v.literal("chorrera"),
+        v.literal("interior")
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const admin = await ctx.db.get(args.adminId);
@@ -177,6 +203,7 @@ export const updateClientAsAdmin = mutation({
       contactName: args.contactName?.trim() || undefined,
       cedula: args.cedula?.trim() || undefined,
       phone: args.phone?.trim() || undefined,
+      zone: tenantKey === "pa" ? args.zone : undefined,
     });
 
     return { ok: true };
