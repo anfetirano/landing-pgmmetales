@@ -3,9 +3,9 @@ export const CLIENT_ZONES = ["panama", "colon", "chorrera", "interior"] as const
 export type ClientZone = (typeof CLIENT_ZONES)[number];
 
 export const CLIENT_ZONE_LABELS: Record<ClientZone, string> = {
-  panama: "Panamá",
+  panama: "Panamá Metro",
   colon: "Colón",
-  chorrera: "Chorrera",
+  chorrera: "Chorrera + Arraiján",
   interior: "Interior",
 };
 
