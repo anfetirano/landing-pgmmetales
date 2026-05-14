@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 const PMR_INITIAL_CAPITAL_USD = 15000;
 const PMR_INITIAL_CAPITAL_STATUS: "pending" | "received" = "received";
 const PMR_DISPLAY_MARKUP_RATE = 0.2;
+const PMR_DISPLAY_FIXED_ADJUSTMENT_USD = 1200;
 
 async function loginPmr(formData: FormData) {
   "use server";
@@ -95,7 +96,8 @@ export default async function PmrPage({
 
   const report = await fetchQuery(api.pmr.getPanamaControlData, {});
   const summary = report.summary;
-  const pmrDisplayInvested = summary.totalInvested * (1 + PMR_DISPLAY_MARKUP_RATE);
+  const pmrDisplayInvested =
+    summary.totalInvested * (1 + PMR_DISPLAY_MARKUP_RATE) + PMR_DISPLAY_FIXED_ADJUSTMENT_USD;
   const remainingInitialCapital = PMR_INITIAL_CAPITAL_USD - pmrDisplayInvested;
   const initialLatestClients = report.clients.slice(0, 20).map((client) => ({
     _id: String(client._id),
