@@ -34,6 +34,8 @@ export default function AdminCampanasPage() {
 
   const campaigns =
     useQuery(api.whatsappCampaigns.listByAdmin, dbUser?._id ? { adminId: dbUser._id } : "skip") ?? [];
+  const connectionStatus =
+    useQuery(api.whatsappCampaigns.getConnectionStatus, dbUser?._id ? { adminId: dbUser._id } : "skip") ?? null;
   const audiencePreview =
     useQuery(
       api.whatsappCampaigns.getAudiencePreview,
@@ -110,6 +112,53 @@ export default function AdminCampanasPage() {
       <p className="mt-2 text-foreground-accent">
         Envía campañas manuales de WhatsApp a clientes de Panamá con zona asignada.
       </p>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Estado de conexión Meta</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 text-sm">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border bg-slate-50 p-4">
+              <p className="font-medium text-slate-800">Cloud API</p>
+              <p className="mt-1 text-slate-600">
+                {connectionStatus?.cloudApiReady ? "Lista para pruebas técnicas" : "Pendiente de completar en producción"}
+              </p>
+              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <p>Access token: {connectionStatus?.accessTokenConfigured ? "configurado" : "pendiente"}</p>
+                <p>Phone number id: {connectionStatus?.phoneNumberIdConfigured ? "configurado" : "pendiente"}</p>
+                <p>API version: {connectionStatus?.apiVersion ?? "v22.0"}</p>
+                <p>Idioma plantilla: {connectionStatus?.languageCode ?? "es"}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-[#f7fbfa] p-4">
+              <p className="font-medium text-[#234c4b]">Pendiente fuera de la app</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {connectionStatus?.note ??
+                  "Meta debe aprobar la verificación del negocio, el número y las plantillas para poder enviar campañas reales."}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-white p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium text-slate-800">Plantillas por segmento</p>
+              <span className="text-xs text-muted-foreground">Lo técnico ya te queda visible aquí</span>
+            </div>
+            <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {(connectionStatus?.templates ?? []).map((template) => (
+                <div key={template.key} className="rounded-lg border bg-slate-50 px-3 py-2">
+                  <p className="text-sm font-medium text-slate-800">{template.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {template.configured ? "Configurada" : `Pendiente: ${template.envName}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card>

@@ -156,6 +156,81 @@ export const getAudiencePreview = query({
   },
 });
 
+export const getConnectionStatus = query({
+  args: {
+    adminId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await getAdminOrThrow(ctx, args.adminId);
+
+    const accessToken = Boolean(process.env.WHATSAPP_CLOUD_ACCESS_TOKEN?.trim());
+    const phoneNumberId = Boolean(process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID?.trim());
+    const apiVersion = process.env.WHATSAPP_CLOUD_API_VERSION?.trim() || "v22.0";
+    const languageCode = process.env.WHATSAPP_TEMPLATE_LANGUAGE_CODE?.trim() || "es";
+
+    const templateEnvBySegment: Array<{
+      key: CampaignSegment;
+      label: string;
+      configured: boolean;
+      envName: string;
+    }> = [
+      {
+        key: "panama",
+        label: CAMPAIGN_SEGMENT_LABELS.panama,
+        configured: Boolean(process.env.WHATSAPP_TEMPLATE_PANAMA?.trim()),
+        envName: "WHATSAPP_TEMPLATE_PANAMA",
+      },
+      {
+        key: "colon",
+        label: CAMPAIGN_SEGMENT_LABELS.colon,
+        configured: Boolean(process.env.WHATSAPP_TEMPLATE_COLON?.trim()),
+        envName: "WHATSAPP_TEMPLATE_COLON",
+      },
+      {
+        key: "chorrera",
+        label: CAMPAIGN_SEGMENT_LABELS.chorrera,
+        configured: Boolean(process.env.WHATSAPP_TEMPLATE_CHORRERA?.trim()),
+        envName: "WHATSAPP_TEMPLATE_CHORRERA",
+      },
+      {
+        key: "david",
+        label: CAMPAIGN_SEGMENT_LABELS.david,
+        configured: Boolean(
+          process.env.WHATSAPP_TEMPLATE_DAVID?.trim() ||
+            process.env.WHATSAPP_TEMPLATE_INTERIOR?.trim()
+        ),
+        envName: "WHATSAPP_TEMPLATE_DAVID",
+      },
+      {
+        key: "interior",
+        label: CAMPAIGN_SEGMENT_LABELS.interior,
+        configured: Boolean(process.env.WHATSAPP_TEMPLATE_INTERIOR?.trim()),
+        envName: "WHATSAPP_TEMPLATE_INTERIOR",
+      },
+      {
+        key: "all",
+        label: CAMPAIGN_SEGMENT_LABELS.all,
+        configured: Boolean(
+          process.env.WHATSAPP_TEMPLATE_ALL?.trim() ||
+            process.env.WHATSAPP_TEMPLATE_PANAMA?.trim()
+        ),
+        envName: "WHATSAPP_TEMPLATE_ALL",
+      },
+    ];
+
+    return {
+      cloudApiReady: accessToken && phoneNumberId,
+      accessTokenConfigured: accessToken,
+      phoneNumberIdConfigured: phoneNumberId,
+      apiVersion,
+      languageCode,
+      templates: templateEnvBySegment,
+      note:
+        "La aprobacion del negocio, el alta del numero y la aprobacion de plantillas en Meta se completan por fuera de la app.",
+    };
+  },
+});
+
 export const listByAdmin = query({
   args: { adminId: v.id("users") },
   handler: async (ctx, args) => {
