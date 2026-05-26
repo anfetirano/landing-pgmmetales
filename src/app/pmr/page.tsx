@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 const PMR_INITIAL_CAPITAL_USD = 25000;
 const PMR_INITIAL_CAPITAL_STATUS: "pending" | "received" = "received";
 const PMR_DISPLAY_MARKUP_RATE = 0.2;
-const PMR_DISPLAY_FIXED_ADJUSTMENT_USD = 1200;
+const PMR_DISPLAY_FIXED_ADJUSTMENT_USD = 2933.2;
 
 async function loginPmr(formData: FormData) {
   "use server";
