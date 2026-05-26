@@ -10,13 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  CAMPAIGN_SEGMENTS,
+  CAMPAIGN_SEGMENT_LABELS,
   CAMPAIGN_TEMPLATE_KEYS,
   CAMPAIGN_TEMPLATE_LABELS,
-  CLIENT_ZONES,
   CLIENT_ZONE_LABELS,
   getDefaultCampaignMessage,
   renderCampaignPreview,
   type CampaignTemplateKey,
+  type CampaignSegment,
   type ClientZone,
 } from "../../../../../shared_client_campaigns";
 
@@ -24,7 +26,7 @@ export default function AdminCampanasPage() {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
 
-  const [zone, setZone] = useState<ClientZone>("panama");
+  const [zone, setZone] = useState<CampaignSegment>("panama");
   const [templateKey, setTemplateKey] = useState<CampaignTemplateKey>("morning_route");
   const [messageBody, setMessageBody] = useState(getDefaultCampaignMessage("morning_route", "panama"));
   const [selectedCampaignId, setSelectedCampaignId] = useState<Id<"whatsappCampaigns"> | null>(null);
@@ -121,11 +123,11 @@ export default function AdminCampanasPage() {
                 <select
                   className="h-10 rounded-md border px-3 text-sm"
                   value={zone}
-                  onChange={(e) => setZone(e.target.value as ClientZone)}
+                  onChange={(e) => setZone(e.target.value as CampaignSegment)}
                 >
-                  {CLIENT_ZONES.map((zoneValue) => (
+                  {CAMPAIGN_SEGMENTS.map((zoneValue) => (
                     <option key={zoneValue} value={zoneValue}>
-                      {CLIENT_ZONE_LABELS[zoneValue]}
+                      {CAMPAIGN_SEGMENT_LABELS[zoneValue]}
                     </option>
                   ))}
                 </select>

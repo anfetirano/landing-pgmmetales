@@ -289,7 +289,8 @@ export default defineSchema({
       v.literal("colon"),
       v.literal("chorrera"),
       v.literal("david"),
-      v.literal("interior")
+      v.literal("interior"),
+      v.literal("all")
     ),
     templateKey: v.union(v.literal("morning_route"), v.literal("availability_check")),
     templateLabel: v.string(),

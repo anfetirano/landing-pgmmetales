@@ -7,19 +7,29 @@ import {
 } from "./_generated/server";
 import { normalizeTenantKey, sameTenantKey } from "./tenants";
 import {
+  CAMPAIGN_SEGMENT_LABELS,
   CAMPAIGN_TEMPLATE_LABELS,
-  CLIENT_ZONE_LABELS,
+  type CampaignSegment,
   type ClientZone,
   normalizeCampaignPhone,
   renderCampaignPreview,
 } from "../shared_client_campaigns";
 
-const zoneValidator = v.union(
+const clientZoneValidator = v.union(
   v.literal("panama"),
   v.literal("colon"),
   v.literal("chorrera"),
   v.literal("david"),
   v.literal("interior")
+);
+
+const campaignSegmentValidator = v.union(
+  v.literal("panama"),
+  v.literal("colon"),
+  v.literal("chorrera"),
+  v.literal("david"),
+  v.literal("interior"),
+  v.literal("all")
 );
 
 const templateKeyValidator = v.union(v.literal("morning_route"), v.literal("availability_check"));
@@ -36,13 +46,13 @@ const getAdminOrThrow = async (ctx: any, adminId: any) => {
   return { admin, tenantKey } as const;
 };
 
-const buildEligibleAudience = async (ctx: any, adminId: any, zone: ClientZone) => {
+const buildEligibleAudience = async (ctx: any, adminId: any, segment: CampaignSegment) => {
   const { tenantKey } = await getAdminOrThrow(ctx, adminId);
   const clients = await ctx.db.query("clients").collect();
 
   return clients
     .filter((client: any) => sameTenantKey(client.tenantKey, tenantKey))
-    .filter((client: any) => client.zone === zone)
+    .filter((client: any) => (segment === "all" ? Boolean(client.zone) : client.zone === segment))
     .map((client: any) => ({
       client,
       normalizedPhone: client.phone ? normalizeCampaignPhone(client.phone, tenantKey) : null,
@@ -56,15 +66,16 @@ const buildEligibleAudience = async (ctx: any, adminId: any, zone: ClientZone) =
     }));
 };
 
-const getMetaTemplateName = (zone: ClientZone) => {
-  const envMap: Record<ClientZone, string | undefined> = {
+const getMetaTemplateName = (segment: CampaignSegment) => {
+  const envMap: Record<CampaignSegment, string | undefined> = {
     panama: process.env.WHATSAPP_TEMPLATE_PANAMA,
     colon: process.env.WHATSAPP_TEMPLATE_COLON,
     chorrera: process.env.WHATSAPP_TEMPLATE_CHORRERA,
     david: process.env.WHATSAPP_TEMPLATE_DAVID || process.env.WHATSAPP_TEMPLATE_INTERIOR,
     interior: process.env.WHATSAPP_TEMPLATE_INTERIOR,
+    all: process.env.WHATSAPP_TEMPLATE_ALL || process.env.WHATSAPP_TEMPLATE_PANAMA,
   };
-  return envMap[zone]?.trim() || "";
+  return envMap[segment]?.trim() || "";
 };
 
 const sendTemplateMessage = async ({
@@ -76,7 +87,7 @@ const sendTemplateMessage = async ({
   phone: string;
   clientName: string;
   messageBody: string;
-  zone: ClientZone;
+  zone: CampaignSegment;
 }) => {
   const accessToken = process.env.WHATSAPP_CLOUD_ACCESS_TOKEN?.trim() || "";
   const phoneNumberId = process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID?.trim() || "";
@@ -88,7 +99,7 @@ const sendTemplateMessage = async ({
     throw new Error("Faltan variables de entorno de WhatsApp Cloud API.");
   }
   if (!templateName) {
-    throw new Error(`No hay plantilla de WhatsApp configurada para ${CLIENT_ZONE_LABELS[zone]}.`);
+    throw new Error(`No hay plantilla de WhatsApp configurada para ${CAMPAIGN_SEGMENT_LABELS[zone]}.`);
   }
 
   const response = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`, {
@@ -132,13 +143,13 @@ const sendTemplateMessage = async ({
 export const getAudiencePreview = query({
   args: {
     adminId: v.id("users"),
-    zone: zoneValidator,
+    zone: campaignSegmentValidator,
   },
   handler: async (ctx, args) => {
     const recipients = await buildEligibleAudience(ctx, args.adminId, args.zone);
     return {
       zone: args.zone,
-      zoneLabel: CLIENT_ZONE_LABELS[args.zone],
+      zoneLabel: CAMPAIGN_SEGMENT_LABELS[args.zone],
       count: recipients.length,
       clients: recipients.slice(0, 12),
     };
@@ -159,7 +170,7 @@ export const listByAdmin = query({
       .slice(0, 20)
       .map((campaign) => ({
         ...campaign,
-        zoneLabel: CLIENT_ZONE_LABELS[campaign.zone],
+        zoneLabel: CAMPAIGN_SEGMENT_LABELS[campaign.zone as CampaignSegment],
       }));
   },
 });
@@ -188,7 +199,7 @@ export const getCampaignRecipients = query({
 export const getAudienceForCampaign = internalQuery({
   args: {
     adminId: v.id("users"),
-    zone: zoneValidator,
+    zone: campaignSegmentValidator,
   },
   handler: async (ctx, args) => {
     const recipients = await buildEligibleAudience(ctx, args.adminId, args.zone);
@@ -211,7 +222,7 @@ export const getCampaignRecipientsForSend = internalQuery({
 export const createCampaignRun = internalMutation({
   args: {
     adminId: v.id("users"),
-    zone: zoneValidator,
+    zone: campaignSegmentValidator,
     templateKey: templateKeyValidator,
     messageBody: v.string(),
     previewText: v.string(),
@@ -221,7 +232,7 @@ export const createCampaignRun = internalMutation({
         clientId: v.id("clients"),
         clientName: v.string(),
         phone: v.string(),
-        zone: zoneValidator,
+        zone: clientZoneValidator,
       })
     ),
   },

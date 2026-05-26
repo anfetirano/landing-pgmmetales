@@ -1,31 +1,34 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import {
-  CLIENT_ZONE_LABELS,
+  CAMPAIGN_SEGMENT_LABELS,
   renderCampaignPreview,
 } from "../shared_client_campaigns";
 
-const zoneValidator = v.union(
+const campaignSegmentValidator = v.union(
   v.literal("panama"),
   v.literal("colon"),
   v.literal("chorrera"),
   v.literal("david"),
-  v.literal("interior")
+  v.literal("interior"),
+  v.literal("all")
 );
 
 const templateKeyValidator = v.union(v.literal("morning_route"), v.literal("availability_check"));
 
 type ClientZone = "panama" | "colon" | "chorrera" | "david" | "interior";
+type CampaignSegment = ClientZone | "all";
 
-const getMetaTemplateName = (zone: ClientZone) => {
-  const envMap: Record<ClientZone, string | undefined> = {
+const getMetaTemplateName = (segment: CampaignSegment) => {
+  const envMap: Record<CampaignSegment, string | undefined> = {
     panama: process.env.WHATSAPP_TEMPLATE_PANAMA,
     colon: process.env.WHATSAPP_TEMPLATE_COLON,
     chorrera: process.env.WHATSAPP_TEMPLATE_CHORRERA,
     david: process.env.WHATSAPP_TEMPLATE_DAVID || process.env.WHATSAPP_TEMPLATE_INTERIOR,
     interior: process.env.WHATSAPP_TEMPLATE_INTERIOR,
+    all: process.env.WHATSAPP_TEMPLATE_ALL || process.env.WHATSAPP_TEMPLATE_PANAMA,
   };
-  return envMap[zone]?.trim() || "";
+  return envMap[segment]?.trim() || "";
 };
 
 const sendTemplateMessage = async ({
@@ -37,7 +40,7 @@ const sendTemplateMessage = async ({
   phone: string;
   clientName: string;
   messageBody: string;
-  zone: ClientZone;
+  zone: CampaignSegment;
 }) => {
   const accessToken = process.env.WHATSAPP_CLOUD_ACCESS_TOKEN?.trim() || "";
   const phoneNumberId = process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID?.trim() || "";
@@ -49,7 +52,7 @@ const sendTemplateMessage = async ({
     throw new Error("Faltan variables de entorno de WhatsApp Cloud API.");
   }
   if (!templateName) {
-    throw new Error(`No hay plantilla de WhatsApp configurada para ${CLIENT_ZONE_LABELS[zone]}.`);
+    throw new Error(`No hay plantilla de WhatsApp configurada para ${CAMPAIGN_SEGMENT_LABELS[zone]}.`);
   }
 
   const response = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`, {
@@ -93,7 +96,7 @@ const sendTemplateMessage = async ({
 export const sendWhatsAppCampaign = action({
   args: {
     adminId: v.id("users"),
-    zone: zoneValidator,
+    zone: campaignSegmentValidator,
     templateKey: templateKeyValidator,
     messageBody: v.string(),
   },
@@ -120,7 +123,7 @@ export const sendWhatsAppCampaign = action({
 
     const metaTemplateName = getMetaTemplateName(args.zone);
     if (!metaTemplateName) {
-      throw new Error(`Falta configurar la plantilla de WhatsApp para ${CLIENT_ZONE_LABELS[args.zone]}.`);
+      throw new Error(`Falta configurar la plantilla de WhatsApp para ${CAMPAIGN_SEGMENT_LABELS[args.zone]}.`);
     }
 
     const campaignId = await ctx.runMutation("whatsappCampaigns:createCampaignRun" as any, {

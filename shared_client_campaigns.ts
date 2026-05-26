@@ -2,12 +2,21 @@ export const CLIENT_ZONES = ["panama", "colon", "chorrera", "david", "interior"]
 
 export type ClientZone = (typeof CLIENT_ZONES)[number];
 
+export const CAMPAIGN_SEGMENTS = [...CLIENT_ZONES, "all"] as const;
+
+export type CampaignSegment = (typeof CAMPAIGN_SEGMENTS)[number];
+
 export const CLIENT_ZONE_LABELS: Record<ClientZone, string> = {
   panama: "Panamá Metro",
   colon: "Colón",
   chorrera: "Arraiján + La Chorrera",
   david: "David",
   interior: "Interior",
+};
+
+export const CAMPAIGN_SEGMENT_LABELS: Record<CampaignSegment, string> = {
+  ...CLIENT_ZONE_LABELS,
+  all: "Todos Panamá",
 };
 
 const toRadians = (value: number) => (value * Math.PI) / 180;
@@ -81,16 +90,16 @@ export const CAMPAIGN_TEMPLATE_LABELS: Record<CampaignTemplateKey, string> = {
 
 export const getDefaultCampaignMessage = (
   templateKey: CampaignTemplateKey,
-  zone: ClientZone
+  segment: CampaignSegment
 ) => {
-  const zoneLabel = CLIENT_ZONE_LABELS[zone];
+  const segmentLabel = segment === "all" ? "Panamá" : CLIENT_ZONE_LABELS[segment];
 
   switch (templateKey) {
     case "availability_check":
-      return `Buenos días. Hoy estamos activos comprando catalizadores en ${zoneLabel}. Si tienes piezas, cerámica o material disponible, me avisas y coordinamos.`;
+      return `Buenos días. Hoy estamos activos comprando catalizadores en ${segmentLabel}. Si tienes piezas, cerámica o material disponible, me avisas y coordinamos.`;
     case "morning_route":
     default:
-      return `Buenos días. Hoy salimos a ruta por ${zoneLabel} comprando catalizadores. Si tienes material disponible, te escribo para pasar.`;
+      return `Buenos días. Hoy salimos a ruta por ${segmentLabel} comprando catalizadores. Si tienes material disponible, te escribo para pasar.`;
   }
 };
 
@@ -100,7 +109,7 @@ export const renderCampaignPreview = ({
   message,
 }: {
   clientName: string;
-  zone: ClientZone;
+  zone: CampaignSegment;
   message: string;
 }) => {
   const safeName = clientName.trim() || "cliente";
