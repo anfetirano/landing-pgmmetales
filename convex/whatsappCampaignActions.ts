@@ -9,18 +9,20 @@ const zoneValidator = v.union(
   v.literal("panama"),
   v.literal("colon"),
   v.literal("chorrera"),
+  v.literal("david"),
   v.literal("interior")
 );
 
 const templateKeyValidator = v.union(v.literal("morning_route"), v.literal("availability_check"));
 
-type ClientZone = "panama" | "colon" | "chorrera" | "interior";
+type ClientZone = "panama" | "colon" | "chorrera" | "david" | "interior";
 
 const getMetaTemplateName = (zone: ClientZone) => {
   const envMap: Record<ClientZone, string | undefined> = {
     panama: process.env.WHATSAPP_TEMPLATE_PANAMA,
     colon: process.env.WHATSAPP_TEMPLATE_COLON,
     chorrera: process.env.WHATSAPP_TEMPLATE_CHORRERA,
+    david: process.env.WHATSAPP_TEMPLATE_DAVID || process.env.WHATSAPP_TEMPLATE_INTERIOR,
     interior: process.env.WHATSAPP_TEMPLATE_INTERIOR,
   };
   return envMap[zone]?.trim() || "";

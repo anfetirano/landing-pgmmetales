@@ -1,6 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { normalizeTenantKey, sameTenantKey } from "./tenants";
+import {
+  CLIENT_ZONE_LABELS,
+  inferPanamaZoneFromCoordinates,
+  type ClientZone,
+} from "../shared_client_campaigns";
 
 export const createClient = mutation({
   args: {
@@ -14,6 +19,7 @@ export const createClient = mutation({
         v.literal("panama"),
         v.literal("colon"),
         v.literal("chorrera"),
+        v.literal("david"),
         v.literal("interior")
       )
     ),
@@ -119,6 +125,7 @@ export const updateClient = mutation({
         v.literal("panama"),
         v.literal("colon"),
         v.literal("chorrera"),
+        v.literal("david"),
         v.literal("interior")
       )
     ),
@@ -176,6 +183,7 @@ export const updateClientAsAdmin = mutation({
         v.literal("panama"),
         v.literal("colon"),
         v.literal("chorrera"),
+        v.literal("david"),
         v.literal("interior")
       )
     ),
@@ -250,5 +258,119 @@ export const deleteClientAsAdmin = mutation({
 
     await ctx.db.delete(args.clientId);
     return { ok: true };
+  },
+});
+
+export const previewPanamaZoneAssignments = query({
+  args: {
+    adminId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+    if (tenantKey !== "pa") {
+      throw new Error("Este proceso solo aplica a Panamá.");
+    }
+
+    const clients = await ctx.db.query("clients").collect();
+    const panamaClients = clients.filter((client) => sameTenantKey(client.tenantKey, tenantKey));
+    const summary: Record<ClientZone, number> = {
+      panama: 0,
+      colon: 0,
+      chorrera: 0,
+      david: 0,
+      interior: 0,
+    };
+
+    const assignments = panamaClients
+      .map((client) => {
+        const suggestedZone = inferPanamaZoneFromCoordinates(client.lat, client.lng);
+        if (suggestedZone) {
+          summary[suggestedZone] += 1;
+        }
+        return {
+          clientId: client._id,
+          name: client.name,
+          phone: client.phone ?? null,
+          currentZone: client.zone ?? null,
+          suggestedZone,
+          suggestedZoneLabel: suggestedZone ? CLIENT_ZONE_LABELS[suggestedZone] : null,
+          lat: client.lat ?? null,
+          lng: client.lng ?? null,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+
+    const assignable = assignments.filter((item) => item.suggestedZone !== null);
+    const withoutCoordinates = assignments.filter((item) => item.suggestedZone === null);
+    const changed = assignable.filter((item) => item.currentZone !== item.suggestedZone);
+
+    return {
+      totalPanamaClients: assignments.length,
+      assignableCount: assignable.length,
+      withoutCoordinatesCount: withoutCoordinates.length,
+      changedCount: changed.length,
+      summary,
+      assignments,
+      withoutCoordinates,
+    };
+  },
+});
+
+export const applyPanamaZoneAssignments = mutation({
+  args: {
+    adminId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+    if (tenantKey !== "pa") {
+      throw new Error("Este proceso solo aplica a Panamá.");
+    }
+
+    const clients = await ctx.db.query("clients").collect();
+    const panamaClients = clients.filter((client) => sameTenantKey(client.tenantKey, tenantKey));
+    const summary: Record<ClientZone, number> = {
+      panama: 0,
+      colon: 0,
+      chorrera: 0,
+      david: 0,
+      interior: 0,
+    };
+
+    let updatedCount = 0;
+    let unchangedCount = 0;
+    let skippedCount = 0;
+
+    for (const client of panamaClients) {
+      const suggestedZone = inferPanamaZoneFromCoordinates(client.lat, client.lng);
+      if (!suggestedZone) {
+        skippedCount += 1;
+        continue;
+      }
+
+      summary[suggestedZone] += 1;
+      if (client.zone === suggestedZone) {
+        unchangedCount += 1;
+        continue;
+      }
+
+      await ctx.db.patch(client._id, { zone: suggestedZone });
+      updatedCount += 1;
+    }
+
+    return {
+      totalPanamaClients: panamaClients.length,
+      updatedCount,
+      unchangedCount,
+      skippedCount,
+      summary,
+    };
   },
 });

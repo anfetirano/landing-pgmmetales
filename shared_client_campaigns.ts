@@ -1,12 +1,73 @@
-export const CLIENT_ZONES = ["panama", "colon", "chorrera", "interior"] as const;
+export const CLIENT_ZONES = ["panama", "colon", "chorrera", "david", "interior"] as const;
 
 export type ClientZone = (typeof CLIENT_ZONES)[number];
 
 export const CLIENT_ZONE_LABELS: Record<ClientZone, string> = {
   panama: "Panamá Metro",
   colon: "Colón",
-  chorrera: "Chorrera + Arraiján",
+  chorrera: "Arraiján + La Chorrera",
+  david: "David",
   interior: "Interior",
+};
+
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const distanceInKm = (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
+  const earthRadiusKm = 6371;
+  const latDelta = toRadians(to.lat - from.lat);
+  const lngDelta = toRadians(to.lng - from.lng);
+  const a =
+    Math.sin(latDelta / 2) * Math.sin(latDelta / 2) +
+    Math.cos(toRadians(from.lat)) *
+      Math.cos(toRadians(to.lat)) *
+      Math.sin(lngDelta / 2) *
+      Math.sin(lngDelta / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c;
+};
+
+export const inferPanamaZoneFromCoordinates = (
+  lat?: number | null,
+  lng?: number | null
+): ClientZone | null => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null;
+  }
+
+  const point = { lat: lat as number, lng: lng as number };
+
+  // Ignore clearly invalid points outside Panama's rough bounding box.
+  if (point.lat < 7 || point.lat > 10.2 || point.lng < -83.2 || point.lng > -77) {
+    return null;
+  }
+
+  if (distanceInKm(point, { lat: 8.4273, lng: -82.4308 }) <= 35) {
+    return "david";
+  }
+
+  if (
+    distanceInKm(point, { lat: 9.3592, lng: -79.9001 }) <= 35 ||
+    (point.lat >= 9.05 && point.lat <= 9.5 && point.lng >= -80.15 && point.lng <= -79.65)
+  ) {
+    return "colon";
+  }
+
+  if (
+    (point.lat >= 8.85 && point.lat <= 9.25 && point.lng >= -80.35 && point.lng <= -79.68) ||
+    distanceInKm(point, { lat: 8.9516, lng: -79.6601 }) <= 18 ||
+    distanceInKm(point, { lat: 8.8803, lng: -79.7833 }) <= 20
+  ) {
+    return "chorrera";
+  }
+
+  if (
+    distanceInKm(point, { lat: 8.9824, lng: -79.5199 }) <= 32 ||
+    (point.lat >= 8.85 && point.lat <= 9.25 && point.lng >= -79.68 && point.lng <= -79.15)
+  ) {
+    return "panama";
+  }
+
+  return "interior";
 };
 
 export const CAMPAIGN_TEMPLATE_KEYS = ["morning_route", "availability_check"] as const;

@@ -25,6 +25,7 @@ export default defineSchema({
         v.literal("panama"),
         v.literal("colon"),
         v.literal("chorrera"),
+        v.literal("david"),
         v.literal("interior")
       )
     ),
@@ -287,6 +288,7 @@ export default defineSchema({
       v.literal("panama"),
       v.literal("colon"),
       v.literal("chorrera"),
+      v.literal("david"),
       v.literal("interior")
     ),
     templateKey: v.union(v.literal("morning_route"), v.literal("availability_check")),
@@ -317,6 +319,7 @@ export default defineSchema({
       v.literal("panama"),
       v.literal("colon"),
       v.literal("chorrera"),
+      v.literal("david"),
       v.literal("interior")
     ),
     clientName: v.string(),
