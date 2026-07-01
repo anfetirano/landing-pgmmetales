@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Source_Sans_3, Manrope } from "next/font/google";
 
@@ -47,20 +48,28 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isClerkFreeRoute =
+    pathname.startsWith("/presentacion") || pathname.startsWith("/pmr");
+
   return (
     <html lang="en">
       <body className={`${manrope.className} ${sourceSans.className} antialiased`}>
         {siteDetails.googleAnalyticsId && (
           <GoogleAnalytics gaId={siteDetails.googleAnalyticsId} />
         )}
-        <Providers>
+        {isClerkFreeRoute ? (
           <AppShell>{children}</AppShell>
-        </Providers>
+        ) : (
+          <Providers>
+            <AppShell>{children}</AppShell>
+          </Providers>
+        )}
       </body>
     </html>
   );
