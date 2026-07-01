@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Source_Sans_3, Manrope } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 
 import AppShell from "@/components/AppShell";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
+import Providers from "@/components/Providers";
 import { siteDetails } from "@/data/siteDetails";
 
 import "./globals.css";
@@ -54,17 +53,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={`${manrope.className} ${sourceSans.className} antialiased`}>
-          {siteDetails.googleAnalyticsId && (
-            <GoogleAnalytics gaId={siteDetails.googleAnalyticsId} />
-          )}
-          <ConvexClientProvider>
-            <AppShell>{children}</AppShell>
-          </ConvexClientProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className={`${manrope.className} ${sourceSans.className} antialiased`}>
+        {siteDetails.googleAnalyticsId && (
+          <GoogleAnalytics gaId={siteDetails.googleAnalyticsId} />
+        )}
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
+      </body>
+    </html>
   );
 }
