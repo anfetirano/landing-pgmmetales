@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
-  Camera,
   ChevronDown,
   CircleDot,
   FolderKanban,
@@ -76,53 +75,32 @@ const replies = [
   "Centro de Escape Chorrera reactivó conversación para recompra.",
 ];
 
-const purchaseSequence = [
-  { title: "Proveedor identificado", detail: "Taller Vía Brasil · Panamá Metro" },
-  { title: "Fotos tomadas", detail: "Dos piezas completas registradas en la compra" },
-  { title: "Peso confirmado", detail: "4.8 kg + 3.9 kg · 8.7 kg totales" },
-  { title: "Lote asignado", detail: "PA-042" },
-];
-
-const photoToneClasses = {
-  steel:
-    "from-[#dfe5eb] via-[#a9b8c7] to-[#788898] border-[#bcc8d3]",
-  graphite:
-    "from-[#d5d9df] via-[#8f969f] to-[#616a75] border-[#adb6c0]",
-  amber:
-    "from-[#eadcc5] via-[#b98b62] to-[#6c5447] border-[#d2b394]",
-  ceramic:
-    "from-[#efe6da] via-[#c9b393] to-[#8f7d66] border-[#d7c7b2]",
-  oxide:
-    "from-[#ded8d1] via-[#b98f78] to-[#735e52] border-[#ccb1a0]",
-} as const;
-
-function CatalystPhotoFrame({
+function PurchasePhotoFrame({
   title,
+  category,
   note,
-  tone,
+  imageSrc,
   className = "",
-  imageClassName = "",
 }: {
   title: string;
+  category: string;
   note: string;
-  tone: keyof typeof photoToneClasses;
+  imageSrc: string;
   className?: string;
-  imageClassName?: string;
 }) {
   return (
     <div className={`rounded-lg border bg-white p-3 ${className}`}>
-      <div
-        className={`relative flex aspect-[1.12/1] items-center justify-center overflow-hidden rounded-md border bg-gradient-to-br ${photoToneClasses[tone]}`}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.75),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.16),transparent_55%)]" />
-        <div className="absolute inset-x-6 bottom-5 h-5 rounded-full bg-black/18 blur-xl" />
+      <div className="relative aspect-[1.08/1] overflow-hidden rounded-md border bg-[#eef3f1]">
         <img
-          src="/icons/cata.png"
+          src={imageSrc}
           alt={title}
-          className={`relative h-28 w-28 drop-shadow-[0_18px_18px_rgba(15,23,42,0.35)] ${imageClassName}`}
+          className="h-full w-full object-cover"
         />
       </div>
       <div className="mt-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#60746d]">
+          {category}
+        </div>
         <div className="text-sm font-medium text-[#17322f]">{title}</div>
         <div className="mt-1 text-xs leading-5 text-[#60746d]">{note}</div>
       </div>
@@ -131,24 +109,25 @@ function CatalystPhotoFrame({
 }
 
 function PurchaseMiniThumb({
-  tone,
+  src,
   item,
 }: {
-  tone: keyof typeof photoToneClasses;
+  src: string;
   item: string;
 }) {
   return (
-    <div
-      className={`relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-gradient-to-br ${photoToneClasses[tone]}`}
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.7),transparent_38%)]" />
+    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-[#eef3f1]">
       <img
-        src="/icons/cata.png"
+        src={src}
         alt={item}
-        className="relative h-10 w-10 drop-shadow-[0_10px_10px_rgba(15,23,42,0.28)]"
+        className="h-full w-full object-cover"
       />
     </div>
   );
+}
+
+function formatPurchaseMeta(row: (typeof demoPurchaseRows)[number]) {
+  return `${row.supplier} · ${row.measurement} · ${row.lot}`;
 }
 
 function ProcessTrack({
@@ -364,6 +343,27 @@ function PurchaseFlowScene({
   slide: DeckSlide;
   active: boolean;
 }) {
+  const looseMaterial = demoPurchaseRows[0];
+  const fullCatalyst = demoPurchaseRows[1];
+  const purchaseSequence = [
+    {
+      title: "Material suelto documentado",
+      detail: `${looseMaterial.supplier} · ${looseMaterial.measurement}`,
+    },
+    {
+      title: "Catalizador completo fotografiado",
+      detail: `${fullCatalyst.supplier} · ${fullCatalyst.item}`,
+    },
+    {
+      title: "Valor registrado",
+      detail: `${looseMaterial.price} + ${fullCatalyst.price}`,
+    },
+    {
+      title: "Lote asignado",
+      detail: looseMaterial.lot,
+    },
+  ];
+
   return (
     <Stage>
       <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
@@ -378,46 +378,49 @@ function PurchaseFlowScene({
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-[#7b8b84]">Proveedor</div>
-                <div className="mt-1 text-2xl font-semibold text-[#17322f]">Taller Vía Brasil</div>
-                <div className="mt-2 text-sm text-[#60746d]">Carlos Mena · Panamá Metro</div>
+                <div className="text-sm text-[#7b8b84]">Registro de compras en campo</div>
+                <div className="mt-1 text-2xl font-semibold text-[#17322f]">Lote {looseMaterial.lot}</div>
+                <div className="mt-2 text-sm text-[#60746d]">
+                  Material suelto y catalizador completo registrados con fotos reales.
+                </div>
               </div>
               <div className="rounded-md border px-3 py-2 text-sm text-[#17322f]">
-                Catalizador usado
+                Datos reales de base operativa
               </div>
             </div>
 
             <div className="mt-5 grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
               <div className="grid gap-4 md:grid-cols-2">
-                <CatalystPhotoFrame
-                  title="Toyota Hilux OEM"
-                  note="Pieza completa comprada en la misma operación."
-                  tone="steel"
-                  imageClassName="-rotate-[14deg] scale-[1.28]"
+                <PurchasePhotoFrame
+                  title={looseMaterial.item}
+                  category={looseMaterial.category}
+                  note={`${looseMaterial.supplier} · ${looseMaterial.measurement} · ${looseMaterial.price}`}
+                  imageSrc={looseMaterial.photoUrl}
                 />
-                <CatalystPhotoFrame
-                  title="Ford Ranger"
-                  note="Segunda pieza registrada dentro del mismo lote."
-                  tone="graphite"
-                  imageClassName="rotate-[10deg] scale-[1.24]"
+                <PurchasePhotoFrame
+                  title={fullCatalyst.item}
+                  category={fullCatalyst.category}
+                  note={`${fullCatalyst.supplier} · ${fullCatalyst.measurement} · ${fullCatalyst.price}`}
+                  imageSrc={fullCatalyst.photoUrl}
                 />
               </div>
 
               <div className="grid gap-3">
                 <div className="rounded-lg border bg-[#fbfcfc] p-4">
-                  <div className="text-sm font-medium text-[#17322f]">Piezas registradas</div>
+                  <div className="text-sm font-medium text-[#17322f]">Compras documentadas</div>
                   <div className="mt-4 grid gap-3">
-                    {demoPurchaseRows.slice(0, 2).map((row) => (
+                    {[looseMaterial, fullCatalyst].map((row) => (
                       <div key={row.item} className="rounded-md border bg-white px-3 py-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
                           <div className="text-sm font-semibold text-[#17322f]">{row.price}</div>
                         </div>
                         <div className="mt-2 grid gap-2 text-xs text-[#60746d] md:grid-cols-2">
+                          <div>Tipo: {row.category}</div>
                           <div>Proveedor: {row.supplier}</div>
-                          <div>Peso: {row.weight}</div>
+                          <div>Medida: {row.measurement}</div>
                           <div>Lote: {row.lot}</div>
-                          <div>{row.photoNote}</div>
+                          <div>{row.note}</div>
                         </div>
                       </div>
                     ))}
@@ -425,7 +428,7 @@ function PurchaseFlowScene({
                 </div>
 
                 <Textarea
-                  value="Compra operativa registrada con dos catalizadores usados, evidencia visual, peso total de 8.7 kg y lote PA-042 asignado en el momento."
+                  value="Registro real de dos materiales distintos: una compra de material suelto y un catalizador completo, ambos con foto, proveedor, valor y lote vinculados desde campo."
                   readOnly
                   className="min-h-[118px] bg-white"
                 />
@@ -435,7 +438,7 @@ function PurchaseFlowScene({
 
           <FocusChip
             title="La compra ya tiene evidencia"
-            detail="Las dos piezas completas quedan vinculadas al proveedor, al peso y al lote desde la misma operación."
+            detail="Una pieza suelta y una pieza completa quedan visibles con su foto real, valor registrado y lote asociado."
             className="mt-6 max-w-[380px]"
           />
         </div>
@@ -498,16 +501,16 @@ function PurchaseFlowScene({
             transition={{ duration: 1.8, repeat: active ? Infinity : 0 }}
             className="mt-5 rounded-lg border border-[#234c4b] bg-[#234c4b] p-4 text-white"
           >
-            <div className="text-sm text-white/65">Lote asignado</div>
-            <div className="mt-2 text-[34px] font-semibold tracking-[-0.04em]">PA-042</div>
+            <div className="text-sm text-white/65">Lote real de compra</div>
+            <div className="mt-2 text-[34px] font-semibold tracking-[-0.04em]">{looseMaterial.lot}</div>
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-md border border-white/10 bg-white/5 px-3 py-3">
-                <div className="text-white/60">Compras</div>
+                <div className="text-white/60">Registros</div>
                 <div className="mt-1 text-xl font-medium">2</div>
               </div>
               <div className="rounded-md border border-white/10 bg-white/5 px-3 py-3">
-                <div className="text-white/60">Invertido</div>
-                <div className="mt-1 text-xl font-medium">$750</div>
+                <div className="text-white/60">Valor visible</div>
+                <div className="mt-1 text-xl font-medium">$122</div>
               </div>
             </div>
           </motion.div>
@@ -631,11 +634,11 @@ function NetworkScene({
                 </tr>
               </thead>
               <tbody>
-                {demoCommercialRows.slice(0, 9).map((row, index) => (
+                {demoCommercialRows.slice(0, 12).map((row, index) => (
                   <tr key={row.name} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
-                    <td className="px-4 py-3 font-medium text-[#17322f]">{row.name}</td>
-                    <td className="px-4 py-3">{row.zone}</td>
-                    <td className="px-4 py-3">{row.buyer}</td>
+                    <td className="px-4 py-2.5 font-medium text-[#17322f]">{row.name}</td>
+                    <td className="px-4 py-2.5">{row.zone}</td>
+                    <td className="px-4 py-2.5">{row.buyer}</td>
                   </tr>
                 ))}
               </tbody>
@@ -769,30 +772,30 @@ function BuyerScene({
               ))}
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-lg border bg-white">
-              <div className="border-b px-4 py-3 text-sm font-medium text-[#17322f]">Últimas 5 compras</div>
-              <div className="grid gap-0">
-                {demoPurchaseRows.slice(0, 5).map((row, index) => (
-                  <div key={row.item} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
-                    <div className="flex items-center justify-between gap-4 px-4 py-4">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
-                        <div className="mt-1 text-xs text-[#60746d]">
-                          {row.supplier} · {row.weight}
+            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-end">
+              <div className="overflow-hidden rounded-lg border bg-white">
+                <div className="border-b px-4 py-3 text-sm font-medium text-[#17322f]">Últimas 5 compras</div>
+                <div className="grid gap-0">
+                  {demoPurchaseRows.slice(0, 5).map((row, index) => (
+                    <div key={row.item} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
+                      <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
+                          <div className="mt-1 text-xs text-[#60746d]">{formatPurchaseMeta(row)}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <PurchaseMiniThumb src={row.photoUrl} item={row.item} />
+                          <div className="text-sm font-semibold text-[#17322f]">{row.price}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <PurchaseMiniThumb tone={row.photoTone} item={row.item} />
-                        <div className="text-sm font-semibold text-[#17322f]">{row.price}</div>
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+
+              <SceneText slide={slide} className="w-full" />
             </div>
           </div>
-
-          <SceneText slide={slide} className="absolute bottom-24 right-8 w-[360px]" />
         </div>
       </div>
     </Stage>
@@ -938,12 +941,12 @@ function MemoryScene({
                   </tr>
                 </thead>
                 <tbody>
-                  {demoCommercialRows.map((row, index) => (
+                  {demoCommercialRows.slice(0, 9).map((row, index) => (
                     <tr key={row.name} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
-                      <td className="px-4 py-4 font-medium text-[#17322f]">{row.name}</td>
-                      <td className="px-4 py-4">{row.zone}</td>
-                      <td className="px-4 py-4">{row.buyer}</td>
-                      <td className="px-4 py-4">{row.history}</td>
+                      <td className="px-4 py-3 font-medium text-[#17322f]">{row.name}</td>
+                      <td className="px-4 py-3">{row.zone}</td>
+                      <td className="px-4 py-3">{row.buyer}</td>
+                      <td className="px-4 py-3">{row.history}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -958,11 +961,9 @@ function MemoryScene({
                     <div key={row.item} className="flex items-center justify-between gap-3 rounded-md border px-3 py-3">
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
-                        <div className="mt-1 text-xs text-[#60746d]">
-                          {row.supplier} · {row.weight} · {row.lot}
-                        </div>
+                        <div className="mt-1 text-xs text-[#60746d]">{formatPurchaseMeta(row)}</div>
                       </div>
-                      <PurchaseMiniThumb tone={row.photoTone} item={row.item} />
+                      <PurchaseMiniThumb src={row.photoUrl} item={row.item} />
                     </div>
                   ))}
                 </div>
@@ -980,16 +981,16 @@ function MemoryScene({
                 </div>
               </div>
             </div>
-          </div>
 
-          <FocusChip
-            title="La empresa recuerda"
-            detail="La siguiente compra parte del historial, no de cero."
-            className="absolute bottom-24 left-8 max-w-[270px]"
-          />
+            <FocusChip
+              title="La empresa recuerda"
+              detail="La siguiente compra parte del historial, no de cero."
+              className="max-w-[270px]"
+            />
+          </div>
         </div>
 
-        <div className="relative bg-[#f7f8fb] px-8 py-8">
+        <div className="bg-[#f7f8fb] px-8 py-8">
           <motion.div
             initial={false}
             animate={{
@@ -1016,7 +1017,7 @@ function MemoryScene({
             </div>
           </motion.div>
 
-          <SceneText slide={slide} className="absolute bottom-24 left-8 right-8" />
+          <SceneText slide={slide} className="mt-6 w-full" />
         </div>
       </div>
     </Stage>
@@ -1070,9 +1071,9 @@ function ClosingScene({
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/12 bg-white/[0.07] p-5">
-              <div className="text-sm font-medium text-white">Resultado</div>
-              <p className="mt-3 max-w-2xl text-base leading-8 text-white/92">
+            <div className="rounded-lg border border-white/16 bg-[#1a2320] p-5">
+              <div className="text-sm font-medium text-white/90">Resultado</div>
+              <p className="mt-3 max-w-2xl text-[17px] leading-8 text-white">
                 El proveedor se registra, la compra entra al lote, el comprador la opera,
                 la base de datos la recuerda y la campaña sostiene la continuidad.
               </p>
