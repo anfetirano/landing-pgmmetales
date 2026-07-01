@@ -118,11 +118,10 @@ export const presentacionSlides: PresentationSlide[] = [
   {
     id: "catalysts",
     step: "05",
-    title: "Catalizadores usados",
-    summary:
-      "Convertimos relaciones informales en una red comercial organizada y trazable.",
+    title: "Compras y catalizadores usados",
+    summary: "Cada compra registra proveedor, foto, material y lote.",
     paragraphs: [
-      "Trabajamos con talleres, soldadores, centros de escape, recicladores, chatarreros y compradores independientes.",
+      "La operación convierte relaciones informales en un proceso trazable y repetible.",
     ],
     visual: "catalysts",
   },
@@ -130,7 +129,7 @@ export const presentacionSlides: PresentationSlide[] = [
     id: "buyers",
     step: "06",
     title: "Control de compradores",
-    summary: "Cada comprador opera con control financiero.",
+    summary: "Saldo operativo, gasto aprobado y últimas compras en una sola vista.",
     paragraphs: [
       "La plataforma permite registrar movimientos, compras, gastos y saldos para evitar pérdida de control en campo.",
     ],
@@ -140,47 +139,18 @@ export const presentacionSlides: PresentationSlide[] = [
     id: "campaigns",
     step: "07",
     title: "Campañas WhatsApp",
-    summary: "La comunicación comercial también queda organizada.",
+    summary: "Segmentos por zona, plantillas y comunicación recurrente.",
     paragraphs: [
       "Podemos dar seguimiento por zona y mantener contacto constante con proveedores sin depender de mensajes aislados.",
     ],
     visual: "campaigns",
   },
   {
-    id: "electronics",
-    step: "08",
-    title: "Tarjetas electrónicas",
-    summary: "Estamos desarrollando una línea especializada para compra de tarjetas electrónicas.",
-    paragraphs: [
-      "El objetivo es conectar la generación del material con compradores especializados.",
-    ],
-    bullets: [
-      "Gestión ambiental",
-      "Bienes y excedentes",
-      "Tecnología",
-      "Activos fijos",
-      "Compras",
-      "Mantenimiento",
-    ],
-    visual: "electronics",
-  },
-  {
-    id: "technology",
-    step: "09",
-    title: "Tecnología al servicio de la operación",
-    summary: "No vendemos software. Operamos mejor gracias a tecnología propia.",
-    paragraphs: [
-      "El sistema fue desarrollado para administrar información, relaciones comerciales, compras, lotes, compradores y campañas.",
-      "La tecnología no es el producto. Es la herramienta que hace posible una operación más ordenada y escalable.",
-    ],
-    visual: "technology",
-  },
-  {
     id: "closing",
-    step: "10",
+    step: "08",
     title: "Aliado estratégico",
     summary:
-      "Buscamos una relación comercial de largo plazo en catalizadores usados y tarjetas electrónicas.",
+      "Una operación organizada para catalizadores usados y tarjetas electrónicas.",
     paragraphs: [
       "No competimos por comprar una pieza más. Construimos una red de abastecimiento basada en información, relaciones comerciales y procesos.",
     ],

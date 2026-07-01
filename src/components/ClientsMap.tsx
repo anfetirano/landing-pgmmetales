@@ -60,9 +60,13 @@ const markerGlowStyle = `
 export default function ClientsMap({
   clients,
   tenantKey,
+  heightClassName = "h-[360px] w-full",
+  showFullscreenToggle = true,
 }: {
   clients: Client[];
   tenantKey?: "co" | "pa";
+  heightClassName?: string;
+  showFullscreenToggle?: boolean;
 }) {
   const mapRef = useRef<LeafletMap | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -120,7 +124,7 @@ export default function ClientsMap({
 
   const containerClass = isFullscreen
     ? "fixed inset-0 z-50 bg-black/50 p-3"
-    : "h-[360px] w-full";
+    : heightClassName;
 
   const mapShellClass = isFullscreen
     ? "relative h-full w-full overflow-hidden rounded-xl border bg-white"
@@ -130,15 +134,17 @@ export default function ClientsMap({
     <div className={containerClass}>
       <style>{markerGlowStyle}</style>
       <div className={mapShellClass}>
-        <button
-          type="button"
-          onClick={() => setIsFullscreen((v) => !v)}
-          className="absolute right-2 top-2 z-[2000] inline-flex h-9 w-9 items-center justify-center rounded-md border bg-white/95 shadow hover:bg-white"
-          title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-          aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-        >
-          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-        </button>
+        {showFullscreenToggle ? (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen((v) => !v)}
+            className="absolute right-2 top-2 z-[2000] inline-flex h-9 w-9 items-center justify-center rounded-md border bg-white/95 shadow hover:bg-white"
+            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+            aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+        ) : null}
         <div ref={containerRef} className="h-full w-full">
           {ready && (
             <MapContainer
