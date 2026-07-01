@@ -49,6 +49,8 @@ export type DemoPurchaseRow = {
   weight: string;
   price: string;
   lot: string;
+  photoTone: "steel" | "graphite" | "amber" | "ceramic" | "oxide";
+  photoNote: string;
 };
 
 export type DemoBuyerRow = {
@@ -78,9 +80,9 @@ export const presentacionSlides: PresentationSlide[] = [
     step: "01",
     title: "Cada catalizador tiene una historia.",
     summary:
-      "La operación de PMG Metales Panamá comienza mucho antes del dashboard: empieza en campo.",
+      "El objetivo de PMG Metales es construir un historial completo y verificable de cada catalizador, desde su compra hasta su venta.",
     paragraphs: [
-      "Compramos, registramos, pesamos, asignamos, trazamos y reactivamos abastecimiento con información.",
+      "Cada compra queda registrada para conectar proveedor, pieza, lote, comprador y continuidad comercial dentro de una sola operación.",
     ],
     visual: "intro",
   },
@@ -88,9 +90,9 @@ export const presentacionSlides: PresentationSlide[] = [
     id: "catalysts",
     step: "02",
     title: "La compra se registra en campo.",
-    summary: "Proveedor, foto, peso, pago y lote nacen dentro de la misma operación.",
+    summary: "Cada pieza queda documentada con fotografía, peso, proveedor, valor y lote dentro del mismo registro.",
     paragraphs: [
-      "No mostramos una pantalla: mostramos el momento exacto en que el material entra al sistema.",
+      "La sensación debe ser la de una compra real entrando al sistema con evidencia física y trazabilidad inmediata.",
     ],
     visual: "catalysts",
   },
@@ -213,6 +215,61 @@ export const demoMapClients: DemoMapClient[] = [
     address: "La Chorrera",
     cedula: "8-778-310",
   },
+  {
+    _id: "cli-06",
+    name: "Taller Tocumen Diesel",
+    contactName: "Luis Paredes",
+    buyerName: "Richard",
+    phone: "+507 6466 2012",
+    lat: 9.0789,
+    lng: -79.3847,
+    address: "Tocumen, Panamá",
+    cedula: "8-801-102",
+  },
+  {
+    _id: "cli-07",
+    name: "Repuestos San Miguelito",
+    contactName: "Diana Castillo",
+    buyerName: "Richard",
+    phone: "+507 6542 7710",
+    lat: 9.0315,
+    lng: -79.5034,
+    address: "San Miguelito, Panamá",
+    cedula: "8-623-511",
+  },
+  {
+    _id: "cli-08",
+    name: "Centro de Escape Juan Díaz",
+    contactName: "Pedro Ortega",
+    buyerName: "Richard",
+    phone: "+507 6611 8920",
+    lat: 9.0164,
+    lng: -79.4492,
+    address: "Juan Díaz, Panamá",
+    cedula: "8-709-902",
+  },
+  {
+    _id: "cli-09",
+    name: "Metalúrgica Vista Alegre",
+    contactName: "Nadia Gómez",
+    buyerName: "Kenny",
+    phone: "+507 6264 4418",
+    lat: 8.8876,
+    lng: -79.7327,
+    address: "Vista Alegre, Panamá Oeste",
+    cedula: "8-588-337",
+  },
+  {
+    _id: "cli-10",
+    name: "Patio Industrial Chilibre",
+    contactName: "Efraín Arosemena",
+    buyerName: "Kenny",
+    phone: "+507 6688 1027",
+    lat: 9.1564,
+    lng: -79.6178,
+    address: "Chilibre, Panamá Norte",
+    cedula: "8-431-775",
+  },
 ];
 
 export const demoCommercialRows: DemoCommercialRow[] = [
@@ -261,6 +318,51 @@ export const demoCommercialRows: DemoCommercialRow[] = [
     status: "Revisión interna",
     history: "Área de activos identificada",
   },
+  {
+    name: "Taller Tocumen Diesel",
+    zone: "Tocumen",
+    contact: "Luis Paredes",
+    type: "Taller / diésel",
+    buyer: "Richard",
+    status: "Ruta activa",
+    history: "3 compras registradas",
+  },
+  {
+    name: "Repuestos San Miguelito",
+    zone: "San Miguelito",
+    contact: "Diana Castillo",
+    type: "Repuestos / catalizadores",
+    buyer: "Richard",
+    status: "Seguimiento semanal",
+    history: "5 compras registradas",
+  },
+  {
+    name: "Centro de Escape Juan Díaz",
+    zone: "Juan Díaz",
+    contact: "Pedro Ortega",
+    type: "Centro de escape",
+    buyer: "Richard",
+    status: "Proveedor recurrente",
+    history: "6 compras registradas",
+  },
+  {
+    name: "Metalúrgica Vista Alegre",
+    zone: "Vista Alegre",
+    contact: "Nadia Gómez",
+    type: "Reciclador",
+    buyer: "Kenny",
+    status: "Visita cerrada",
+    history: "2 compras registradas",
+  },
+  {
+    name: "Patio Industrial Chilibre",
+    zone: "Panamá Norte",
+    contact: "Efraín Arosemena",
+    type: "Patio industrial",
+    buyer: "Kenny",
+    status: "Nuevo frente activo",
+    history: "1 compra registrada",
+  },
 ];
 
 export const demoPurchaseRows: DemoPurchaseRow[] = [
@@ -271,6 +373,8 @@ export const demoPurchaseRows: DemoPurchaseRow[] = [
     weight: "4.8 kg",
     price: "$420",
     lot: "PA-042",
+    photoTone: "steel",
+    photoNote: "Pieza completa con carcasa OEM",
   },
   {
     supplier: "Centro de Escape Chorrera",
@@ -279,6 +383,8 @@ export const demoPurchaseRows: DemoPurchaseRow[] = [
     weight: "3.9 kg",
     price: "$330",
     lot: "PA-042",
+    photoTone: "graphite",
+    photoNote: "Entrada lateral y cuerpo usado",
   },
   {
     supplier: "Recicladora Arraiján",
@@ -287,6 +393,8 @@ export const demoPurchaseRows: DemoPurchaseRow[] = [
     weight: "18.6 kg",
     price: "$1,180",
     lot: "PA-042",
+    photoTone: "ceramic",
+    photoNote: "Material recuperado por lote",
   },
   {
     supplier: "Chatarrería Colón Norte",
@@ -295,6 +403,18 @@ export const demoPurchaseRows: DemoPurchaseRow[] = [
     weight: "5.1 kg",
     price: "$390",
     lot: "PA-042",
+    photoTone: "amber",
+    photoNote: "Pieza completa con desgaste visible",
+  },
+  {
+    supplier: "Taller Tocumen Diesel",
+    category: "Catalizador",
+    item: "Isuzu NPR",
+    weight: "4.2 kg",
+    price: "$360",
+    lot: "PA-042",
+    photoTone: "oxide",
+    photoNote: "Catalizador comercial de ruta",
   },
 ];
 

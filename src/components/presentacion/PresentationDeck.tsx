@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -79,10 +78,78 @@ const replies = [
 
 const purchaseSequence = [
   { title: "Proveedor identificado", detail: "Taller Vía Brasil · Panamá Metro" },
-  { title: "Foto tomada", detail: "Pieza registrada en el momento de compra" },
-  { title: "Peso confirmado", detail: "4.8 kg · Toyota Hilux OEM" },
+  { title: "Fotos tomadas", detail: "Dos piezas completas registradas en la compra" },
+  { title: "Peso confirmado", detail: "4.8 kg + 3.9 kg · 8.7 kg totales" },
   { title: "Lote asignado", detail: "PA-042" },
 ];
+
+const photoToneClasses = {
+  steel:
+    "from-[#dfe5eb] via-[#a9b8c7] to-[#788898] border-[#bcc8d3]",
+  graphite:
+    "from-[#d5d9df] via-[#8f969f] to-[#616a75] border-[#adb6c0]",
+  amber:
+    "from-[#eadcc5] via-[#b98b62] to-[#6c5447] border-[#d2b394]",
+  ceramic:
+    "from-[#efe6da] via-[#c9b393] to-[#8f7d66] border-[#d7c7b2]",
+  oxide:
+    "from-[#ded8d1] via-[#b98f78] to-[#735e52] border-[#ccb1a0]",
+} as const;
+
+function CatalystPhotoFrame({
+  title,
+  note,
+  tone,
+  className = "",
+  imageClassName = "",
+}: {
+  title: string;
+  note: string;
+  tone: keyof typeof photoToneClasses;
+  className?: string;
+  imageClassName?: string;
+}) {
+  return (
+    <div className={`rounded-lg border bg-white p-3 ${className}`}>
+      <div
+        className={`relative flex aspect-[1.12/1] items-center justify-center overflow-hidden rounded-md border bg-gradient-to-br ${photoToneClasses[tone]}`}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.75),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.16),transparent_55%)]" />
+        <div className="absolute inset-x-6 bottom-5 h-5 rounded-full bg-black/18 blur-xl" />
+        <img
+          src="/icons/cata.png"
+          alt={title}
+          className={`relative h-28 w-28 drop-shadow-[0_18px_18px_rgba(15,23,42,0.35)] ${imageClassName}`}
+        />
+      </div>
+      <div className="mt-3">
+        <div className="text-sm font-medium text-[#17322f]">{title}</div>
+        <div className="mt-1 text-xs leading-5 text-[#60746d]">{note}</div>
+      </div>
+    </div>
+  );
+}
+
+function PurchaseMiniThumb({
+  tone,
+  item,
+}: {
+  tone: keyof typeof photoToneClasses;
+  item: string;
+}) {
+  return (
+    <div
+      className={`relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-gradient-to-br ${photoToneClasses[tone]}`}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.7),transparent_38%)]" />
+      <img
+        src="/icons/cata.png"
+        alt={item}
+        className="relative h-10 w-10 drop-shadow-[0_10px_10px_rgba(15,23,42,0.28)]"
+      />
+    </div>
+  );
+}
 
 function ProcessTrack({
   activeIndex,
@@ -262,7 +329,7 @@ function IntroScene({
             transition={{ duration: 0.5 }}
             src="/images/Logos/pmg-logo-wordmark-desktop.svg"
             alt="PMG Metales"
-            className="h-12 w-auto opacity-90"
+            className="h-16 w-auto opacity-95 md:h-20"
           />
           <motion.h1
             initial={false}
@@ -320,35 +387,56 @@ function PurchaseFlowScene({
               </div>
             </div>
 
-            <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_0.95fr]">
-              <div className="rounded-lg border bg-[#fbfcfc] p-4">
-                <div className="flex aspect-[1.2/1] items-center justify-center rounded-md border bg-white text-center text-sm text-muted-foreground">
-                  <div>
-                    <Camera className="mx-auto h-8 w-8 text-[#234c4b]" />
-                    <p className="mt-3">Foto tomada en la compra</p>
-                  </div>
-                </div>
+            <div className="mt-5 grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+              <div className="grid gap-4 md:grid-cols-2">
+                <CatalystPhotoFrame
+                  title="Toyota Hilux OEM"
+                  note="Pieza completa comprada en la misma operación."
+                  tone="steel"
+                  imageClassName="-rotate-[14deg] scale-[1.28]"
+                />
+                <CatalystPhotoFrame
+                  title="Ford Ranger"
+                  note="Segunda pieza registrada dentro del mismo lote."
+                  tone="graphite"
+                  imageClassName="rotate-[10deg] scale-[1.24]"
+                />
               </div>
 
-                <div className="grid gap-3">
-                  <Input value="Toyota Hilux OEM" readOnly />
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Input value="4.8 kg" readOnly />
-                    <Input value="$420" readOnly />
+              <div className="grid gap-3">
+                <div className="rounded-lg border bg-[#fbfcfc] p-4">
+                  <div className="text-sm font-medium text-[#17322f]">Piezas registradas</div>
+                  <div className="mt-4 grid gap-3">
+                    {demoPurchaseRows.slice(0, 2).map((row) => (
+                      <div key={row.item} className="rounded-md border bg-white px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
+                          <div className="text-sm font-semibold text-[#17322f]">{row.price}</div>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-xs text-[#60746d] md:grid-cols-2">
+                          <div>Proveedor: {row.supplier}</div>
+                          <div>Peso: {row.weight}</div>
+                          <div>Lote: {row.lot}</div>
+                          <div>{row.photoNote}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <Textarea
-                    value="Compra registrada con proveedor, foto, peso, pago y observación operativa."
-                    readOnly
-                    className="min-h-[110px]"
-                  />
                 </div>
+
+                <Textarea
+                  value="Compra operativa registrada con dos catalizadores usados, evidencia visual, peso total de 8.7 kg y lote PA-042 asignado en el momento."
+                  readOnly
+                  className="min-h-[118px] bg-white"
+                />
               </div>
+            </div>
           </motion.div>
 
           <FocusChip
-            title="La pieza entra al sistema"
-            detail="La compra se fotografía, se pesa y queda vinculada al proveedor."
-            className="mt-6 max-w-[300px]"
+            title="La compra ya tiene evidencia"
+            detail="Las dos piezas completas quedan vinculadas al proveedor, al peso y al lote desde la misma operación."
+            className="mt-6 max-w-[380px]"
           />
         </div>
 
@@ -415,11 +503,11 @@ function PurchaseFlowScene({
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-md border border-white/10 bg-white/5 px-3 py-3">
                 <div className="text-white/60">Compras</div>
-                <div className="mt-1 text-xl font-medium">1</div>
+                <div className="mt-1 text-xl font-medium">2</div>
               </div>
               <div className="rounded-md border border-white/10 bg-white/5 px-3 py-3">
                 <div className="text-white/60">Invertido</div>
-                <div className="mt-1 text-xl font-medium">$420</div>
+                <div className="mt-1 text-xl font-medium">$750</div>
               </div>
             </div>
           </motion.div>
@@ -506,10 +594,10 @@ function ControlScene({
             <FocusChip
               title="El lote ya cambió"
               detail="La compra alteró volumen, kilos e inversión dentro del área de control."
-              className="absolute bottom-8 left-8 max-w-[320px]"
+              className="absolute bottom-24 left-8 max-w-[320px]"
             />
 
-            <SceneText slide={slide} className="absolute bottom-8 right-8 w-[360px]" />
+            <SceneText slide={slide} className="absolute bottom-24 right-8 w-[360px]" />
           </div>
         </div>
       </div>
@@ -543,11 +631,11 @@ function NetworkScene({
                 </tr>
               </thead>
               <tbody>
-                {demoCommercialRows.slice(0, 4).map((row, index) => (
+                {demoCommercialRows.slice(0, 9).map((row, index) => (
                   <tr key={row.name} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
-                    <td className="px-4 py-4 font-medium text-[#17322f]">{row.name}</td>
-                    <td className="px-4 py-4">{row.zone}</td>
-                    <td className="px-4 py-4">{row.buyer}</td>
+                    <td className="px-4 py-3 font-medium text-[#17322f]">{row.name}</td>
+                    <td className="px-4 py-3">{row.zone}</td>
+                    <td className="px-4 py-3">{row.buyer}</td>
                   </tr>
                 ))}
               </tbody>
@@ -588,16 +676,11 @@ function NetworkScene({
                 detail="Aquí se concentra la mayor continuidad comercial."
                 className="absolute left-4 top-4 max-w-[230px]"
               />
-              <FocusChip
-                title="La red está viva"
-                detail="Los puntos no son decoración: son abastecimiento georreferenciado."
-                className="absolute bottom-4 right-4 max-w-[250px]"
-              />
             </div>
           </div>
 
           <div className="mt-6 xl:mt-auto">
-            <SceneText slide={slide} compact className="max-w-[420px]" />
+            <SceneText slide={slide} compact className="max-w-[420px] xl:mb-16" />
           </div>
         </div>
       </div>
@@ -655,12 +738,17 @@ function BuyerScene({
                     scale: active && index === 0 ? [1, 1.02, 1] : 1,
                   }}
                   transition={{ duration: 1.2, repeat: active && index === 0 ? Infinity : 0 }}
-                  className={`rounded-lg border bg-white p-5 ${
+                  className={`rounded-lg border p-5 ${
                     index === 0 ? "border-[#234c4b]" : ""
-                  }`}
+                  } ${index === 0 ? "bg-[#edf4f1]" : "bg-white"}`}
                 >
                   <div className="text-sm text-[#7b8b84]">{label}</div>
                   <div className="mt-5 text-[38px] font-semibold tracking-[-0.04em] text-[#17322f]">{value}</div>
+                  {index === 0 ? (
+                    <div className="mt-2 text-xs leading-5 text-[#4f635d]">
+                      Base asignada al comprador para compras activas del lote PA-042.
+                    </div>
+                  ) : null}
                 </motion.div>
               ))}
             </div>
@@ -684,16 +772,19 @@ function BuyerScene({
             <div className="mt-6 overflow-hidden rounded-lg border bg-white">
               <div className="border-b px-4 py-3 text-sm font-medium text-[#17322f]">Últimas 5 compras</div>
               <div className="grid gap-0">
-                {demoPurchaseRows.slice(0, 3).map((row, index) => (
+                {demoPurchaseRows.slice(0, 5).map((row, index) => (
                   <div key={row.item} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
                     <div className="flex items-center justify-between gap-4 px-4 py-4">
-                      <div>
+                      <div className="min-w-0">
                         <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
                         <div className="mt-1 text-xs text-[#60746d]">
                           {row.supplier} · {row.weight}
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-[#17322f]">{row.price}</div>
+                      <div className="flex items-center gap-3">
+                        <PurchaseMiniThumb tone={row.photoTone} item={row.item} />
+                        <div className="text-sm font-semibold text-[#17322f]">{row.price}</div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -701,13 +792,7 @@ function BuyerScene({
             </div>
           </div>
 
-          <FocusChip
-            title="La asignación ya existe"
-            detail="La compra tiene saldo operativo, gasto visible y últimas compras asociadas."
-            className="absolute left-8 top-36 max-w-[310px]"
-          />
-
-          <SceneText slide={slide} className="absolute bottom-8 right-8 w-[360px]" />
+          <SceneText slide={slide} className="absolute bottom-24 right-8 w-[360px]" />
         </div>
       </div>
     </Stage>
@@ -817,15 +902,10 @@ function CampaignScene({
                 </div>
               </div>
 
-              <FocusChip
-                title="La red responde"
-                detail="La campaña no cierra la historia: vuelve a abrir el abastecimiento."
-                className="absolute bottom-5 right-5 max-w-[280px]"
-              />
             </div>
           </div>
 
-          <SceneText slide={slide} className="absolute bottom-8 left-8 w-[360px]" />
+          <SceneText slide={slide} className="absolute bottom-24 left-8 w-[360px]" />
         </div>
       </div>
     </Stage>
@@ -875,11 +955,14 @@ function MemoryScene({
                 <div className="text-sm font-medium text-[#17322f]">Últimas compras</div>
                 <div className="mt-3 grid gap-3">
                   {demoPurchaseRows.slice(0, 3).map((row) => (
-                    <div key={row.item} className="rounded-md border px-3 py-3">
-                      <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
-                      <div className="mt-1 text-xs text-[#60746d]">
-                        {row.supplier} · {row.weight} · {row.lot}
+                    <div key={row.item} className="flex items-center justify-between gap-3 rounded-md border px-3 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
+                        <div className="mt-1 text-xs text-[#60746d]">
+                          {row.supplier} · {row.weight} · {row.lot}
+                        </div>
                       </div>
+                      <PurchaseMiniThumb tone={row.photoTone} item={row.item} />
                     </div>
                   ))}
                 </div>
@@ -902,7 +985,7 @@ function MemoryScene({
           <FocusChip
             title="La empresa recuerda"
             detail="La siguiente compra parte del historial, no de cero."
-            className="absolute bottom-8 left-8 max-w-[270px]"
+            className="absolute bottom-24 left-8 max-w-[270px]"
           />
         </div>
 
@@ -933,7 +1016,7 @@ function MemoryScene({
             </div>
           </motion.div>
 
-          <SceneText slide={slide} className="absolute bottom-8 left-8 right-8" />
+          <SceneText slide={slide} className="absolute bottom-24 left-8 right-8" />
         </div>
       </div>
     </Stage>
@@ -966,30 +1049,30 @@ function ClosingScene({
                   initial={false}
                   animate={{ opacity: active ? 1 : 0.76, y: active ? 0 : 10 }}
                   transition={{ duration: 0.35, delay: active ? 0.06 * index : 0 }}
-                  className="rounded-lg border border-white/10 bg-white/5 p-5"
+                  className="rounded-lg border border-white/12 bg-white/[0.07] p-5"
                 >
-                  <div className="text-sm text-white/55">{label}</div>
+                  <div className="text-sm text-white/80">{label}</div>
                   <div className="mt-5 text-[38px] font-semibold tracking-[-0.04em] text-white">{value}</div>
                 </motion.div>
               ))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+              <div className="rounded-lg border border-white/12 bg-white/[0.07] p-5">
                 <div className="text-sm font-medium text-white">Proveedor</div>
-                <div className="mt-3 text-lg text-white/82">Taller Vía Brasil</div>
-                <div className="mt-1 text-sm text-white/55">Panamá Metro · Richard</div>
+                <div className="mt-3 text-lg text-white">Taller Vía Brasil</div>
+                <div className="mt-1 text-sm text-white/80">Panamá Metro · Richard</div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+              <div className="rounded-lg border border-white/12 bg-white/[0.07] p-5">
                 <div className="text-sm font-medium text-white">Campaña</div>
-                <div className="mt-3 text-lg text-white/82">Panamá Metro activa</div>
-                <div className="mt-1 text-sm text-white/55">42 contactos válidos</div>
+                <div className="mt-3 text-lg text-white">Panamá Metro activa</div>
+                <div className="mt-1 text-sm text-white/80">42 contactos válidos</div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+            <div className="rounded-lg border border-white/12 bg-white/[0.07] p-5">
               <div className="text-sm font-medium text-white">Resultado</div>
-              <p className="mt-3 max-w-2xl text-base leading-8 text-white/72">
+              <p className="mt-3 max-w-2xl text-base leading-8 text-white/92">
                 El proveedor se registra, la compra entra al lote, el comprador la opera,
                 la base de datos la recuerda y la campaña sostiene la continuidad.
               </p>
