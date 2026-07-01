@@ -2,16 +2,17 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { motion, type Variants } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
   Camera,
   ChevronDown,
+  CircleDot,
   FolderKanban,
-  Map as MapIcon,
+  MapPin,
   MessageCircle,
+  Route,
   ShoppingCart,
   Wallet,
   Waypoints,
@@ -22,7 +23,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  demoBuyerRows,
   demoCampaignRows,
   demoCommercialRows,
   demoMapClients,
@@ -38,653 +38,816 @@ const ClientsMap = dynamic(() => import("@/components/ClientsMap"), {
 
 type DeckVisualKey =
   | "intro"
+  | "catalysts"
   | "control"
   | "map"
-  | "database"
-  | "catalysts"
   | "buyers"
   | "campaigns"
+  | "database"
   | "closing";
 
 type DeckSlide = PresentationSlide & { visual: DeckVisualKey };
 
-type FocusTransform = {
-  scale: number;
-  x: number;
-  y: number;
-};
-
-type CalloutSpec = {
-  title: string;
-  detail?: string;
-  x: string;
-  y: string;
-  width?: string;
-};
-
-type HighlightSpec = {
-  x: string;
-  y: string;
-  width: string;
-  height: string;
-};
-
-type SceneConfig = {
-  railPosition: "left" | "right";
-  focus: FocusTransform;
-  callouts: CalloutSpec[];
-  highlights: HighlightSpec[];
-  caption: string;
-};
-
 const deckSlides = presentacionSlides as DeckSlide[];
 
-const sceneTransition: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
-const visualIcons: Record<DeckVisualKey, LucideIcon> = {
+const visualIcons = {
   intro: Waypoints,
-  control: FolderKanban,
-  map: MapIcon,
-  database: FolderKanban,
   catalysts: ShoppingCart,
+  control: FolderKanban,
+  map: Route,
   buyers: Wallet,
   campaigns: MessageCircle,
+  database: MapPin,
   closing: Waypoints,
 };
 
-const sceneConfigs: Record<DeckVisualKey, SceneConfig> = {
-  intro: {
-    railPosition: "left",
-    focus: { scale: 1.06, x: -48, y: 10 },
-    callouts: [],
-    highlights: [],
-    caption: "La app real es el escenario principal de toda la demostración.",
-  },
-  control: {
-    railPosition: "right",
-    focus: { scale: 1.08, x: -54, y: 18 },
-    callouts: [
-      { title: "Lote activo", detail: "La operación se ordena desde un lote visible.", x: "26%", y: "20%" },
-      { title: "Inversión registrada", detail: "Compras, kilos e inversión se leen en una sola vista.", x: "60%", y: "25%", width: "250px" },
-      { title: "Historial por compra", detail: "Cada movimiento se relaciona con proveedor y lote.", x: "58%", y: "62%", width: "240px" },
-    ],
-    highlights: [
-      { x: "22%", y: "16%", width: "56%", height: "25%" },
-      { x: "20%", y: "53%", width: "42%", height: "19%" },
-    ],
-    caption: "Cada compra queda registrada dentro de una estructura operativa por lote.",
-  },
-  map: {
-    railPosition: "left",
-    focus: { scale: 1.12, x: 52, y: 8 },
-    callouts: [
-      { title: "Oportunidades georreferenciadas", detail: "La red se mira sobre territorio real.", x: "50%", y: "16%", width: "260px" },
-      { title: "Rutas comerciales", detail: "La lista lateral organiza visitas y seguimiento.", x: "10%", y: "56%", width: "220px" },
-      { title: "Popup operativo", detail: "WhatsApp, Waze y calle 360 desde el punto comercial.", x: "67%", y: "54%", width: "230px" },
-    ],
-    highlights: [
-      { x: "34%", y: "12%", width: "55%", height: "72%" },
-      { x: "66%", y: "18%", width: "23%", height: "18%" },
-    ],
-    caption: "La geografía nos permite planificar rutas, zonas de crecimiento y seguimiento comercial.",
-  },
-  database: {
-    railPosition: "right",
-    focus: { scale: 1.07, x: -38, y: 14 },
-    callouts: [
-      { title: "Base ordenada", detail: "Nombre, zona, contacto y tipo de proveedor.", x: "22%", y: "19%", width: "220px" },
-      { title: "Seguimiento comercial", detail: "Cada fila deja visible el historial y el responsable.", x: "61%", y: "46%", width: "250px" },
-    ],
-    highlights: [
-      { x: "18%", y: "15%", width: "52%", height: "12%" },
-      { x: "15%", y: "30%", width: "72%", height: "42%" },
-    ],
-    caption: "No trabajamos con información dispersa. La base de datos sostiene la recompra y el crecimiento.",
-  },
-  catalysts: {
-    railPosition: "left",
-    focus: { scale: 1.09, x: 36, y: 18 },
-    callouts: [
-      { title: "Foto de compra", detail: "La evidencia visual entra con el registro.", x: "14%", y: "18%" },
-      { title: "Proveedor y material", detail: "La compra nace vinculada a taller, pieza y lote.", x: "45%", y: "25%", width: "240px" },
-      { title: "Lista reciente", detail: "El historial del día queda disponible para revisión.", x: "68%", y: "60%", width: "220px" },
-    ],
-    highlights: [
-      { x: "10%", y: "14%", width: "27%", height: "40%" },
-      { x: "42%", y: "16%", width: "25%", height: "31%" },
-      { x: "54%", y: "47%", width: "34%", height: "31%" },
-    ],
-    caption: "Compras, fotos, materiales y lote quedan unidos en una misma operación.",
-  },
-  buyers: {
-    railPosition: "right",
-    focus: { scale: 1.07, x: -34, y: 8 },
-    callouts: [
-      { title: "Saldo operativo", detail: "La base y el gasto aprobado se controlan en tiempo real.", x: "18%", y: "21%", width: "230px" },
-      { title: "Pendiente por aprobar", detail: "El supervisor ve lo que falta revisar.", x: "18%", y: "42%", width: "220px" },
-      { title: "Últimas compras", detail: "Las compras recientes se cruzan con saldo y actividad.", x: "60%", y: "61%", width: "220px" },
-    ],
-    highlights: [
-      { x: "14%", y: "17%", width: "44%", height: "18%" },
-      { x: "13%", y: "53%", width: "74%", height: "27%" },
-    ],
-    caption: "Cada comprador opera con control financiero, historial y supervisión.",
-  },
-  campaigns: {
-    railPosition: "left",
-    focus: { scale: 1.08, x: 42, y: 14 },
-    callouts: [
-      { title: "Segmentos por zona", detail: "Panamá Metro, Colón, Arraiján y más.", x: "12%", y: "16%", width: "220px" },
-      { title: "Plantilla y preview", detail: "La comunicación se prepara con estructura y contexto.", x: "50%", y: "28%", width: "240px" },
-      { title: "Comunicación recurrente", detail: "Las campañas recientes quedan registradas.", x: "67%", y: "62%", width: "220px" },
-    ],
-    highlights: [
-      { x: "10%", y: "13%", width: "34%", height: "63%" },
-      { x: "46%", y: "16%", width: "31%", height: "48%" },
-      { x: "66%", y: "50%", width: "22%", height: "28%" },
-    ],
-    caption: "La comunicación comercial también se opera con orden, trazabilidad y recurrencia.",
-  },
-  closing: {
-    railPosition: "right",
-    focus: { scale: 1.04, x: -28, y: 4 },
-    callouts: [],
-    highlights: [],
-    caption: "La tecnología existe para sostener una operación comercial más disciplinada y escalable.",
-  },
-};
-
-const adminNav = [
-  { key: "control", label: "Área de control" },
-  { key: "admin", label: "Administrador" },
-  { key: "proveedores", label: "Proveedores" },
-  { key: "clientes", label: "Clientes" },
-  { key: "catalogo", label: "Catalogo" },
-  { key: "campanas", label: "Campañas" },
+const processLabels = [
+  "Proveedor",
+  "Foto",
+  "Peso",
+  "Lote",
+  "Mapa",
+  "Comprador",
+  "Campaña",
 ];
 
-const buyerNav = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "compras", label: "Compras" },
-  { key: "clientes", label: "Clientes" },
-  { key: "gastos", label: "Gastos" },
-  { key: "cierre", label: "Cierre del día" },
+const replies = [
+  "Taller Vía Brasil confirmó material para mañana.",
+  "Soldaduras Pacífico respondió con nuevo contacto en Panamá Metro.",
+  "Centro de Escape Chorrera reactivó conversación para recompra.",
 ];
 
-const buyerLatestPurchases = [
-  { title: "Toyota Hilux OEM", meta: "Modelo: Hilux · Taller Vía Brasil", amount: "$420" },
-  { title: "Honeycomb mixto", meta: "Gramos: 18.6 kg · Recicladora Arraiján", amount: "$1,180" },
-  { title: "Ford Ranger", meta: "Modelo: Ranger · Centro de Escape Chorrera", amount: "$330" },
+const purchaseSequence = [
+  { title: "Proveedor identificado", detail: "Taller Vía Brasil · Panamá Metro" },
+  { title: "Foto tomada", detail: "Pieza registrada en el momento de compra" },
+  { title: "Peso confirmado", detail: "4.8 kg · Toyota Hilux OEM" },
+  { title: "Lote asignado", detail: "PA-042" },
 ];
 
-const recentCampaignHistory = [
-  { zone: "Panamá Metro", status: "42 contactos", detail: "Ruta de mañana enviada" },
-  { zone: "Colón", status: "18 contactos", detail: "Seguimiento comercial semanal" },
-  { zone: "Arraiján + La Chorrera", status: "26 contactos", detail: "Reactivación de talleres" },
-];
-
-function PageHeading({
-  title,
-  subtitle,
+function ProcessTrack({
+  activeIndex,
+  dark = false,
 }: {
-  title: string;
-  subtitle: string;
+  activeIndex: number;
+  dark?: boolean;
 }) {
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-[#234c4b]">{title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  accent = false,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <Card className={accent ? "border-[#234c4b]" : undefined}>
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">{label}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-2xl font-semibold text-[#111827]">{value}</CardContent>
-    </Card>
-  );
-}
-
-function DemoSidebar({
-  mode,
-  active,
-}: {
-  mode: "admin" | "buyer";
-  active: string;
-}) {
-  const items = mode === "admin" ? adminNav : buyerNav;
-  const subtitle = mode === "admin" ? "Dashboard administrador" : "Dashboard comprador";
-  const userName = mode === "admin" ? "Richard Moreno" : "Richard";
-
-  return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r bg-white px-4 py-6 md:flex">
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-[#234c4b]">PMG Metales</h2>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
-      </div>
-
-      <nav className="flex flex-col gap-2 text-sm">
-        {items.map((item) => (
-          <div
-            key={item.key}
-            className={`rounded-lg px-3 py-2 ${
-              item.key === active ? "bg-[#edf4f1] font-medium text-[#234c4b]" : "text-[#4f635d]"
-            }`}
-          >
-            {item.label}
-          </div>
-        ))}
-      </nav>
-
-      <div className="mt-auto rounded-lg border bg-white px-3 py-3">
-        <p className="text-sm font-medium text-[#234c4b]">{userName}</p>
-        <p className="text-xs text-muted-foreground">
-          {mode === "admin" ? "Administrador Panamá" : "Comprador"}
-        </p>
-      </div>
-    </aside>
-  );
-}
-
-function DemoWorkspace({
-  mode,
-  activeNav,
-  children,
-}: {
-  mode: "admin" | "buyer";
-  activeNav: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex h-full overflow-hidden bg-[#f7f8fb]">
-      <DemoSidebar mode={mode} active={activeNav} />
-      <main className="min-w-0 flex-1 px-5 py-6 md:px-8">{children}</main>
-    </div>
-  );
-}
-
-function ControlVisual() {
-  return (
-    <DemoWorkspace mode="admin" activeNav="control">
-      <div className="max-w-6xl">
-        <PageHeading title="Área de control" subtitle="Resumen combinado de lote y proveedores." />
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div className="text-sm text-muted-foreground">
-            Lote activo: <span className="font-medium text-[#17322f]">PA-042</span>
-          </div>
-          <div className="rounded-md border bg-white px-4 py-2 text-sm text-[#17322f]">
-            Ver lote PA-042
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Compras lote" value="48" accent />
-          <MetricCard label="Ingresos proveedores" value="19" />
-          <MetricCard label="Piezas (total)" value="312" />
-          <MetricCard label="Gramos (total)" value="1,842" />
-          <MetricCard label="Kilos (total)" value="1.84" />
-          <MetricCard label="Invertido total" value="$18,450" accent />
-          <MetricCard label="Por cobrar proveedores" value="$2,840" />
-          <MetricCard label="Saldo neto proveedores" value="$7,120" />
-        </div>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-lg border bg-white p-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-md border px-4 py-3 text-sm">
-                <p className="text-muted-foreground">Lote visible</p>
-                <p className="mt-2 font-medium text-[#17322f]">PA-042</p>
-              </div>
-              <div className="rounded-md border px-4 py-3 text-sm">
-                <p className="text-muted-foreground">Último cierre</p>
-                <p className="mt-2 font-medium text-[#17322f]">Actualizado hace 2 horas</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-lg border bg-white p-4 text-sm leading-7 text-[#4f635d]">
-            Cada compra y cada movimiento financiero quedan vinculados a lote, proveedor y
-            continuidad operativa.
-          </div>
-        </div>
-      </div>
-    </DemoWorkspace>
-  );
-}
-
-function MapVisual() {
-  return (
-    <DemoWorkspace mode="buyer" activeNav="clientes">
-      <div className="max-w-none">
-        <PageHeading title="Clientes" subtitle="Agrega talleres y visualízalos en el mapa." />
-
-        <div className="mt-6 grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="grid gap-3">
-            <Input value="Panamá Metro" readOnly />
-            {demoCommercialRows.slice(0, 4).map((row, index) => (
+    <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap">
+      {processLabels.map((label, index) => {
+        const active = index <= activeIndex;
+        return (
+          <div key={label} className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div
-                key={row.name}
-                className={`rounded-lg border px-4 py-3 ${
-                  index === 0 ? "border-[#234c4b] bg-[#edf4f1]" : "bg-white"
+                className={`h-2.5 w-2.5 rounded-full ${
+                  active
+                    ? dark
+                      ? "bg-[#FED835]"
+                      : "bg-[#234c4b]"
+                    : dark
+                      ? "bg-white/25"
+                      : "bg-[#cfd8d4]"
+                }`}
+              />
+              <span
+                className={`text-xs ${
+                  dark
+                    ? active
+                      ? "text-white"
+                      : "text-white/45"
+                    : active
+                      ? "text-[#17322f]"
+                      : "text-[#7b8b84]"
                 }`}
               >
-                <p className="font-medium text-[#17322f]">{row.name}</p>
-                <p className="mt-1 text-sm text-[#4f635d]">
-                  {row.zone} · {row.contact}
-                </p>
+                {label}
+              </span>
+            </div>
+            {index < processLabels.length - 1 ? (
+              <div className={`h-px w-8 ${dark ? "bg-white/15" : "bg-[#d9e1dd]"}`} />
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SceneText({
+  slide,
+  dark = false,
+  className = "",
+  compact = false,
+}: {
+  slide: DeckSlide;
+  dark?: boolean;
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-lg border shadow-[0_8px_24px_rgba(16,31,27,0.10)] ${
+        dark
+          ? "border-white/10 bg-[#101614]/92 text-white"
+          : "border-[#d7dfdb] bg-white/96 text-[#17322f]"
+      } ${compact ? "px-4 py-4" : "px-5 py-5"} ${className}`}
+    >
+      <div className={`text-xs ${dark ? "text-white/55" : "text-[#7b8b84]"}`}>
+        {slide.step} / {String(deckSlides.length).padStart(2, "0")}
+      </div>
+      <h2
+        className={`mt-3 font-semibold tracking-[-0.04em] ${dark ? "text-white" : "text-[#17322f]"} ${
+          compact ? "text-[28px] leading-[1]" : "text-[32px] leading-[0.96]"
+        }`}
+      >
+        {slide.title}
+      </h2>
+      <p className={`mt-4 ${compact ? "text-sm leading-6" : "text-base leading-7"} ${dark ? "text-white/78" : "text-[#38514b]"}`}>
+        {slide.summary}
+      </p>
+      {slide.paragraphs?.length && !compact ? (
+        <p className={`mt-4 text-sm leading-7 ${dark ? "text-white/62" : "text-[#60746d]"}`}>
+          {slide.paragraphs[0]}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function FocusChip({
+  title,
+  detail,
+  className = "",
+}: {
+  title: string;
+  detail: string;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-lg border border-[#d7dfdb] bg-white/96 px-3 py-3 shadow-[0_8px_24px_rgba(16,31,27,0.10)] ${className}`}>
+      <p className="text-sm font-medium text-[#17322f]">{title}</p>
+      <p className="mt-1 text-xs leading-6 text-[#60746d]">{detail}</p>
+    </div>
+  );
+}
+
+function Stage({
+  children,
+  dark = false,
+}: {
+  children: ReactNode;
+  dark?: boolean;
+}) {
+  return (
+    <div
+      className={`relative min-h-0 flex-1 overflow-hidden rounded-xl border ${
+        dark
+          ? "border-[#1c2824] bg-[#0c1210]"
+          : "border-[#d8e0dc] bg-white"
+      } shadow-[0_14px_40px_rgba(16,31,27,0.10)]`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TopBar({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  const Icon = visualIcons[slide.visual];
+
+  return (
+    <div className="mb-4 flex items-center justify-between gap-4 px-1">
+      <div className="flex items-center gap-3 text-sm text-[#60746d]">
+        <Icon className="h-4 w-4 text-[#234c4b]" />
+        <span>
+          {slide.step} / {String(deckSlides.length).padStart(2, "0")}
+        </span>
+      </div>
+      <motion.div
+        initial={false}
+        animate={{ opacity: active ? 1 : 0.6 }}
+        className="hidden items-center gap-3 text-sm text-[#60746d] md:flex"
+      >
+        <ChevronDown className="h-4 w-4" />
+        <span>Scroll, teclado o botones para avanzar</span>
+      </motion.div>
+    </div>
+  );
+}
+
+function IntroScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  return (
+    <Stage dark>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(35,76,75,0.32),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(254,216,53,0.10),transparent_28%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
+
+      <div className="relative flex h-full flex-col px-8 py-8 md:px-12 md:py-10">
+        <ProcessTrack activeIndex={-1} dark />
+
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <motion.img
+            initial={false}
+            animate={{ opacity: active ? 1 : 0.7, y: active ? 0 : 10 }}
+            transition={{ duration: 0.5 }}
+            src="/images/Logos/pmg-logo-wordmark-desktop.svg"
+            alt="PMG Metales"
+            className="h-12 w-auto opacity-90"
+          />
+          <motion.h1
+            initial={false}
+            animate={{ opacity: active ? 1 : 0.75, y: active ? 0 : 10 }}
+            transition={{ duration: 0.55, delay: 0.05 }}
+            className="mt-10 max-w-4xl text-[54px] font-semibold leading-[0.92] tracking-[-0.05em] text-white md:text-[82px]"
+          >
+            {slide.title}
+          </motion.h1>
+          <motion.p
+            initial={false}
+            animate={{ opacity: active ? 1 : 0.7, y: active ? 0 : 10 }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+            className="mt-8 max-w-3xl text-lg leading-8 text-white/70"
+          >
+            {slide.summary}
+          </motion.p>
+        </div>
+
+        <div className="mx-auto max-w-4xl text-center text-sm leading-7 text-white/50">
+          {slide.paragraphs?.[0]}
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
+function PurchaseFlowScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  return (
+    <Stage>
+      <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
+        <div className="border-b bg-[#f7f8fb] px-8 py-8 lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
+          <ProcessTrack activeIndex={3} />
+
+          <motion.div
+            initial={false}
+            animate={{ opacity: active ? 1 : 0.82, y: active ? 0 : 8 }}
+            transition={{ duration: 0.5 }}
+            className="mt-6 rounded-lg border bg-white p-4"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-[#7b8b84]">Proveedor</div>
+                <div className="mt-1 text-2xl font-semibold text-[#17322f]">Taller Vía Brasil</div>
+                <div className="mt-2 text-sm text-[#60746d]">Carlos Mena · Panamá Metro</div>
+              </div>
+              <div className="rounded-md border px-3 py-2 text-sm text-[#17322f]">
+                Catalizador usado
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_0.95fr]">
+              <div className="rounded-lg border bg-[#fbfcfc] p-4">
+                <div className="flex aspect-[1.2/1] items-center justify-center rounded-md border bg-white text-center text-sm text-muted-foreground">
+                  <div>
+                    <Camera className="mx-auto h-8 w-8 text-[#234c4b]" />
+                    <p className="mt-3">Foto tomada en la compra</p>
+                  </div>
+                </div>
+              </div>
+
+                <div className="grid gap-3">
+                  <Input value="Toyota Hilux OEM" readOnly />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input value="4.8 kg" readOnly />
+                    <Input value="$420" readOnly />
+                  </div>
+                  <Textarea
+                    value="Compra registrada con proveedor, foto, peso, pago y observación operativa."
+                    readOnly
+                    className="min-h-[110px]"
+                  />
+                </div>
+              </div>
+          </motion.div>
+
+          <FocusChip
+            title="La pieza entra al sistema"
+            detail="La compra se fotografía, se pesa y queda vinculada al proveedor."
+            className="mt-6 max-w-[300px]"
+          />
+        </div>
+
+        <div className="flex h-full flex-col bg-white px-8 py-8 lg:px-10 lg:py-10">
+          <div>
+            <div className="text-xs text-[#7b8b84]">
+              {slide.step} / {String(deckSlides.length).padStart(2, "0")}
+            </div>
+            <h3 className="mt-2 text-[30px] font-semibold tracking-[-0.04em] text-[#17322f]">
+              {slide.title}
+            </h3>
+            <p className="mt-3 max-w-md text-sm leading-6 text-[#4f635d]">
+              {slide.summary}
+            </p>
+          </div>
+
+          <motion.div
+            initial={false}
+            animate={{ opacity: active ? 1 : 0.82, scale: active ? 1 : 0.98 }}
+            transition={{ duration: 0.45 }}
+            className="mt-5 rounded-lg border bg-[#f7f8fb] p-4"
+          >
+            <div className="text-sm text-[#7b8b84]">Secuencia operativa</div>
+            <div className="mt-3 grid gap-3">
+              {purchaseSequence.map((item, index) => (
+                <motion.div
+                  key={item.title}
+                  initial={false}
+                  animate={{
+                    opacity: active ? 1 : 0.7,
+                    x: active ? 0 : 8,
+                  }}
+                  transition={{ duration: 0.28, delay: active ? 0.08 * index : 0 }}
+                  className="flex items-start gap-3 rounded-md border bg-white px-4 py-2.5"
+                >
+                  <div className="mt-1 h-2.5 w-2.5 rounded-full bg-[#234c4b]" />
+                  <div>
+                    <div className="text-sm font-medium text-[#17322f]">{item.title}</div>
+                    <div className="mt-1 text-xs text-[#60746d]">{item.detail}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={false}
+            animate={{
+              opacity: active ? 1 : 0.78,
+              y: active ? 0 : 14,
+              boxShadow: active
+                ? [
+                    "0 0 0 rgba(35,76,75,0)",
+                    "0 0 0 10px rgba(35,76,75,0.08)",
+                    "0 0 0 rgba(35,76,75,0)",
+                  ]
+                : "0 0 0 rgba(35,76,75,0)",
+            }}
+            transition={{ duration: 1.8, repeat: active ? Infinity : 0 }}
+            className="mt-5 rounded-lg border border-[#234c4b] bg-[#234c4b] p-4 text-white"
+          >
+            <div className="text-sm text-white/65">Lote asignado</div>
+            <div className="mt-2 text-[34px] font-semibold tracking-[-0.04em]">PA-042</div>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-md border border-white/10 bg-white/5 px-3 py-3">
+                <div className="text-white/60">Compras</div>
+                <div className="mt-1 text-xl font-medium">1</div>
+              </div>
+              <div className="rounded-md border border-white/10 bg-white/5 px-3 py-3">
+                <div className="text-white/60">Invertido</div>
+                <div className="mt-1 text-xl font-medium">$420</div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
+function ControlScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  return (
+    <Stage>
+      <div className="grid h-full grid-cols-[240px_minmax(0,1fr)]">
+        <div className="border-r bg-white px-4 py-6">
+          <div className="text-lg font-bold text-[#234c4b]">PMG Metales</div>
+          <div className="mt-1 text-xs text-[#7b8b84]">Dashboard administrador</div>
+          <div className="mt-6 grid gap-2 text-sm">
+            {["Área de control", "Administrador", "Proveedores", "Clientes", "Campañas"].map((item, index) => (
+              <div
+                key={item}
+                className={`rounded-md px-3 py-2 ${
+                  index === 0 ? "bg-[#edf4f1] font-medium text-[#234c4b]" : "text-[#4f635d]"
+                }`}
+              >
+                {item}
               </div>
             ))}
           </div>
+        </div>
 
-          <div className="relative h-[560px] overflow-hidden rounded-lg border bg-white">
-            <ClientsMap
-              clients={demoMapClients}
-              tenantKey="pa"
-              heightClassName="h-full w-full"
-              showFullscreenToggle={false}
-            />
-            <div className="absolute right-4 top-4 w-64 rounded-lg border bg-white/96 p-3 shadow-[0_6px_18px_rgba(22,44,39,0.12)]">
-              <p className="font-medium text-[#17322f]">Taller Vía Brasil</p>
-              <p className="mt-1 text-sm text-[#4f635d]">Carlos Mena · Panamá Metro</p>
-              <p className="mt-3 text-xs text-muted-foreground">
-                WhatsApp · Waze · calle 360
-              </p>
+        <div className="relative bg-[#f7f8fb] px-8 py-8">
+          <ProcessTrack activeIndex={3} />
+
+          <div className="mt-8 max-w-6xl">
+            <div>
+              <h3 className="text-[34px] font-semibold tracking-[-0.04em] text-[#17322f]">Área de control</h3>
+              <p className="mt-2 text-sm text-[#60746d]">Resumen combinado de lote y proveedores.</p>
             </div>
-          </div>
-        </div>
-      </div>
-    </DemoWorkspace>
-  );
-}
 
-function DatabaseVisual() {
-  return (
-    <DemoWorkspace mode="admin" activeNav="clientes">
-      <div className="max-w-6xl">
-        <PageHeading
-          title="Clientes"
-          subtitle="Base de datos comercial organizada por zona, tipo y seguimiento."
-        />
-
-        <div className="mt-6 grid gap-3 md:grid-cols-[1fr_220px]">
-          <Input value="Buscar por nombre, zona o contacto" readOnly />
-          <div className="rounded-md border bg-white px-3 py-2 text-sm text-[#17322f]">
-            5 resultados activos
-          </div>
-        </div>
-
-        <div className="mt-4 overflow-hidden rounded-lg border bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[#f7f8fb] text-[#60746d]">
-              <tr>
-                <th className="px-4 py-3">Nombre</th>
-                <th className="px-4 py-3">Zona</th>
-                <th className="px-4 py-3">Contacto</th>
-                <th className="px-4 py-3">Tipo</th>
-                <th className="px-4 py-3">Comprador</th>
-                <th className="px-4 py-3">Historial</th>
-              </tr>
-            </thead>
-            <tbody>
-              {demoCommercialRows.map((row, index) => (
-                <tr key={row.name} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
-                  <td className="px-4 py-4 font-medium text-[#17322f]">{row.name}</td>
-                  <td className="px-4 py-4">{row.zone}</td>
-                  <td className="px-4 py-4">{row.contact}</td>
-                  <td className="px-4 py-4">{row.type}</td>
-                  <td className="px-4 py-4">{row.buyer}</td>
-                  <td className="px-4 py-4">{row.history}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </DemoWorkspace>
-  );
-}
-
-function PurchasesVisual() {
-  return (
-    <DemoWorkspace mode="buyer" activeNav="compras">
-      <div className="max-w-6xl">
-        <PageHeading title="Compras del día" subtitle="Registra compras y revisa tu cierre diario." />
-
-        <div className="mt-6 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="grid gap-4">
-            <div className="rounded-lg border bg-white p-4">
-              <div className="flex aspect-[4/3] items-center justify-center rounded-md border bg-[#f7f8fb] text-center text-sm text-muted-foreground">
-                <div>
-                  <Camera className="mx-auto h-7 w-7 text-[#234c4b]" />
-                  <p className="mt-2">Foto de la compra</p>
-                </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div className="text-sm text-[#60746d]">
+                Lote activo: <span className="font-medium text-[#17322f]">PA-042</span>
+              </div>
+              <div className="rounded-md border bg-white px-4 py-2 text-sm text-[#17322f]">
+                Ver lote PA-042
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <Input value="Taller Vía Brasil" readOnly />
-              <Input value="Toyota Hilux OEM" readOnly />
-              <Input value="4.8 kg" readOnly />
-              <Input value="$420" readOnly />
+            <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
+              {[
+                ["Compras lote", "48"],
+                ["Ingresos proveedores", "19"],
+                ["Piezas (total)", "312"],
+                ["Gramos (total)", "1,842"],
+                ["Kilos (total)", "1.84"],
+                ["Invertido total", "$18,450"],
+                ["Por cobrar proveedores", "$2,840"],
+                ["Saldo neto proveedores", "$7,120"],
+              ].map(([label, value], index) => (
+                <motion.div
+                  key={label}
+                  initial={false}
+                  animate={{
+                    opacity: active ? 1 : 0.78,
+                    scale: active && index === 0 ? [1, 1.02, 1] : 1,
+                  }}
+                  transition={{ duration: 1.2, repeat: active && index === 0 ? Infinity : 0 }}
+                  className={`rounded-lg border bg-white p-5 ${
+                    label === "Compras lote" || label === "Invertido total" ? "border-[#234c4b]" : ""
+                  }`}
+                >
+                  <div className="text-sm text-[#7b8b84]">{label}</div>
+                  <div className="mt-5 text-[38px] font-semibold tracking-[-0.04em] text-[#17322f]">{value}</div>
+                </motion.div>
+              ))}
             </div>
 
-            <Textarea
-              value="Compra vinculada a lote PA-042 con proveedor, foto y observación operativa."
-              readOnly
-              className="min-h-[120px]"
+            <FocusChip
+              title="El lote ya cambió"
+              detail="La compra alteró volumen, kilos e inversión dentro del área de control."
+              className="absolute bottom-8 left-8 max-w-[320px]"
             />
-          </div>
 
-          <div className="overflow-hidden rounded-lg border bg-white">
+            <SceneText slide={slide} className="absolute bottom-8 right-8 w-[360px]" />
+          </div>
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
+function NetworkScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  return (
+    <Stage>
+      <div className="grid h-full grid-cols-1 bg-[#f7f8fb] xl:grid-cols-[minmax(0,0.42fr)_minmax(360px,0.58fr)]">
+        <div className="border-b bg-white px-8 py-8 xl:border-b-0 xl:border-r xl:px-10">
+          <ProcessTrack activeIndex={4} />
+
+          <div className="mt-8 rounded-lg border bg-white">
+            <div className="border-b px-4 py-3 text-sm text-[#7b8b84]">
+              Clientes y oportunidades comerciales
+            </div>
             <table className="w-full text-left text-sm">
               <thead className="bg-[#f7f8fb] text-[#60746d]">
                 <tr>
-                  <th className="px-4 py-3">Proveedor</th>
-                  <th className="px-4 py-3">Categoría</th>
-                  <th className="px-4 py-3">Ítem</th>
-                  <th className="px-4 py-3">Peso</th>
-                  <th className="px-4 py-3">Pagado</th>
-                  <th className="px-4 py-3">Lote</th>
+                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Zona</th>
+                  <th className="px-4 py-3">Comprador</th>
                 </tr>
               </thead>
               <tbody>
-                {demoPurchaseRows.map((row, index) => (
-                  <tr key={`${row.supplier}-${row.item}`} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
-                    <td className="px-4 py-4 font-medium text-[#17322f]">{row.supplier}</td>
-                    <td className="px-4 py-4">{row.category}</td>
-                    <td className="px-4 py-4">{row.item}</td>
-                    <td className="px-4 py-4">{row.weight}</td>
-                    <td className="px-4 py-4">{row.price}</td>
-                    <td className="px-4 py-4">{row.lot}</td>
+                {demoCommercialRows.slice(0, 4).map((row, index) => (
+                  <tr key={row.name} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
+                    <td className="px-4 py-4 font-medium text-[#17322f]">{row.name}</td>
+                    <td className="px-4 py-4">{row.zone}</td>
+                    <td className="px-4 py-4">{row.buyer}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          <FocusChip
+            title="La base ya lo recuerda"
+            detail="El proveedor queda conectado a zona, comprador e historial."
+            className="mt-6 max-w-[290px]"
+          />
+        </div>
+
+        <div className="flex h-full flex-col bg-[#f7f8fb] px-8 py-8">
+          <div className="rounded-lg border bg-white p-4">
+            <div className="mb-4 text-sm text-[#7b8b84]">Mapa de Panamá y seguimiento por zona</div>
+            <div className="relative h-[420px] overflow-hidden rounded-md border md:h-[520px]">
+              <ClientsMap
+                clients={demoMapClients}
+                tenantKey="pa"
+                heightClassName="h-full w-full"
+                showFullscreenToggle={false}
+              />
+
+              <motion.div
+                animate={{ scale: active ? [1, 1.22, 1] : 1, opacity: active ? [0.6, 0.15, 0.6] : 0.4 }}
+                transition={{ duration: 2.4, repeat: Infinity }}
+                className="absolute left-[54%] top-[39%] h-16 w-16 rounded-full border-2 border-[#234c4b] bg-[#234c4b]/10"
+              />
+              <motion.div
+                animate={{ scale: active ? [1, 1.18, 1] : 1, opacity: active ? [0.6, 0.12, 0.6] : 0.4 }}
+                transition={{ duration: 2.1, repeat: Infinity, delay: 0.45 }}
+                className="absolute left-[30%] top-[58%] h-12 w-12 rounded-full border-2 border-[#FED835] bg-[#FED835]/18"
+              />
+
+              <FocusChip
+                title="Panamá Metro"
+                detail="Aquí se concentra la mayor continuidad comercial."
+                className="absolute left-4 top-4 max-w-[230px]"
+              />
+              <FocusChip
+                title="La red está viva"
+                detail="Los puntos no son decoración: son abastecimiento georreferenciado."
+                className="absolute bottom-4 right-4 max-w-[250px]"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 xl:mt-auto">
+            <SceneText slide={slide} compact className="max-w-[420px]" />
+          </div>
         </div>
       </div>
-    </DemoWorkspace>
+    </Stage>
   );
 }
 
-function BuyerDashboardVisual() {
+function BuyerScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
   return (
-    <DemoWorkspace mode="buyer" activeNav="dashboard">
-      <div className="max-w-5xl">
-        <PageHeading
-          title="Dashboard"
-          subtitle="Resumen de compras pendientes, últimas compras y saldo operativo."
-        />
-
-        <div className="mt-6 rounded-lg border bg-white px-4 py-3 text-sm text-[#17322f]">
-          Comprador visible: <span className="font-medium">Richard</span>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <MetricCard label="Base asignada" value="$6,450" accent />
-          <MetricCard label="Gastado aprobado" value="$1,800" />
-          <MetricCard label="Saldo disponible" value="$4,650" />
-        </div>
-
-        <div className="mt-2 text-xs text-muted-foreground">Pendiente por aprobar: $320</div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Total compras" value="18" />
-          <MetricCard label="Total pagado" value="$5,980" />
-          <MetricCard label="Total comisiones" value="$420" />
-          <MetricCard label="Total gramos" value="1,240" />
-        </div>
-
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-[#234c4b]">Últimas 5 compras</h2>
-          <div className="mt-3 grid gap-4">
-            {buyerLatestPurchases.map((purchase) => (
-              <Card key={purchase.title}>
-                <CardContent className="flex items-center justify-between gap-4 p-4">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-[#17322f]">{purchase.title}</div>
-                    <div className="text-xs text-muted-foreground">{purchase.meta}</div>
-                  </div>
-                  <div className="text-sm font-semibold text-[#17322f]">{purchase.amount}</div>
-                </CardContent>
-              </Card>
+    <Stage>
+      <div className="grid h-full grid-cols-[220px_minmax(0,1fr)]">
+        <div className="border-r bg-white px-4 py-6">
+          <div className="text-lg font-bold text-[#234c4b]">PMG Metales</div>
+          <div className="mt-1 text-xs text-[#7b8b84]">Dashboard comprador</div>
+          <div className="mt-6 grid gap-2 text-sm">
+            {["Dashboard", "Compras", "Clientes", "Gastos", "Cierre del día"].map((item, index) => (
+              <div
+                key={item}
+                className={`rounded-md px-3 py-2 ${
+                  index === 0 ? "bg-[#edf4f1] font-medium text-[#234c4b]" : "text-[#4f635d]"
+                }`}
+              >
+                {item}
+              </div>
             ))}
           </div>
         </div>
-      </div>
-    </DemoWorkspace>
-  );
-}
 
-function CampaignsVisual() {
-  return (
-    <DemoWorkspace mode="admin" activeNav="campanas">
-      <div className="max-w-6xl">
-        <PageHeading
-          title="Campañas WhatsApp"
-          subtitle="Envía campañas manuales de WhatsApp a clientes de Panamá con zona asignada."
-        />
+        <div className="relative bg-[#f7f8fb] px-8 py-8">
+          <ProcessTrack activeIndex={5} />
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-lg border bg-white p-5">
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="grid gap-2 text-sm font-medium">
-                Segmento
-                <div className="rounded-md border px-3 py-2 text-sm font-normal">Panamá Metro</div>
-              </label>
-              <label className="grid gap-2 text-sm font-medium">
-                Plantilla base
-                <div className="rounded-md border px-3 py-2 text-sm font-normal">Ruta comercial</div>
-              </label>
+          <div className="mt-8">
+            <div className="rounded-md border bg-white px-4 py-3 text-sm text-[#17322f]">
+              Comprador visible: <span className="font-medium">Richard</span>
             </div>
 
-            <div className="mt-4 rounded-lg border bg-[#f7fbfa] p-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-medium text-[#17322f]">Audience preview</span>
-                <span className="text-xs text-muted-foreground">42 contactos válidos</span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full border bg-white px-2 py-1">Taller Vía Brasil</span>
-                <span className="rounded-full border bg-white px-2 py-1">Soldaduras Pacífico</span>
-                <span className="rounded-full border bg-white px-2 py-1">Centro de Escape Chorrera</span>
-              </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {[
+                ["Base asignada", "$6,450"],
+                ["Gastado aprobado", "$1,800"],
+                ["Saldo disponible", "$4,650"],
+              ].map(([label, value], index) => (
+                <motion.div
+                  key={label}
+                  initial={false}
+                  animate={{
+                    opacity: active ? 1 : 0.78,
+                    y: active ? 0 : 10,
+                    scale: active && index === 0 ? [1, 1.02, 1] : 1,
+                  }}
+                  transition={{ duration: 1.2, repeat: active && index === 0 ? Infinity : 0 }}
+                  className={`rounded-lg border bg-white p-5 ${
+                    index === 0 ? "border-[#234c4b]" : ""
+                  }`}
+                >
+                  <div className="text-sm text-[#7b8b84]">{label}</div>
+                  <div className="mt-5 text-[38px] font-semibold tracking-[-0.04em] text-[#17322f]">{value}</div>
+                </motion.div>
+              ))}
             </div>
 
-            <label className="mt-4 grid gap-2 text-sm font-medium">
-              Mensaje base
-              <Textarea
-                value={demoCampaignRows[0].message}
-                readOnly
-                className="min-h-[140px]"
-              />
-            </label>
+            <div className="mt-2 text-xs text-[#60746d]">Pendiente por aprobar: $320</div>
 
-            <div className="mt-4 rounded-lg border bg-white p-4">
-              <p className="text-sm font-medium text-[#234c4b]">Previsualización</p>
-              <p className="mt-3 text-sm leading-7 text-[#4f635d]">{demoCampaignRows[0].message}</p>
+            <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
+              {[
+                ["Total compras", "18"],
+                ["Total pagado", "$5,980"],
+                ["Total comisiones", "$420"],
+                ["Total gramos", "1,240"],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-lg border bg-white p-4">
+                  <div className="text-sm text-[#7b8b84]">{label}</div>
+                  <div className="mt-4 text-[34px] font-semibold tracking-[-0.04em] text-[#17322f]">{value}</div>
+                </div>
+              ))}
             </div>
 
-            <div className="mt-4 inline-flex h-10 items-center rounded-md bg-[#234c4b] px-4 text-sm font-medium text-white">
-              Enviar campaña
-            </div>
-          </div>
-
-          <div className="grid gap-4">
-            <div className="rounded-lg border bg-white p-4">
-              <p className="text-sm font-medium text-[#17322f]">Segmentos activos</p>
-              <div className="mt-3 grid gap-2">
-                {demoCampaignRows.map((row, index) => (
-                  <div
-                    key={row.zone}
-                    className={`rounded-md border px-3 py-2 text-sm ${
-                      index === 0 ? "border-[#234c4b] bg-[#edf4f1]" : "bg-white"
-                    }`}
-                  >
-                    <div className="font-medium text-[#17322f]">{row.zone}</div>
-                    <div className="text-xs text-muted-foreground">{row.audience}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg border bg-white p-4">
-              <p className="text-sm font-medium text-[#17322f]">Campañas recientes</p>
-              <div className="mt-3 grid gap-2">
-                {recentCampaignHistory.map((campaign) => (
-                  <div key={campaign.zone} className="rounded-md border px-3 py-3 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium text-[#17322f]">{campaign.zone}</span>
-                      <span className="text-xs text-muted-foreground">{campaign.status}</span>
+            <div className="mt-6 overflow-hidden rounded-lg border bg-white">
+              <div className="border-b px-4 py-3 text-sm font-medium text-[#17322f]">Últimas 5 compras</div>
+              <div className="grid gap-0">
+                {demoPurchaseRows.slice(0, 3).map((row, index) => (
+                  <div key={row.item} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
+                    <div className="flex items-center justify-between gap-4 px-4 py-4">
+                      <div>
+                        <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
+                        <div className="mt-1 text-xs text-[#60746d]">
+                          {row.supplier} · {row.weight}
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-[#17322f]">{row.price}</div>
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{campaign.detail}</div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+
+          <FocusChip
+            title="La asignación ya existe"
+            detail="La compra tiene saldo operativo, gasto visible y últimas compras asociadas."
+            className="absolute left-8 top-36 max-w-[310px]"
+          />
+
+          <SceneText slide={slide} className="absolute bottom-8 right-8 w-[360px]" />
         </div>
       </div>
-    </DemoWorkspace>
+    </Stage>
   );
 }
 
-function ClosingVisual() {
+function CampaignScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
   return (
-    <DemoWorkspace mode="admin" activeNav="control">
-      <div className="max-w-none">
-        <PageHeading
-          title="Operación PMG Metales Panamá"
-          subtitle="Clientes, compras, lotes, compradores, campañas y seguimiento comercial."
-        />
+    <Stage>
+      <div className="grid h-full grid-cols-[240px_minmax(0,1fr)]">
+        <div className="border-r bg-white px-4 py-6">
+          <div className="text-lg font-bold text-[#234c4b]">PMG Metales</div>
+          <div className="mt-1 text-xs text-[#7b8b84]">Dashboard administrador</div>
+          <div className="mt-6 grid gap-2 text-sm">
+            {["Área de control", "Administrador", "Proveedores", "Clientes", "Campañas"].map((item, index) => (
+              <div
+                key={item}
+                className={`rounded-md px-3 py-2 ${
+                  index === 4 ? "bg-[#edf4f1] font-medium text-[#234c4b]" : "text-[#4f635d]"
+                }`}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <div className="mt-6 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <MetricCard label="Lote activo" value="PA-042" accent />
-              <MetricCard label="Compras registradas" value="48" />
-              <MetricCard label="Saldo operativo" value="$4,650" />
+        <div className="relative bg-[#f7f8fb] px-8 py-8">
+          <ProcessTrack activeIndex={6} />
+
+          <div className="mt-8 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="rounded-lg border bg-white p-5">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-md border px-3 py-2 text-sm">Panamá Metro</div>
+                <div className="rounded-md border px-3 py-2 text-sm">Ruta comercial</div>
+              </div>
+
+              <div className="mt-4 rounded-lg border bg-[#f7fbfa] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-[#17322f]">Audience preview</span>
+                  <span className="text-xs text-[#60746d]">42 contactos válidos</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#60746d]">
+                  <span className="rounded-md border bg-white px-2 py-1">Taller Vía Brasil</span>
+                  <span className="rounded-md border bg-white px-2 py-1">Soldaduras Pacífico</span>
+                  <span className="rounded-md border bg-white px-2 py-1">Centro de Escape Chorrera</span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4">
+                <Textarea
+                  value={demoCampaignRows[0].message}
+                  readOnly
+                  className="min-h-[150px]"
+                />
+                <div className="rounded-lg border bg-white p-4">
+                  <div className="text-sm font-medium text-[#17322f]">Previsualización</div>
+                  <p className="mt-3 text-sm leading-7 text-[#4f635d]">{demoCampaignRows[0].message}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 inline-flex h-10 items-center rounded-md bg-[#234c4b] px-4 text-sm font-medium text-white">
+                Enviar campaña
+              </div>
             </div>
 
-            <div className="overflow-hidden rounded-lg border bg-white">
+            <div className="relative rounded-lg border bg-white p-5">
+              <div className="text-sm font-medium text-[#17322f]">Segmentos activos y respuestas</div>
+              <div className="mt-4 grid gap-3">
+                {demoCampaignRows.slice(0, 4).map((row, index) => (
+                  <div
+                    key={row.zone}
+                    className={`rounded-md border px-3 py-3 ${
+                      index === 0 ? "bg-[#edf4f1] border-[#234c4b]" : "bg-white"
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-[#17322f]">{row.zone}</div>
+                    <div className="mt-1 text-xs text-[#60746d]">{row.audience}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 border-t pt-4">
+                <div className="text-sm font-medium text-[#17322f]">Respuestas que reactivan abastecimiento</div>
+                <div className="mt-3 grid gap-3">
+                  {replies.map((reply, index) => (
+                    <motion.div
+                      key={reply}
+                      initial={false}
+                      animate={{
+                        opacity: active ? 1 : 0.72,
+                        x: active ? 0 : 8,
+                      }}
+                      transition={{ duration: 0.28, delay: active ? 0.08 * index : 0 }}
+                      className="flex items-start gap-3 rounded-md border bg-[#f7fbfa] px-3 py-3"
+                    >
+                      <CircleDot className="mt-0.5 h-4 w-4 text-[#234c4b]" />
+                      <div className="text-sm leading-6 text-[#4f635d]">{reply}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              <FocusChip
+                title="La red responde"
+                detail="La campaña no cierra la historia: vuelve a abrir el abastecimiento."
+                className="absolute bottom-5 right-5 max-w-[280px]"
+              />
+            </div>
+          </div>
+
+          <SceneText slide={slide} className="absolute bottom-8 left-8 w-[360px]" />
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
+function MemoryScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  return (
+    <Stage>
+      <div className="grid h-full grid-cols-1 bg-[#f7f8fb] lg:grid-cols-[0.58fr_0.42fr]">
+        <div className="relative border-b bg-white px-8 py-8 lg:border-b-0 lg:border-r lg:px-10">
+          <ProcessTrack activeIndex={6} />
+
+          <div className="mt-8 grid gap-5">
+            <div className="rounded-lg border bg-white">
+              <div className="border-b px-4 py-3 text-sm font-medium text-[#17322f]">Historial comercial</div>
               <table className="w-full text-left text-sm">
                 <thead className="bg-[#f7f8fb] text-[#60746d]">
                   <tr>
@@ -695,7 +858,7 @@ function ClosingVisual() {
                   </tr>
                 </thead>
                 <tbody>
-                  {demoCommercialRows.slice(0, 4).map((row, index) => (
+                  {demoCommercialRows.map((row, index) => (
                     <tr key={row.name} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
                       <td className="px-4 py-4 font-medium text-[#17322f]">{row.name}</td>
                       <td className="px-4 py-4">{row.zone}</td>
@@ -706,249 +869,189 @@ function ClosingVisual() {
                 </tbody>
               </table>
             </div>
-          </div>
 
-          <div className="grid gap-4">
-            <div className="rounded-lg border bg-white p-4">
-              <p className="text-sm font-medium text-[#17322f]">Compradores y campañas</p>
-              <div className="mt-3 grid gap-3">
-                {demoBuyerRows.map((buyer) => (
-                  <div key={buyer.buyer} className="rounded-md border px-3 py-3 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium text-[#17322f]">{buyer.buyer}</span>
-                      <span className="text-xs text-muted-foreground">{buyer.balance}</span>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border bg-white p-4">
+                <div className="text-sm font-medium text-[#17322f]">Últimas compras</div>
+                <div className="mt-3 grid gap-3">
+                  {demoPurchaseRows.slice(0, 3).map((row) => (
+                    <div key={row.item} className="rounded-md border px-3 py-3">
+                      <div className="text-sm font-medium text-[#17322f]">{row.item}</div>
+                      <div className="mt-1 text-xs text-[#60746d]">
+                        {row.supplier} · {row.weight} · {row.lot}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      Última compra: {buyer.lastPurchase}
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border bg-white p-4">
+                <div className="text-sm font-medium text-[#17322f]">Campañas recientes</div>
+                <div className="mt-3 grid gap-3">
+                  {demoCampaignRows.slice(0, 3).map((row) => (
+                    <div key={row.zone} className="rounded-md border px-3 py-3">
+                      <div className="text-sm font-medium text-[#17322f]">{row.zone}</div>
+                      <div className="mt-1 text-xs text-[#60746d]">{row.audience}</div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-
-            <div className="rounded-lg border bg-white p-4">
-              <p className="text-sm font-medium text-[#17322f]">Comunicación activa</p>
-              <p className="mt-3 text-sm leading-7 text-[#4f635d]">{demoCampaignRows[0].message}</p>
-            </div>
           </div>
+
+          <FocusChip
+            title="La empresa recuerda"
+            detail="La siguiente compra parte del historial, no de cero."
+            className="absolute bottom-8 left-8 max-w-[270px]"
+          />
+        </div>
+
+        <div className="relative bg-[#f7f8fb] px-8 py-8">
+          <motion.div
+            initial={false}
+            animate={{
+              opacity: active ? 1 : 0.8,
+              y: active ? 0 : 10,
+            }}
+            transition={{ duration: 0.4 }}
+            className="rounded-lg border bg-white p-5"
+          >
+            <div className="text-sm font-medium text-[#17322f]">Memoria operativa</div>
+            <div className="mt-5 grid gap-4">
+              {[
+                "Proveedor localizado y guardado",
+                "Comprador responsable visible",
+                "Historial de compras acumulado",
+                "Zona y ruta comercial definidas",
+                "Campañas ligadas a la base de datos",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3 rounded-md border bg-[#fbfcfc] px-4 py-3">
+                  <div className="mt-1 h-2.5 w-2.5 rounded-full bg-[#234c4b]" />
+                  <div className="text-sm leading-6 text-[#4f635d]">{item}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <SceneText slide={slide} className="absolute bottom-8 left-8 right-8" />
         </div>
       </div>
-    </DemoWorkspace>
+    </Stage>
   );
 }
 
-function renderVisual(slide: DeckSlide) {
+function ClosingScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  return (
+    <Stage dark>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(35,76,75,0.28),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(254,216,53,0.08),transparent_26%)]" />
+      <div className="relative flex h-full flex-col px-8 py-8 md:px-12 md:py-10">
+        <ProcessTrack activeIndex={6} dark />
+
+        <div className="mt-8 grid flex-1 gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid gap-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                ["Lote activo", "PA-042"],
+                ["Compras registradas", "48"],
+                ["Saldo operativo", "$4,650"],
+              ].map(([label, value], index) => (
+                <motion.div
+                  key={label}
+                  initial={false}
+                  animate={{ opacity: active ? 1 : 0.76, y: active ? 0 : 10 }}
+                  transition={{ duration: 0.35, delay: active ? 0.06 * index : 0 }}
+                  className="rounded-lg border border-white/10 bg-white/5 p-5"
+                >
+                  <div className="text-sm text-white/55">{label}</div>
+                  <div className="mt-5 text-[38px] font-semibold tracking-[-0.04em] text-white">{value}</div>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+                <div className="text-sm font-medium text-white">Proveedor</div>
+                <div className="mt-3 text-lg text-white/82">Taller Vía Brasil</div>
+                <div className="mt-1 text-sm text-white/55">Panamá Metro · Richard</div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+                <div className="text-sm font-medium text-white">Campaña</div>
+                <div className="mt-3 text-lg text-white/82">Panamá Metro activa</div>
+                <div className="mt-1 text-sm text-white/55">42 contactos válidos</div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+              <div className="text-sm font-medium text-white">Resultado</div>
+              <p className="mt-3 max-w-2xl text-base leading-8 text-white/72">
+                El proveedor se registra, la compra entra al lote, el comprador la opera,
+                la base de datos la recuerda y la campaña sostiene la continuidad.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center">
+            <SceneText slide={slide} dark className="border-white/10 bg-[#101614]/92 shadow-none" />
+            <motion.p
+              initial={false}
+              animate={{ opacity: active ? 1 : 0.76, y: active ? 0 : 10 }}
+              transition={{ duration: 0.4, delay: 0.08 }}
+              className="mt-8 max-w-xl text-[40px] font-semibold leading-[0.98] tracking-[-0.05em] text-white md:text-[58px]"
+            >
+              La empresa está viva. La interfaz solo la hace visible.
+            </motion.p>
+          </div>
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
+function renderScene(slide: DeckSlide, active: boolean) {
   switch (slide.visual) {
     case "intro":
-      return <ControlVisual />;
-    case "control":
-      return <ControlVisual />;
-    case "map":
-      return <MapVisual />;
-    case "database":
-      return <DatabaseVisual />;
+      return <IntroScene slide={slide} active={active} />;
     case "catalysts":
-      return <PurchasesVisual />;
+      return <PurchaseFlowScene slide={slide} active={active} />;
+    case "control":
+      return <ControlScene slide={slide} active={active} />;
+    case "map":
+      return <NetworkScene slide={slide} active={active} />;
     case "buyers":
-      return <BuyerDashboardVisual />;
+      return <BuyerScene slide={slide} active={active} />;
     case "campaigns":
-      return <CampaignsVisual />;
+      return <CampaignScene slide={slide} active={active} />;
+    case "database":
+      return <MemoryScene slide={slide} active={active} />;
     case "closing":
-      return <ClosingVisual />;
+      return <ClosingScene slide={slide} active={active} />;
     default:
       return null;
   }
 }
 
-function NarrationRail({
+function SlideSection({
   slide,
-  caption,
+  active,
 }: {
   slide: DeckSlide;
-  caption: string;
-}) {
-  const isIntro = slide.visual === "intro";
-  const isClosing = slide.visual === "closing";
-
-  return (
-    <aside className="flex h-full flex-col rounded-xl border border-[#d7dfdb] bg-white px-5 py-5 shadow-[0_6px_18px_rgba(22,44,39,0.08)]">
-      <div className="text-sm text-[#60746d]">
-        {slide.step} / {String(deckSlides.length).padStart(2, "0")}
-      </div>
-
-      <h1
-        className={`mt-4 font-semibold tracking-[-0.04em] text-[#132e2b] ${
-          isIntro || isClosing ? "text-[34px] leading-[0.95]" : "text-[28px] leading-[1]"
-        }`}
-      >
-        {slide.title}
-      </h1>
-
-      <p className="mt-4 text-base leading-7 text-[#38514b]">{slide.summary}</p>
-
-      {slide.paragraphs ? (
-        <div className="mt-5 grid gap-3 text-sm leading-7 text-[#52655f]">
-          {slide.paragraphs.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="mt-auto border-t pt-4 text-sm leading-7 text-[#60746d]">{caption}</div>
-    </aside>
-  );
-}
-
-function Callout({
-  callout,
-  active,
-  index,
-}: {
-  callout: CalloutSpec;
   active: boolean;
-  index: number;
 }) {
   return (
     <motion.div
       initial={false}
-      animate={
-        active
-          ? { opacity: 1, y: 0, scale: 1 }
-          : { opacity: 0, y: 10, scale: 0.98 }
-      }
-      transition={{ duration: 0.28, delay: active ? 0.14 + index * 0.08 : 0 }}
-      className="absolute rounded-lg border border-[#d7dfdb] bg-white/96 px-3 py-3 shadow-[0_6px_18px_rgba(22,44,39,0.12)]"
-      style={{
-        left: callout.x,
-        top: callout.y,
-        width: callout.width ?? "210px",
-      }}
-    >
-      <p className="text-sm font-medium text-[#17322f]">{callout.title}</p>
-      {callout.detail ? (
-        <p className="mt-1 text-xs leading-6 text-[#60746d]">{callout.detail}</p>
-      ) : null}
-    </motion.div>
-  );
-}
-
-function Highlight({
-  item,
-  active,
-}: {
-  item: HighlightSpec;
-  active: boolean;
-}) {
-  return (
-    <motion.div
-      animate={
-        active
-          ? {
-              opacity: 1,
-              boxShadow: [
-                "0 0 0 0 rgba(254,216,53,0.55)",
-                "0 0 0 8px rgba(254,216,53,0)",
-                "0 0 0 0 rgba(254,216,53,0.55)",
-              ],
-            }
-          : { opacity: 0.4, boxShadow: "0 0 0 0 rgba(254,216,53,0)" }
-      }
-      transition={{ duration: 1.8, repeat: active ? Infinity : 0, ease: "easeInOut" }}
-      className="absolute rounded-lg border-2 border-[#fed835] bg-[#fed835]/10"
-      style={{
-        left: item.x,
-        top: item.y,
-        width: item.width,
-        height: item.height,
-      }}
-    />
-  );
-}
-
-function CinematicDemoScene({
-  slide,
-  active,
-}: {
-  slide: DeckSlide;
-  active: boolean;
-}) {
-  const config = sceneConfigs[slide.visual];
-  const Icon = visualIcons[slide.visual];
-  const visual = renderVisual(slide);
-  const rail = <NarrationRail slide={slide} caption={config.caption} />;
-  const introOrClosing = slide.visual === "intro" || slide.visual === "closing";
-
-  return (
-    <motion.div
-      variants={sceneTransition}
-      initial="hidden"
-      animate={active ? "visible" : "hidden"}
+      animate={{ opacity: active ? 1 : 0.85 }}
       className="min-h-[100svh] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8"
     >
-      <div className="mx-auto flex h-[calc(100svh-2rem)] max-w-[1500px] flex-col">
-        <div className="mb-4 flex items-center justify-between gap-4 px-1">
-          <div className="flex items-center gap-3 text-sm text-[#60746d]">
-            <Icon className="h-4 w-4 text-[#234c4b]" />
-            <span>
-              {slide.step} / {String(deckSlides.length).padStart(2, "0")}
-            </span>
-          </div>
-          <div className="hidden items-center gap-3 text-sm text-[#60746d] md:flex">
-            <ChevronDown className="h-4 w-4" />
-            <span>Scroll, teclado o botones para avanzar</span>
-          </div>
-        </div>
-
-        <div
-          className={`grid min-h-0 flex-1 gap-5 ${
-            config.railPosition === "left"
-              ? "lg:grid-cols-[320px_minmax(0,1fr)]"
-              : "lg:grid-cols-[minmax(0,1fr)_320px]"
-          }`}
-        >
-          {config.railPosition === "left" ? rail : null}
-
-          <div className="relative min-h-[58vh] overflow-hidden rounded-xl border border-[#d7dfdb] bg-white shadow-[0_8px_24px_rgba(22,44,39,0.10)]">
-            <motion.div
-              animate={
-                active
-                  ? {
-                      scale: config.focus.scale,
-                      x: config.focus.x,
-                      y: config.focus.y,
-                    }
-                  : { scale: 1, x: 0, y: 0 }
-              }
-              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className={`h-full origin-center ${introOrClosing ? "opacity-70" : ""}`}
-            >
-              {visual}
-            </motion.div>
-
-            <div className="pointer-events-none absolute inset-0">
-              {!introOrClosing
-                ? config.highlights.map((item) => (
-                    <Highlight key={`${item.x}-${item.y}`} item={item} active={active} />
-                  ))
-                : null}
-              {!introOrClosing
-                ? config.callouts.map((callout, index) => (
-                    <Callout
-                      key={`${callout.title}-${callout.x}`}
-                      callout={callout}
-                      active={active}
-                      index={index}
-                    />
-                  ))
-                : null}
-              {introOrClosing ? (
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.38))]" />
-              ) : null}
-            </div>
-          </div>
-
-          {config.railPosition === "right" ? rail : null}
-        </div>
+      <div className="mx-auto flex h-[calc(100svh-2rem)] max-w-[1560px] flex-col">
+        <TopBar slide={slide} active={active} />
+        {renderScene(slide, active)}
       </div>
     </motion.div>
   );
@@ -1023,7 +1126,7 @@ export default function PresentationDeck() {
             data-index={index}
             className="snap-start border-b border-[#dfe6e1]"
           >
-            <CinematicDemoScene slide={slide} active={index === activeIndex} />
+            <SlideSection slide={slide} active={index === activeIndex} />
           </section>
         ))}
       </div>

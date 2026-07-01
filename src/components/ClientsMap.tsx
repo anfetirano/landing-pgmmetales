@@ -99,6 +99,18 @@ export default function ClientsMap({
     return () => window.clearTimeout(id);
   }, [isFullscreen]);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.invalidateSize();
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   const markers = useMemo(
     () => clients.filter((c) => typeof c.lat === "number" && typeof c.lng === "number"),
     [clients]
