@@ -619,7 +619,6 @@ function NetworkScene({
   active: boolean;
   mapClients: DemoMapClient[];
 }) {
-  const [activeZone, setActiveZone] = useState("Todas");
   const networkMapClients = useMemo(
     () =>
       mapClients.map((client) => ({
@@ -643,24 +642,6 @@ function NetworkScene({
     () => buildCommercialRowsFromClients(networkMapClients),
     [networkMapClients]
   );
-  const zones = useMemo(
-    () => ["Todas", ...new Set(networkMapClients.map((client) => client.zone ?? "Panamá Metro"))],
-    [networkMapClients]
-  );
-  const filteredMapClients = useMemo(
-    () =>
-      activeZone === "Todas"
-        ? networkMapClients
-        : networkMapClients.filter((client) => client.zone === activeZone),
-    [activeZone, networkMapClients]
-  );
-  const filteredCommercialRows = useMemo(
-    () =>
-      activeZone === "Todas"
-        ? commercialRows
-        : commercialRows.filter((row) => row.zone === activeZone),
-    [activeZone, commercialRows]
-  );
 
   return (
     <Stage>
@@ -671,26 +652,10 @@ function NetworkScene({
           <div className="mt-8 overflow-hidden rounded-lg border bg-white">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div className="text-sm font-medium text-[#17322f]">Base comercial PMG</div>
-              <div className="text-xs text-[#60746d]">{filteredCommercialRows.length} proveedores visibles</div>
-            </div>
-            <div className="flex gap-2 overflow-x-auto border-b px-4 py-3">
-              {zones.map((zone) => (
-                <button
-                  key={zone}
-                  type="button"
-                  onClick={() => setActiveZone(zone)}
-                  className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
-                    activeZone === zone
-                      ? "border-[#234c4b] bg-[#edf4f1] text-[#17322f]"
-                      : "border-[#d7dfdb] bg-white text-[#60746d]"
-                  }`}
-                >
-                  {zone}
-                </button>
-              ))}
+              <div className="text-xs text-[#60746d]">{commercialRows.length} proveedores visibles</div>
             </div>
             <div className="max-h-[540px] overflow-y-auto">
-              {filteredCommercialRows.map((row, index) => (
+              {commercialRows.map((row, index) => (
                 <div
                   key={`${row.name}-${index}`}
                   className={`border-b px-4 py-3 last:border-b-0 ${index === 0 ? "bg-[#f7fbfa]" : "bg-white"}`}
@@ -718,18 +683,18 @@ function NetworkScene({
           <div className="rounded-lg border bg-white p-4">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
-                <div className="text-sm font-medium text-[#17322f]">Mapa de Panamá y seguimiento por zona</div>
+                <div className="text-sm font-medium text-[#17322f]">Mapa de Panamá y red comercial activa</div>
                 <div className="mt-1 text-xs text-[#60746d]">
-                  {filteredMapClients.length} puntos activos {activeZone === "Todas" ? "en la red" : `en ${activeZone}`}
+                  {networkMapClients.length} puntos activos en la red
                 </div>
               </div>
               <div className="rounded-md border bg-[#f7fbfa] px-3 py-2 text-xs text-[#38514b]">
-                Clustering activo
+                Base completa visible
               </div>
             </div>
             <div className="relative h-[420px] overflow-hidden rounded-md border md:h-[520px]">
               <ClientsMap
-                clients={filteredMapClients}
+                clients={networkMapClients}
                 tenantKey="pa"
                 heightClassName="h-full w-full"
                 showFullscreenToggle={false}
