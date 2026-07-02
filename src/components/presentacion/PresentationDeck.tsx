@@ -1148,7 +1148,7 @@ function TechnologyScene({
       icon: Building2,
     },
     {
-      title: "Oportunidad para Panamá",
+      title: "Gran oportunidad para Panamá",
       icon: BarChart3,
     },
   ];
@@ -1199,10 +1199,10 @@ function TechnologyScene({
               className="grid max-w-[640px] gap-5 rounded-lg border border-white/10 bg-black/16 px-5 py-5 text-[17px] leading-8 text-white [text-shadow:0_1px_14px_rgba(0,0,0,0.38)]"
             >
               <p>
-                El crecimiento sostenible también depende de cómo gestionamos los materiales electrónicos que el mundo descarta y que hoy representan una oportunidad estratégica para el país.
+                Panamá también presenta una oportunidad importante en el mercado de tarjetas electrónicas y materiales tecnológicos con valor recuperable.
               </p>
               <p>
-                Nuestra experiencia en metales nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y residuos tecnológicos con trazabilidad, clasificación y procesos profesionales.
+                Nuestra experiencia en metales nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y relaciones con empresas y recicladores dentro de una estructura trazable y profesional.
               </p>
             </motion.div>
 
