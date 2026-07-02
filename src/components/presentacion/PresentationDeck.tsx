@@ -21,11 +21,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  buildCommercialRowsFromClients,
   demoCampaignRows,
   demoCommercialRows,
   demoMapClients,
   demoPurchaseRows,
   presentacionSlides,
+  type DemoMapClient,
   type PresentationSlide,
 } from "@/data/presentacion";
 
@@ -611,28 +613,53 @@ function ControlScene({
 function NetworkScene({
   slide,
   active,
+  mapClients,
 }: {
   slide: DeckSlide;
   active: boolean;
+  mapClients: DemoMapClient[];
 }) {
   const [activeZone, setActiveZone] = useState("Todas");
+  const networkMapClients = useMemo(
+    () =>
+      mapClients.map((client) => ({
+        ...client,
+        zone:
+          client.zone === "panama"
+            ? "Panamá Metro"
+            : client.zone === "colon"
+              ? "Colón"
+              : client.zone === "chorrera"
+                ? "Arraiján + La Chorrera"
+                : client.zone === "david"
+                  ? "David"
+                  : client.zone === "interior"
+                    ? "Interior"
+                    : client.zone ?? "Panamá Metro",
+      })),
+    [mapClients]
+  );
+  const commercialRows = useMemo(
+    () => buildCommercialRowsFromClients(networkMapClients),
+    [networkMapClients]
+  );
   const zones = useMemo(
-    () => ["Todas", ...new Set(demoMapClients.map((client) => client.zone ?? "Panamá Metro"))],
-    []
+    () => ["Todas", ...new Set(networkMapClients.map((client) => client.zone ?? "Panamá Metro"))],
+    [networkMapClients]
   );
   const filteredMapClients = useMemo(
     () =>
       activeZone === "Todas"
-        ? demoMapClients
-        : demoMapClients.filter((client) => client.zone === activeZone),
-    [activeZone]
+        ? networkMapClients
+        : networkMapClients.filter((client) => client.zone === activeZone),
+    [activeZone, networkMapClients]
   );
   const filteredCommercialRows = useMemo(
     () =>
       activeZone === "Todas"
-        ? demoCommercialRows
-        : demoCommercialRows.filter((row) => row.zone === activeZone),
-    [activeZone]
+        ? commercialRows
+        : commercialRows.filter((row) => row.zone === activeZone),
+    [activeZone, commercialRows]
   );
 
   return (
@@ -706,6 +733,7 @@ function NetworkScene({
                 tenantKey="pa"
                 heightClassName="h-full w-full"
                 showFullscreenToggle={false}
+                enableClustering={false}
               />
             </div>
           </div>
@@ -1133,7 +1161,11 @@ function ClosingScene({
   );
 }
 
-function renderScene(slide: DeckSlide, active: boolean) {
+function renderScene(
+  slide: DeckSlide,
+  active: boolean,
+  mapClients: DemoMapClient[]
+) {
   switch (slide.visual) {
     case "intro":
       return <IntroScene slide={slide} active={active} />;
@@ -1142,7 +1174,7 @@ function renderScene(slide: DeckSlide, active: boolean) {
     case "control":
       return <ControlScene slide={slide} active={active} />;
     case "map":
-      return <NetworkScene slide={slide} active={active} />;
+      return <NetworkScene slide={slide} active={active} mapClients={mapClients} />;
     case "buyers":
       return <BuyerScene slide={slide} active={active} />;
     case "campaigns":
@@ -1159,9 +1191,11 @@ function renderScene(slide: DeckSlide, active: boolean) {
 function SlideSection({
   slide,
   active,
+  mapClients,
 }: {
   slide: DeckSlide;
   active: boolean;
+  mapClients: DemoMapClient[];
 }) {
   return (
     <motion.div
@@ -1171,16 +1205,21 @@ function SlideSection({
     >
       <div className="mx-auto flex h-[calc(100svh-2rem)] max-w-[1560px] flex-col">
         <TopBar slide={slide} active={active} />
-        {renderScene(slide, active)}
+        {renderScene(slide, active, mapClients)}
       </div>
     </motion.div>
   );
 }
 
-export default function PresentationDeck() {
+export default function PresentationDeck({
+  liveMapClients,
+}: {
+  liveMapClients?: DemoMapClient[];
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const slideRefs = useRef<Array<HTMLElement | null>>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const mapClients = liveMapClients?.length ? liveMapClients : demoMapClients;
 
   const goToSlide = (index: number) => {
     const nextIndex = Math.max(0, Math.min(index, deckSlides.length - 1));
@@ -1246,7 +1285,11 @@ export default function PresentationDeck() {
             data-index={index}
             className="snap-start border-b border-[#dfe6e1]"
           >
-            <SlideSection slide={slide} active={index === activeIndex} />
+            <SlideSection
+              slide={slide}
+              active={index === activeIndex}
+              mapClients={mapClients}
+            />
           </section>
         ))}
       </div>

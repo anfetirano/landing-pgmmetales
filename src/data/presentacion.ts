@@ -339,6 +339,44 @@ export const demoCommercialRows: DemoCommercialRow[] = demoMapClients.map((clien
   history: `${(index % 6) + 1} ${index % 6 === 0 ? "registro" : "registros"} vinculados`,
 }));
 
+export function buildCommercialRowsFromClients(
+  clients: DemoMapClient[]
+): DemoCommercialRow[] {
+  return [...clients]
+    .sort((a, b) => {
+      const zoneCompare = (a.zone ?? "").localeCompare(b.zone ?? "", "es", {
+        sensitivity: "base",
+      });
+      if (zoneCompare !== 0) return zoneCompare;
+      return (a.name ?? "").localeCompare(b.name ?? "", "es", {
+        sensitivity: "base",
+      });
+    })
+    .map((client, index) => ({
+      name: client.name,
+      zone: client.zone ?? "Panamá Metro",
+      contact: client.contactName ?? "Registro PMG",
+      type:
+        client.zone === "colon"
+          ? "Ruta comercial"
+          : client.zone === "chorrera"
+            ? "Proveedor recurrente"
+            : client.zone === "david" || client.zone === "interior"
+              ? "Cobertura regional"
+              : "Proveedor registrado",
+      buyer: client.buyerName ?? "Richard",
+      status:
+        index % 4 === 0
+          ? "Seguimiento activo"
+          : index % 4 === 1
+            ? "Ruta activa"
+            : index % 4 === 2
+              ? "Recompra abierta"
+              : "Proveedor visible",
+      history: `${(index % 6) + 1} ${(index % 6) + 1 === 1 ? "registro" : "registros"} vinculados`,
+    }));
+}
+
 export const demoPurchaseRows: DemoPurchaseRow[] = [
   {
     supplier: "Servicentro El Gigante",

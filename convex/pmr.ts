@@ -148,6 +148,7 @@ export const getPanamaControlData = query({
         contactName: client.contactName,
         buyerName: buyerNameById.get(String(client.buyerId)) ?? "Buyer",
         phone: client.phone,
+        zone: client.zone,
         lat: client.lat,
         lng: client.lng,
       })),

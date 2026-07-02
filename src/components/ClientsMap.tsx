@@ -145,11 +145,13 @@ export default function ClientsMap({
   tenantKey,
   heightClassName = "h-[360px] w-full",
   showFullscreenToggle = true,
+  enableClustering = true,
 }: {
   clients: Client[];
   tenantKey?: "co" | "pa";
   heightClassName?: string;
   showFullscreenToggle?: boolean;
+  enableClustering?: boolean;
 }) {
   const mapRef = useRef<LeafletMap | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -203,7 +205,10 @@ export default function ClientsMap({
   const mapCenter = markers.length
     ? ([markers[0].lat as number, markers[0].lng as number] as [number, number])
     : fallbackCenter;
-  const renderedPoints = useMemo(() => clusterClients(markers, zoomLevel), [markers, zoomLevel]);
+  const renderedPoints = useMemo(
+    () => (enableClustering ? clusterClients(markers, zoomLevel) : markers),
+    [enableClustering, markers, zoomLevel]
+  );
 
   useEffect(() => {
     if (!mapRef.current) return;
