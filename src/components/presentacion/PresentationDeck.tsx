@@ -1148,7 +1148,7 @@ function TechnologyScene({
       icon: Building2,
     },
     {
-      title: "Gran oportunidad para Panamá",
+      title: "Panamá oportunidad de negocio",
       icon: BarChart3,
     },
   ];
@@ -1202,7 +1202,7 @@ function TechnologyScene({
                 Panamá también presenta una oportunidad importante en el mercado de tarjetas electrónicas y materiales tecnológicos con valor recuperable.
               </p>
               <p>
-                Nuestra experiencia en metales nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y relaciones con empresas y recicladores dentro de una estructura trazable y profesional.
+                Nuestra experiencia en Panamá nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y relaciones con empresas y recicladores dentro de una estructura trazable y profesional.
               </p>
             </motion.div>
 
