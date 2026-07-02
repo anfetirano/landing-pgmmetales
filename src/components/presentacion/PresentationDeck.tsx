@@ -263,7 +263,7 @@ function Stage({
         dark
           ? "border-[#1c2824] bg-[#0c1210]"
           : "border-[#d8e0dc] bg-white"
-      } shadow-[0_14px_40px_rgba(16,31,27,0.10)]`}
+      } overflow-y-auto xl:overflow-hidden shadow-[0_14px_40px_rgba(16,31,27,0.10)]`}
     >
       {children}
     </div>
@@ -311,7 +311,7 @@ function IntroScene({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(35,76,75,0.32),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(254,216,53,0.10),transparent_28%)]" />
       <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
 
-      <div className="relative flex h-full flex-col px-8 py-8 md:px-12 md:py-10">
+      <div className="relative flex min-h-full flex-col px-5 py-6 sm:px-7 sm:py-7 md:px-10 md:py-9 xl:h-full xl:px-12 xl:py-10">
         <ProcessTrack activeIndex={-1} dark />
 
         <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -327,7 +327,7 @@ function IntroScene({
             initial={false}
             animate={{ opacity: active ? 1 : 0.75, y: active ? 0 : 10 }}
             transition={{ duration: 0.55, delay: 0.05 }}
-            className="mt-10 max-w-4xl text-[54px] font-semibold leading-[0.92] tracking-[-0.05em] text-white md:text-[82px]"
+            className="mt-8 max-w-4xl text-[38px] font-semibold leading-[0.94] tracking-[-0.05em] text-white sm:text-[46px] md:text-[58px] xl:mt-10 xl:text-[82px]"
           >
             {slide.title}
           </motion.h1>
@@ -335,13 +335,13 @@ function IntroScene({
             initial={false}
             animate={{ opacity: active ? 1 : 0.7, y: active ? 0 : 10 }}
             transition={{ duration: 0.55, delay: 0.1 }}
-            className="mt-8 max-w-3xl text-lg leading-8 text-white/70"
+            className="mt-6 max-w-3xl text-base leading-7 text-white/70 md:text-lg md:leading-8 xl:mt-8"
           >
             {slide.summary}
           </motion.p>
         </div>
 
-        <div className="mx-auto max-w-4xl text-center text-sm leading-7 text-white/50">
+        <div className="mx-auto mt-8 max-w-4xl text-center text-sm leading-7 text-white/50 xl:mt-0">
           {slide.paragraphs?.[0]}
         </div>
       </div>
@@ -379,8 +379,8 @@ function PurchaseFlowScene({
 
   return (
     <Stage>
-      <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
-        <div className="border-b bg-[#f7f8fb] px-8 py-8 lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
+      <div className="grid min-h-full grid-cols-1 xl:h-full xl:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
+        <div className="order-2 border-b bg-[#f7f8fb] px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8 xl:order-1 xl:border-b-0 xl:border-r xl:px-10 xl:py-10">
           <ProcessTrack activeIndex={3} />
 
           <motion.div
@@ -456,7 +456,7 @@ function PurchaseFlowScene({
           />
         </div>
 
-        <div className="flex h-full flex-col bg-white px-8 py-8 lg:px-10 lg:py-10">
+        <div className="order-1 flex min-h-full flex-col bg-white px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8 xl:order-2 xl:h-full xl:px-10 xl:py-10">
           <div>
             <div className="text-xs text-[#7b8b84]">
               {slide.step} / {String(deckSlides.length).padStart(2, "0")}
@@ -542,8 +542,8 @@ function ControlScene({
 }) {
   return (
     <Stage>
-      <div className="grid h-full grid-cols-[240px_minmax(0,1fr)]">
-        <div className="border-r bg-white px-4 py-6">
+      <div className="grid min-h-full grid-cols-1 xl:h-full xl:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="hidden border-r bg-white px-4 py-6 xl:block">
           <div className="text-lg font-bold text-[#234c4b]">PMG Metales</div>
           <div className="mt-1 text-xs text-[#7b8b84]">Dashboard administrador</div>
           <div className="mt-6 grid gap-2 text-sm">
@@ -560,7 +560,7 @@ function ControlScene({
           </div>
         </div>
 
-        <div className="relative bg-[#f7f8fb] px-8 py-8">
+        <div className="relative bg-[#f7f8fb] px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8">
           <ProcessTrack activeIndex={3} />
 
           <div className="mt-8 max-w-6xl">
@@ -607,13 +607,15 @@ function ControlScene({
               ))}
             </div>
 
-            <FocusChip
-              title="El lote ya cambió"
-              detail="La compra alteró volumen, kilos e inversión dentro del área de control."
-              className="absolute bottom-24 left-8 max-w-[320px]"
-            />
+            <div className="mt-6 grid gap-4 xl:mt-0">
+              <FocusChip
+                title="El lote ya cambió"
+                detail="La compra alteró volumen, kilos e inversión dentro del área de control."
+                className="max-w-[320px] xl:absolute xl:bottom-24 xl:left-8 xl:mt-0"
+              />
 
-            <SceneText slide={slide} className="absolute bottom-24 right-8 w-[360px]" />
+              <SceneText slide={slide} className="w-full max-w-[420px] xl:absolute xl:bottom-24 xl:right-8 xl:w-[360px]" />
+            </div>
           </div>
         </div>
       </div>
@@ -656,8 +658,8 @@ function NetworkScene({
 
   return (
     <Stage>
-      <div className="grid h-full grid-cols-1 bg-[#f7f8fb] xl:grid-cols-[minmax(0,0.42fr)_minmax(360px,0.58fr)]">
-        <div className="border-b bg-white px-8 py-8 xl:border-b-0 xl:border-r xl:px-10">
+      <div className="grid min-h-full grid-cols-1 bg-[#f7f8fb] xl:h-full xl:grid-cols-[minmax(0,0.42fr)_minmax(360px,0.58fr)]">
+        <div className="order-2 border-b bg-white px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8 xl:order-1 xl:border-b-0 xl:border-r xl:px-10">
           <ProcessTrack activeIndex={4} />
 
           <div className="mt-8 overflow-hidden rounded-lg border bg-white">
@@ -690,7 +692,10 @@ function NetworkScene({
           </div>
         </div>
 
-        <div className="flex h-full flex-col bg-[#f7f8fb] px-8 py-8">
+        <div className="order-1 flex min-h-full flex-col bg-[#f7f8fb] px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8 xl:order-2 xl:h-full">
+          <div className="mb-4 xl:hidden">
+            <SceneText slide={slide} compact className="max-w-[520px]" />
+          </div>
           <div className="rounded-lg border bg-white p-4">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
@@ -703,7 +708,7 @@ function NetworkScene({
                 Base completa visible
               </div>
             </div>
-            <div className="relative h-[420px] overflow-hidden rounded-md border md:h-[520px]">
+            <div className="relative h-[300px] overflow-hidden rounded-md border sm:h-[360px] md:h-[440px] xl:h-[520px]">
               <ClientsMap
                 clients={networkMapClients}
                 tenantKey="pa"
@@ -714,7 +719,7 @@ function NetworkScene({
             </div>
           </div>
 
-          <div className="mt-6 xl:mt-auto">
+          <div className="mt-6 hidden xl:mt-auto xl:block">
             <SceneText slide={slide} compact className="max-w-[420px] xl:mb-16" />
           </div>
         </div>
@@ -732,8 +737,8 @@ function BuyerScene({
 }) {
   return (
     <Stage>
-      <div className="grid h-full grid-cols-[220px_minmax(0,1fr)]">
-        <div className="border-r bg-white px-4 py-6">
+      <div className="grid min-h-full grid-cols-1 xl:h-full xl:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="hidden border-r bg-white px-4 py-6 xl:block">
           <div className="text-lg font-bold text-[#234c4b]">PMG Metales</div>
           <div className="mt-1 text-xs text-[#7b8b84]">Dashboard comprador</div>
           <div className="mt-6 grid gap-2 text-sm">
@@ -750,7 +755,7 @@ function BuyerScene({
           </div>
         </div>
 
-        <div className="relative bg-[#f7f8fb] px-8 py-8">
+        <div className="relative bg-[#f7f8fb] px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8">
           <ProcessTrack activeIndex={5} />
 
           <div className="mt-8">
@@ -805,7 +810,7 @@ function BuyerScene({
             </div>
 
             <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-end">
-              <div className="overflow-hidden rounded-lg border bg-white">
+              <div className="order-2 overflow-hidden rounded-lg border bg-white xl:order-1">
                 <div className="border-b px-4 py-3 text-sm font-medium text-[#17322f]">Últimas 5 compras</div>
                 <div className="grid gap-0">
                   {demoPurchaseRows.slice(0, 5).map((row, index) => (
@@ -825,7 +830,7 @@ function BuyerScene({
                 </div>
               </div>
 
-              <SceneText slide={slide} className="w-full" />
+              <SceneText slide={slide} className="order-1 w-full xl:order-2" />
             </div>
           </div>
         </div>
@@ -843,8 +848,8 @@ function CampaignScene({
 }) {
   return (
     <Stage>
-      <div className="grid h-full grid-cols-[240px_minmax(0,1fr)]">
-        <div className="border-r bg-white px-4 py-6">
+      <div className="grid min-h-full grid-cols-1 xl:h-full xl:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="hidden border-r bg-white px-4 py-6 xl:block">
           <div className="text-lg font-bold text-[#234c4b]">PMG Metales</div>
           <div className="mt-1 text-xs text-[#7b8b84]">Dashboard administrador</div>
           <div className="mt-6 grid gap-2 text-sm">
@@ -861,7 +866,7 @@ function CampaignScene({
           </div>
         </div>
 
-        <div className="relative bg-[#f7f8fb] px-8 py-8">
+        <div className="relative bg-[#f7f8fb] px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8">
           <ProcessTrack activeIndex={6} />
 
           <div className="mt-8 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
@@ -940,7 +945,7 @@ function CampaignScene({
             </div>
           </div>
 
-          <SceneText slide={slide} className="absolute bottom-24 left-8 w-[360px]" />
+          <SceneText slide={slide} className="mt-6 w-full max-w-[420px] xl:absolute xl:bottom-24 xl:left-8 xl:mt-0 xl:w-[360px]" />
         </div>
       </div>
     </Stage>
@@ -956,8 +961,8 @@ function MemoryScene({
 }) {
   return (
     <Stage>
-      <div className="grid h-full grid-cols-1 bg-[#f7f8fb] lg:grid-cols-[0.58fr_0.42fr]">
-        <div className="relative border-b bg-white px-8 py-8 lg:border-b-0 lg:border-r lg:px-10">
+      <div className="grid min-h-full grid-cols-1 bg-[#f7f8fb] xl:h-full xl:grid-cols-[0.58fr_0.42fr]">
+        <div className="order-2 relative border-b bg-white px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8 xl:order-1 xl:border-b-0 xl:border-r xl:px-10">
           <ProcessTrack activeIndex={6} />
 
           <div className="mt-8 grid gap-5">
@@ -1022,7 +1027,7 @@ function MemoryScene({
           </div>
         </div>
 
-        <div className="bg-[#f7f8fb] px-8 py-8">
+        <div className="order-1 bg-[#f7f8fb] px-4 py-5 sm:px-6 sm:py-6 md:px-8 md:py-8 xl:order-2">
           <motion.div
             initial={false}
             animate={{
@@ -1066,7 +1071,7 @@ function ClosingScene({
   return (
     <Stage dark>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(35,76,75,0.28),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(254,216,53,0.08),transparent_26%)]" />
-      <div className="relative flex h-full flex-col px-8 py-8 md:px-12 md:py-10">
+      <div className="relative flex min-h-full flex-col px-5 py-6 sm:px-7 sm:py-7 md:px-10 md:py-9 xl:h-full xl:px-12 xl:py-10">
         <ProcessTrack activeIndex={6} dark />
 
         <div className="mt-8 grid flex-1 gap-5 xl:grid-cols-[1.05fr_0.95fr]">
@@ -1113,7 +1118,7 @@ function ClosingScene({
           </div>
 
           <div className="relative flex flex-col justify-center overflow-hidden rounded-lg bg-[linear-gradient(180deg,rgba(26,59,54,0.42),rgba(19,28,25,0.18)_48%,rgba(16,22,20,0))] px-4 py-6">
-            <div className="relative mb-8 flex min-h-[148px] items-center justify-center">
+            <div className="relative mb-6 flex min-h-[120px] items-center justify-center md:mb-8 md:min-h-[148px]">
               <div className="absolute top-1/2 h-20 w-64 -translate-y-1/2 rounded-full bg-[#2a5953]/38 blur-3xl" />
               <img
                 src="/images/Logos/pmg-logo-wordmark-desktop.svg"
@@ -1126,7 +1131,7 @@ function ClosingScene({
               initial={false}
               animate={{ opacity: active ? 1 : 0.76, y: active ? 0 : 10 }}
               transition={{ duration: 0.4, delay: 0.08 }}
-              className="mt-8 max-w-xl text-[40px] font-semibold leading-[0.98] tracking-[-0.05em] text-white md:text-[58px]"
+              className="mt-6 max-w-xl text-[32px] font-semibold leading-[1] tracking-[-0.05em] text-white sm:text-[38px] md:mt-8 md:text-[58px]"
             >
               La empresa está viva. La interfaz solo la hace visible.
             </motion.p>
@@ -1170,7 +1175,7 @@ function TechnologyScene({
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,14,12,0.74)_0%,rgba(9,17,15,0.68)_30%,rgba(10,18,16,0.44)_56%,rgba(10,18,16,0.18)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_42%,rgba(44,89,81,0.10),transparent_34%),radial-gradient(circle_at_72%_22%,rgba(255,255,255,0.08),transparent_28%)]" />
 
-      <div className="relative flex h-full flex-col px-8 py-8 md:px-12 md:py-10">
+      <div className="relative flex min-h-full flex-col px-5 py-6 sm:px-7 sm:py-7 md:px-10 md:py-9 xl:h-full xl:px-12 xl:py-10">
         <div className="flex items-start justify-between gap-6">
           <img
             src="/images/Logos/pmg-logo-wordmark-desktop.svg"
@@ -1189,7 +1194,7 @@ function TechnologyScene({
               animate={{ opacity: active ? 1 : 0.84, y: active ? 0 : 10 }}
               transition={{ duration: 0.35 }}
             >
-              <h2 className="max-w-[640px] text-[52px] font-semibold leading-[0.96] tracking-[-0.06em] text-white md:text-[66px]">
+              <h2 className="max-w-[640px] text-[36px] font-semibold leading-[0.98] tracking-[-0.06em] text-white sm:text-[44px] md:text-[54px] xl:text-[66px]">
                 <span className="block">Adicional a la compra</span>
                 <span className="block">de catalizadores</span>
                 <span className="mt-3 block text-[#6fa992]">
@@ -1202,7 +1207,7 @@ function TechnologyScene({
               initial={false}
               animate={{ opacity: active ? 1 : 0.82, y: active ? 0 : 10 }}
               transition={{ duration: 0.4, delay: 0.06 }}
-              className="grid max-w-[640px] gap-5 rounded-lg border border-white/10 bg-black/16 px-5 py-5 text-[17px] leading-8 text-white [text-shadow:0_1px_14px_rgba(0,0,0,0.38)]"
+              className="grid max-w-[640px] gap-5 rounded-lg border border-white/10 bg-black/16 px-4 py-4 text-[15px] leading-7 text-white [text-shadow:0_1px_14px_rgba(0,0,0,0.38)] sm:px-5 sm:py-5 sm:text-[17px] sm:leading-8"
             >
               <p>
                 Panamá también presenta una oportunidad importante en el mercado de tarjetas electrónicas y materiales tecnológicos con valor recuperable.
@@ -1212,7 +1217,7 @@ function TechnologyScene({
               </p>
             </motion.div>
 
-            <div className="grid max-w-[640px] gap-4 pt-2 md:grid-cols-3">
+            <div className="grid max-w-[640px] gap-4 pt-2 sm:grid-cols-2 md:grid-cols-3">
               {cards.map((card, index) => {
                 const Icon = card.icon;
                 return (
@@ -1250,31 +1255,31 @@ function GrowthScene({
       title: "Infraestructura operativa",
       copy: "Procesos preparados para aumentar el volumen de operación.",
       icon: Factory,
-      className: "col-start-2 row-start-1 justify-self-center",
+      className: "md:col-start-2 md:row-start-1 md:justify-self-center",
     },
     {
       title: "Tecnología y datos",
       copy: "Información centralizada y trazabilidad en tiempo real.",
       icon: Cpu,
-      className: "col-start-1 row-start-2 justify-self-end",
+      className: "md:col-start-1 md:row-start-2 md:justify-self-end",
     },
     {
       title: "Red comercial",
       copy: "Proveedores, compradores y aliados trabajando dentro de una misma plataforma.",
       icon: Building2,
-      className: "col-start-3 row-start-2 justify-self-start",
+      className: "md:col-start-3 md:row-start-2 md:justify-self-start",
     },
     {
       title: "Expansión regional",
       copy: "Panamá como plataforma estratégica para nuevos mercados y oportunidades.",
       icon: Globe2,
-      className: "col-start-1 row-start-3 justify-self-end",
+      className: "md:col-start-1 md:row-start-3 md:justify-self-end",
     },
     {
       title: "Crecimiento sostenible",
       copy: "Escalamos manteniendo el control operativo, la trazabilidad y la calidad del servicio.",
       icon: Leaf,
-      className: "col-start-3 row-start-3 justify-self-start",
+      className: "md:col-start-3 md:row-start-3 md:justify-self-start",
     },
   ];
 
@@ -1289,7 +1294,7 @@ function GrowthScene({
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(250,252,251,0.95)_0%,rgba(250,252,251,0.93)_34%,rgba(250,252,251,0.82)_56%,rgba(250,252,251,0.52)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(255,255,255,0.86),transparent_24%),radial-gradient(circle_at_72%_26%,rgba(91,152,130,0.12),transparent_20%)]" />
 
-      <div className="relative grid h-full grid-cols-1 gap-8 px-8 py-8 md:px-12 md:py-10 xl:grid-cols-[minmax(340px,0.4fr)_minmax(0,0.6fr)] xl:items-stretch">
+      <div className="relative grid min-h-full grid-cols-1 gap-8 px-5 py-6 sm:px-7 sm:py-7 md:px-10 md:py-9 xl:h-full xl:grid-cols-[minmax(340px,0.4fr)_minmax(0,0.6fr)] xl:items-stretch xl:px-12 xl:py-10">
         <div className="flex h-full flex-col">
           <img
             src="/images/Logos/pmg-logo-wordmark-desktop.svg"
@@ -1307,16 +1312,16 @@ function GrowthScene({
             transition={{ duration: 0.4 }}
             className="mt-6 max-w-[520px]"
           >
-            <h2 className="text-[56px] font-semibold leading-[0.95] tracking-[-0.06em] text-[#102826] md:text-[74px]">
+            <h2 className="text-[38px] font-semibold leading-[0.98] tracking-[-0.06em] text-[#102826] sm:text-[46px] md:text-[58px] xl:text-[74px]">
               <span className="block">Estamos listos</span>
               <span className="mt-2 block text-[#5f997f]">para expandirnos</span>
               <span className="block text-[#5f997f]">y crecer juntos.</span>
             </h2>
 
-            <p className="mt-8 max-w-[480px] text-[19px] leading-8 text-[#314b46]">
+            <p className="mt-6 max-w-[480px] text-[17px] leading-7 text-[#314b46] md:mt-8 md:text-[19px] md:leading-8">
               {slide.summary}
             </p>
-            <p className="mt-6 max-w-[500px] text-[17px] leading-8 text-[#516a64]">
+            <p className="mt-5 max-w-[500px] text-[15px] leading-7 text-[#516a64] md:mt-6 md:text-[17px] md:leading-8">
               {slide.paragraphs?.[0]}
             </p>
           </motion.div>
@@ -1343,16 +1348,16 @@ function GrowthScene({
           </motion.div>
         </div>
 
-        <div className="relative flex min-h-[640px] items-center justify-center overflow-hidden rounded-[28px] border border-white/50 bg-white/24 px-6 py-10 shadow-[0_20px_50px_rgba(21,44,39,0.08)] backdrop-blur-[3px]">
-          <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#dfe8e3]" />
-          <div className="absolute left-1/2 top-1/2 h-[470px] w-[470px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e8efeb]" />
-          <div className="absolute left-1/2 top-[15%] h-[17%] w-px -translate-x-1/2 bg-[linear-gradient(180deg,rgba(95,153,127,0),rgba(95,153,127,0.45),rgba(95,153,127,0))]" />
-          <div className="absolute left-[16%] top-1/2 h-px w-[21%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
-          <div className="absolute right-[16%] top-1/2 h-px w-[21%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
-          <div className="absolute left-[34%] top-[59%] h-px w-[19%] origin-left rotate-[38deg] bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
-          <div className="absolute right-[34%] top-[59%] h-px w-[19%] origin-right -rotate-[38deg] bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
+        <div className="relative flex min-h-[560px] items-center justify-center overflow-hidden rounded-[24px] border border-white/50 bg-white/24 px-4 py-6 shadow-[0_20px_50px_rgba(21,44,39,0.08)] backdrop-blur-[3px] sm:min-h-[640px] sm:px-6 sm:py-10 xl:rounded-[28px]">
+          <div className="absolute left-1/2 top-1/2 hidden h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#dfe8e3] md:block" />
+          <div className="absolute left-1/2 top-1/2 hidden h-[470px] w-[470px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e8efeb] md:block" />
+          <div className="absolute left-1/2 top-[15%] hidden h-[17%] w-px -translate-x-1/2 bg-[linear-gradient(180deg,rgba(95,153,127,0),rgba(95,153,127,0.45),rgba(95,153,127,0))] md:block" />
+          <div className="absolute left-[16%] top-1/2 hidden h-px w-[21%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))] md:block" />
+          <div className="absolute right-[16%] top-1/2 hidden h-px w-[21%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))] md:block" />
+          <div className="absolute left-[34%] top-[59%] hidden h-px w-[19%] origin-left rotate-[38deg] bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))] md:block" />
+          <div className="absolute right-[34%] top-[59%] hidden h-px w-[19%] origin-right -rotate-[38deg] bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))] md:block" />
 
-          <div className="relative grid w-full max-w-[860px] grid-cols-[1fr_280px_1fr] grid-rows-[auto_300px_auto] items-center gap-x-8 gap-y-9">
+          <div className="relative grid w-full max-w-[860px] grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-[1fr_280px_1fr] md:grid-rows-[auto_300px_auto] md:items-center md:gap-x-8 md:gap-y-9">
             {capabilities.map((capability, index) => {
               const Icon = capability.icon;
 
@@ -1362,7 +1367,7 @@ function GrowthScene({
                   initial={false}
                   animate={{ opacity: active ? 1 : 0.82, y: active ? 0 : 12 }}
                   transition={{ duration: 0.38, delay: active ? 0.06 * index : 0 }}
-                  className={`${capability.className} w-full max-w-[238px] rounded-2xl border border-[#dce7e1] bg-white/90 p-5 shadow-[0_14px_30px_rgba(18,40,38,0.08)]`}
+                  className={`${capability.className} w-full rounded-2xl border border-[#dce7e1] bg-white/90 p-4 shadow-[0_14px_30px_rgba(18,40,38,0.08)] sm:max-w-[238px] sm:p-5`}
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#5f997f]/12">
                     <Icon className="h-5 w-5 text-[#5f997f]" />
@@ -1381,7 +1386,7 @@ function GrowthScene({
               initial={false}
               animate={{ opacity: active ? 1 : 0.86, scale: active ? 1 : 0.98 }}
               transition={{ duration: 0.45 }}
-              className="col-start-2 row-start-2 flex h-[280px] w-[280px] flex-col items-center justify-center rounded-full border border-[#d7e5de] bg-white/94 text-center shadow-[0_20px_40px_rgba(18,40,38,0.10)]"
+              className="order-first mx-auto flex h-[220px] w-[220px] flex-col items-center justify-center rounded-full border border-[#d7e5de] bg-white/94 text-center shadow-[0_20px_40px_rgba(18,40,38,0.10)] sm:h-[250px] sm:w-[250px] md:col-start-2 md:row-start-2 md:h-[280px] md:w-[280px]"
             >
               <div className="text-[54px] font-semibold tracking-[-0.05em] text-[#234c4b]">
                 PMG
@@ -1441,9 +1446,9 @@ function SlideSection({
     <motion.div
       initial={false}
       animate={{ opacity: active ? 1 : 0.85 }}
-      className="min-h-[100svh] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8"
+      className="min-h-[100svh] overflow-x-hidden px-3 py-3 pb-28 sm:px-4 sm:py-4 sm:pb-28 md:px-5 md:py-5 md:pb-28 xl:px-8 xl:py-8 xl:pb-8"
     >
-      <div className="mx-auto flex h-[calc(100svh-2rem)] max-w-[1560px] flex-col">
+      <div className="mx-auto flex min-h-[calc(100svh-8rem)] max-w-[1560px] flex-col xl:h-[calc(100svh-2rem)] xl:min-h-0">
         <TopBar slide={slide} active={active} />
         {renderScene(slide, active, mapClients)}
       </div>
@@ -1515,7 +1520,7 @@ export default function PresentationDeck({
 
   return (
     <div className="relative h-[100svh] overflow-hidden bg-[#edf1ee] text-[#17322f]">
-      <div ref={containerRef} className="h-full snap-y snap-mandatory overflow-y-auto scroll-smooth">
+      <div ref={containerRef} className="h-full overflow-x-hidden overflow-y-auto scroll-smooth xl:snap-y xl:snap-mandatory">
         {deckSlides.map((slide, index) => (
           <section
             key={slide.id}
@@ -1534,33 +1539,33 @@ export default function PresentationDeck({
         ))}
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 px-4">
-        <div className="pointer-events-auto mx-auto flex max-w-[1320px] items-center justify-between gap-3 rounded-lg border border-[#d7dfdb] bg-white/95 px-4 py-3 shadow-[0_8px_24px_rgba(22,44,39,0.10)]">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-[#15312e]">{deckSlides[activeIndex]?.title}</p>
+      <div className="pointer-events-none fixed inset-x-0 bottom-3 z-20 px-3 sm:bottom-4 sm:px-4">
+        <div className="pointer-events-auto mx-auto flex max-w-[1320px] items-center justify-between gap-3 rounded-lg border border-[#d7dfdb] bg-white/95 px-3 py-3 shadow-[0_8px_24px_rgba(22,44,39,0.10)] sm:px-4">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-[#15312e]">{deckSlides[activeIndex]?.title}</p>
             <p className="text-xs text-[#60746d]">
               {String(activeIndex + 1).padStart(2, "0")} / {String(deckSlides.length).padStart(2, "0")}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-lg border-[#d7dfdb] bg-white px-4 text-[#15312e] hover:bg-[#eff4f1]"
+              className="h-10 rounded-lg border-[#d7dfdb] bg-white px-3 text-[#15312e] hover:bg-[#eff4f1] sm:px-4"
               onClick={() => goToSlide(activeIndex - 1)}
               disabled={activeIndex === 0}
             >
               <ArrowLeft className="h-4 w-4" />
-              Anterior
+              <span className="hidden sm:inline">Anterior</span>
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-lg bg-[#234c4b] px-4 text-white hover:bg-[#1d3d39]"
+              className="h-10 rounded-lg bg-[#234c4b] px-3 text-white hover:bg-[#1d3d39] sm:px-4"
               onClick={() => goToSlide(activeIndex + 1)}
               disabled={activeIndex === deckSlides.length - 1}
             >
-              Siguiente
+              <span className="hidden sm:inline">Siguiente</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
