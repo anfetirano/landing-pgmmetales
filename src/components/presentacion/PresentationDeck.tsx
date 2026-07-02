@@ -1102,12 +1102,12 @@ function ClosingScene({
           </div>
 
           <div className="relative flex flex-col justify-center overflow-hidden rounded-lg bg-[linear-gradient(180deg,rgba(26,59,54,0.42),rgba(19,28,25,0.18)_48%,rgba(16,22,20,0))] px-4 py-6">
-            <div className="relative mb-6 flex justify-center">
-              <div className="absolute top-1/2 h-16 w-52 -translate-y-1/2 rounded-full bg-[#2a5953]/34 blur-3xl" />
+            <div className="relative mb-8 flex min-h-[148px] items-center justify-center">
+              <div className="absolute top-1/2 h-20 w-64 -translate-y-1/2 rounded-full bg-[#2a5953]/38 blur-3xl" />
               <img
                 src="/images/Logos/pmg-logo-wordmark-desktop.svg"
                 alt="PMG Metales"
-                className="relative h-12 w-auto opacity-100 md:h-14"
+                className="relative h-14 w-auto opacity-100 md:h-[72px]"
               />
             </div>
             <SceneText slide={slide} dark className="border-white/10 bg-[#101614]/92 shadow-none" />
