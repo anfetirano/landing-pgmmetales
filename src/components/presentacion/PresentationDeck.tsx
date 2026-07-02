@@ -6,11 +6,14 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
+  BarChart3,
   ChevronDown,
   CircleDot,
+  Cpu,
   FolderKanban,
   MapPin,
   MessageCircle,
+  Recycle,
   Route,
   ShoppingCart,
   Wallet,
@@ -44,6 +47,7 @@ type DeckVisualKey =
   | "buyers"
   | "campaigns"
   | "database"
+  | "technology"
   | "closing";
 
 type DeckSlide = PresentationSlide & { visual: DeckVisualKey };
@@ -58,6 +62,7 @@ const visualIcons = {
   buyers: Wallet,
   campaigns: MessageCircle,
   database: MapPin,
+  technology: Cpu,
   closing: Waypoints,
 };
 
@@ -1126,6 +1131,105 @@ function ClosingScene({
   );
 }
 
+function TechnologyScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  const cards = [
+    {
+      title: "Tarjetas electrónicas",
+      icon: Cpu,
+    },
+    {
+      title: "Desechos electrónicos",
+      icon: Recycle,
+    },
+    {
+      title: "Oportunidad para Panamá",
+      icon: BarChart3,
+    },
+  ];
+
+  return (
+    <Stage dark>
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/images/fondopre.png')" }}
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,14,12,0.92)_0%,rgba(9,17,15,0.84)_34%,rgba(10,18,16,0.62)_58%,rgba(10,18,16,0.34)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_42%,rgba(44,89,81,0.14),transparent_32%),radial-gradient(circle_at_72%_22%,rgba(255,255,255,0.06),transparent_26%)]" />
+
+      <div className="relative flex h-full flex-col px-8 py-8 md:px-12 md:py-10">
+        <div className="flex items-start justify-between gap-6">
+          <img
+            src="/images/Logos/pmg-logo-wordmark-desktop.svg"
+            alt="PMG Metales"
+            className="h-12 w-auto opacity-95 md:h-14"
+          />
+          <div className="text-sm text-white/60">
+            {slide.step} / {String(deckSlides.length).padStart(2, "0")}
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center">
+          <div className="grid max-w-[760px] gap-8">
+            <motion.div
+              initial={false}
+              animate={{ opacity: active ? 1 : 0.84, y: active ? 0 : 10 }}
+              transition={{ duration: 0.35 }}
+            >
+              <h2 className="max-w-[640px] text-[52px] font-semibold leading-[0.96] tracking-[-0.06em] text-white md:text-[66px]">
+                <span className="block">Adicional a la compra</span>
+                <span className="block">de catalizadores</span>
+                <span className="mt-3 block text-[#6fa992]">
+                  consideramos a Panamá con un gran potencial para la tarjeta electrónica.
+                </span>
+              </h2>
+            </motion.div>
+
+            <motion.div
+              initial={false}
+              animate={{ opacity: active ? 1 : 0.82, y: active ? 0 : 10 }}
+              transition={{ duration: 0.4, delay: 0.06 }}
+              className="grid max-w-[640px] gap-5 text-[17px] leading-8 text-white/82"
+            >
+              <p>
+                El crecimiento sostenible también depende de cómo gestionamos los materiales electrónicos que el mundo descarta y que hoy representan una oportunidad estratégica para el país.
+              </p>
+              <p>
+                Nuestra experiencia en metales nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y residuos tecnológicos con trazabilidad, clasificación y procesos profesionales.
+              </p>
+            </motion.div>
+
+            <div className="grid max-w-[640px] gap-4 pt-2 md:grid-cols-3">
+              {cards.map((card, index) => {
+                const Icon = card.icon;
+                return (
+                  <motion.div
+                    key={card.title}
+                    initial={false}
+                    animate={{ opacity: active ? 1 : 0.8, y: active ? 0 : 10 }}
+                    transition={{ duration: 0.35, delay: active ? 0.08 * index : 0 }}
+                    className="rounded-lg border border-white/12 bg-[#101614]/78 px-5 py-5"
+                  >
+                    <Icon className="h-7 w-7 text-[#6fa992]" />
+                    <div className="mt-4 text-[19px] font-medium leading-7 text-white">
+                      {card.title}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
 function renderScene(
   slide: DeckSlide,
   active: boolean,
@@ -1146,6 +1250,8 @@ function renderScene(
       return <CampaignScene slide={slide} active={active} />;
     case "database":
       return <MemoryScene slide={slide} active={active} />;
+    case "technology":
+      return <TechnologyScene slide={slide} active={active} />;
     case "closing":
       return <ClosingScene slide={slide} active={active} />;
     default:

@@ -308,6 +308,17 @@ export const presentacionSlides: PresentationSlide[] = [
     ],
     visual: "closing",
   },
+  {
+    id: "technology",
+    step: "09",
+    title: "Expansión a Tarjetas Electrónicas.",
+    summary:
+      "Adicional a la compra de catalizadores consideramos a Panamá con un gran potencial para la tarjeta electrónica.",
+    paragraphs: [
+      "Nuestra experiencia en metales nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y residuos tecnológicos con trazabilidad, clasificación y procesos profesionales.",
+    ],
+    visual: "technology",
+  },
 ];
 
 export const demoMapClients: DemoMapClient[] = (() => {
