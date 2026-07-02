@@ -1,5 +1,3 @@
-import panamaLotSnapshot from "../../tmp-lot1-all-buyers-before-2026-06-15.json";
-
 export type PresentationVisualKey =
   | "intro"
   | "control"
@@ -77,17 +75,94 @@ export type DemoElectronicsRow = {
   status: string;
 };
 
-type PanamaLotSnapshotRow = {
-  client?: string | null;
-};
-
-const panamaPresentationSnapshot = panamaLotSnapshot as {
-  rows: PanamaLotSnapshotRow[];
-};
-
-const panamaClientNameCollator = new Intl.Collator("es", {
-  sensitivity: "base",
-});
+const panamaProviderNames = [
+  "5 hermano",
+  "5 hermanos",
+  "Aaron",
+  "AJ service",
+  "Alberto mecanico",
+  "Almacar",
+  "Alvaro",
+  "Amilcar",
+  "Ancon cars",
+  "Anthony taller",
+  "Asia center",
+  "Aurelio",
+  "Auto",
+  "Auto Advance",
+  "Auto center Pacora",
+  "AutoPartes Juan diaz",
+  "Autoservicio",
+  "Autoservicio cruce",
+  "Autozen",
+  "Carlos rastreria",
+  "Ce car services",
+  "Chapistería la pulida",
+  "Cheaper",
+  "Chilibre",
+  "Cholo taller",
+  "Cliente sin nombre",
+  "Clientecolon",
+  "Compraventa",
+  "David car Center",
+  "El blueprints",
+  "El progreso",
+  "Estrella de oro",
+  "Euro rastro",
+  "Felipe rodriguez",
+  "Gabriel",
+  "Geovani",
+  "Guillermo Juan Díaz",
+  "Gustavo taller",
+  "Itsmo llantas",
+  "Jesús tallerr",
+  "Juan diaz",
+  "Lemans cars",
+  "Luis pueblo nuevo",
+  "Maxcenter",
+  "Mechanical workshop",
+  "Melvin",
+  "Miguel soldador",
+  "Milton soldador",
+  "Milton soldadura",
+  "Multiservicios",
+  "Nelson",
+  "No cliente",
+  "Nueva era",
+  "Online",
+  "Papa",
+  "Personal",
+  "Polo serviauto",
+  "Rastro autopartes",
+  "Rastro la esperanza",
+  "Rastro linin",
+  "Rastro vacamonte",
+  "Rastro507",
+  "Rodrigo",
+  "Servicentro el gigante",
+  "Servicentro vicente",
+  "Servicio ricardo",
+  "Servioeste",
+  "Silenciadores Colon",
+  "Soldadura",
+  "Soldadura taller",
+  "Sparks motors",
+  "Taller bonilla",
+  "Taller bosa",
+  "Taller central",
+  "Taller chu",
+  "Taller DF",
+  "Taller el Cruze",
+  "Taller general",
+  "Taller JE",
+  "Taller kam",
+  "Taller leo",
+  "Taller río abajo",
+  "Taller roberto",
+  "Taller romo",
+  "Taller san Vicente",
+  "Wilmer rastro",
+];
 
 const panamaZoneCenters = {
   "Panamá Metro": [8.99, -79.519] as [number, number],
@@ -234,12 +309,6 @@ export const presentacionSlides: PresentationSlide[] = [
     visual: "closing",
   },
 ];
-
-const panamaProviderNames = [...new Set(
-  panamaPresentationSnapshot.rows
-    .map((row) => row.client?.trim())
-    .filter((value): value is string => Boolean(value))
-)].sort((a, b) => panamaClientNameCollator.compare(a, b));
 
 export const demoMapClients: DemoMapClient[] = (() => {
   const zoneCounts = new Map<PanamaPresentationZone, number>();
