@@ -1155,12 +1155,14 @@ function TechnologyScene({
 
   return (
     <Stage dark>
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/fondopre.png')" }}
+      <img
+        src="/images/fondopre.png"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,14,12,0.92)_0%,rgba(9,17,15,0.84)_34%,rgba(10,18,16,0.62)_58%,rgba(10,18,16,0.34)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_42%,rgba(44,89,81,0.14),transparent_32%),radial-gradient(circle_at_72%_22%,rgba(255,255,255,0.06),transparent_26%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,14,12,0.74)_0%,rgba(9,17,15,0.68)_30%,rgba(10,18,16,0.44)_56%,rgba(10,18,16,0.18)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_42%,rgba(44,89,81,0.10),transparent_34%),radial-gradient(circle_at_72%_22%,rgba(255,255,255,0.08),transparent_28%)]" />
 
       <div className="relative flex h-full flex-col px-8 py-8 md:px-12 md:py-10">
         <div className="flex items-start justify-between gap-6">
