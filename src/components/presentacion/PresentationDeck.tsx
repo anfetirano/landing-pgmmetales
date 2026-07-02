@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -615,69 +615,97 @@ function NetworkScene({
   slide: DeckSlide;
   active: boolean;
 }) {
+  const [activeZone, setActiveZone] = useState("Todas");
+  const zones = useMemo(
+    () => ["Todas", ...new Set(demoMapClients.map((client) => client.zone ?? "Panamá Metro"))],
+    []
+  );
+  const filteredMapClients = useMemo(
+    () =>
+      activeZone === "Todas"
+        ? demoMapClients
+        : demoMapClients.filter((client) => client.zone === activeZone),
+    [activeZone]
+  );
+  const filteredCommercialRows = useMemo(
+    () =>
+      activeZone === "Todas"
+        ? demoCommercialRows
+        : demoCommercialRows.filter((row) => row.zone === activeZone),
+    [activeZone]
+  );
+
   return (
     <Stage>
       <div className="grid h-full grid-cols-1 bg-[#f7f8fb] xl:grid-cols-[minmax(0,0.42fr)_minmax(360px,0.58fr)]">
         <div className="border-b bg-white px-8 py-8 xl:border-b-0 xl:border-r xl:px-10">
           <ProcessTrack activeIndex={4} />
 
-          <div className="mt-8 rounded-lg border bg-white">
-            <div className="border-b px-4 py-3 text-sm text-[#7b8b84]">
-              Clientes y oportunidades comerciales
+          <div className="mt-8 overflow-hidden rounded-lg border bg-white">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div className="text-sm font-medium text-[#17322f]">Base comercial PMG</div>
+              <div className="text-xs text-[#60746d]">{filteredCommercialRows.length} proveedores visibles</div>
             </div>
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#f7f8fb] text-[#60746d]">
-                <tr>
-                  <th className="px-4 py-3">Nombre</th>
-                  <th className="px-4 py-3">Zona</th>
-                  <th className="px-4 py-3">Comprador</th>
-                </tr>
-              </thead>
-              <tbody>
-                {demoCommercialRows.slice(0, 12).map((row, index) => (
-                  <tr key={row.name} className={index === 0 ? "bg-[#edf4f1]" : "border-t"}>
-                    <td className="px-4 py-2.5 font-medium text-[#17322f]">{row.name}</td>
-                    <td className="px-4 py-2.5">{row.zone}</td>
-                    <td className="px-4 py-2.5">{row.buyer}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="flex gap-2 overflow-x-auto border-b px-4 py-3">
+              {zones.map((zone) => (
+                <button
+                  key={zone}
+                  type="button"
+                  onClick={() => setActiveZone(zone)}
+                  className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
+                    activeZone === zone
+                      ? "border-[#234c4b] bg-[#edf4f1] text-[#17322f]"
+                      : "border-[#d7dfdb] bg-white text-[#60746d]"
+                  }`}
+                >
+                  {zone}
+                </button>
+              ))}
+            </div>
+            <div className="max-h-[540px] overflow-y-auto">
+              {filteredCommercialRows.map((row, index) => (
+                <div
+                  key={`${row.name}-${index}`}
+                  className={`border-b px-4 py-3 last:border-b-0 ${index === 0 ? "bg-[#f7fbfa]" : "bg-white"}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[#17322f]">{row.name}</div>
+                      <div className="mt-1 text-xs text-[#60746d]">
+                        {row.zone} · {row.status} · {row.history}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-xs font-medium text-[#38514b]">{row.buyer}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <FocusChip
-            title="La base ya lo recuerda"
-            detail="El proveedor queda conectado a zona, comprador e historial."
-            className="mt-6 max-w-[290px]"
-          />
+          <div className="mt-6 rounded-lg border bg-[#fbfcfc] px-4 py-4 text-sm text-[#4f635d]">
+            La lista mantiene solo una fracción visible, pero la escena carga la base completa para que el CRM se sienta activo y continuo.
+          </div>
         </div>
 
         <div className="flex h-full flex-col bg-[#f7f8fb] px-8 py-8">
           <div className="rounded-lg border bg-white p-4">
-            <div className="mb-4 text-sm text-[#7b8b84]">Mapa de Panamá y seguimiento por zona</div>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-medium text-[#17322f]">Mapa de Panamá y seguimiento por zona</div>
+                <div className="mt-1 text-xs text-[#60746d]">
+                  {filteredMapClients.length} puntos activos {activeZone === "Todas" ? "en la red" : `en ${activeZone}`}
+                </div>
+              </div>
+              <div className="rounded-md border bg-[#f7fbfa] px-3 py-2 text-xs text-[#38514b]">
+                Clustering activo
+              </div>
+            </div>
             <div className="relative h-[420px] overflow-hidden rounded-md border md:h-[520px]">
               <ClientsMap
-                clients={demoMapClients}
+                clients={filteredMapClients}
                 tenantKey="pa"
                 heightClassName="h-full w-full"
                 showFullscreenToggle={false}
-              />
-
-              <motion.div
-                animate={{ scale: active ? [1, 1.22, 1] : 1, opacity: active ? [0.6, 0.15, 0.6] : 0.4 }}
-                transition={{ duration: 2.4, repeat: Infinity }}
-                className="absolute left-[54%] top-[39%] h-16 w-16 rounded-full border-2 border-[#234c4b] bg-[#234c4b]/10"
-              />
-              <motion.div
-                animate={{ scale: active ? [1, 1.18, 1] : 1, opacity: active ? [0.6, 0.12, 0.6] : 0.4 }}
-                transition={{ duration: 2.1, repeat: Infinity, delay: 0.45 }}
-                className="absolute left-[30%] top-[58%] h-12 w-12 rounded-full border-2 border-[#FED835] bg-[#FED835]/18"
-              />
-
-              <FocusChip
-                title="Panamá Metro"
-                detail="Aquí se concentra la mayor continuidad comercial."
-                className="absolute left-4 top-4 max-w-[230px]"
               />
             </div>
           </div>
@@ -1080,7 +1108,15 @@ function ClosingScene({
             </div>
           </div>
 
-          <div className="flex flex-col justify-center">
+          <div className="relative flex flex-col justify-center overflow-hidden rounded-lg bg-[linear-gradient(180deg,rgba(35,76,75,0.22),rgba(16,22,20,0.04)_48%,rgba(16,22,20,0))] px-4 py-6">
+            <div className="relative mb-6 flex justify-center">
+              <div className="absolute top-1/2 h-10 w-36 -translate-y-1/2 rounded-full bg-[#2a5953]/25 blur-2xl" />
+              <img
+                src="/images/Logos/pmg-logo-wordmark-desktop.svg"
+                alt="PMG Metales"
+                className="relative h-7 w-auto opacity-90"
+              />
+            </div>
             <SceneText slide={slide} dark className="border-white/10 bg-[#101614]/92 shadow-none" />
             <motion.p
               initial={false}

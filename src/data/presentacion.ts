@@ -1,3 +1,5 @@
+import panamaLotSnapshot from "../../tmp-lot1-all-buyers-before-2026-06-15.json";
+
 export type PresentationVisualKey =
   | "intro"
   | "control"
@@ -23,6 +25,7 @@ export type PresentationSlide = {
 export type DemoMapClient = {
   _id: string;
   name: string;
+  zone?: string;
   contactName?: string;
   buyerName?: string;
   phone?: string;
@@ -73,6 +76,79 @@ export type DemoElectronicsRow = {
   material: string;
   status: string;
 };
+
+type PanamaLotSnapshotRow = {
+  client?: string | null;
+};
+
+const panamaPresentationSnapshot = panamaLotSnapshot as {
+  rows: PanamaLotSnapshotRow[];
+};
+
+const panamaClientNameCollator = new Intl.Collator("es", {
+  sensitivity: "base",
+});
+
+const panamaZoneCenters = {
+  "Panamá Metro": [8.99, -79.519] as [number, number],
+  "Río Abajo": [9.006, -79.482] as [number, number],
+  "Juan Díaz": [9.016, -79.449] as [number, number],
+  Tocumen: [9.079, -79.385] as [number, number],
+  "Panamá Este": [9.086, -79.289] as [number, number],
+  Arraiján: [8.97, -79.68] as [number, number],
+  "Panamá Norte": [9.155, -79.618] as [number, number],
+  Colón: [9.36, -79.9] as [number, number],
+} as const;
+
+type PanamaPresentationZone = keyof typeof panamaZoneCenters;
+
+function inferPanamaPresentationZone(name: string): PanamaPresentationZone {
+  const normalized = name.toLowerCase();
+
+  if (normalized.includes("col")) return "Colón";
+  if (normalized.includes("chilibre")) return "Panamá Norte";
+  if (
+    normalized.includes("vacamonte") ||
+    normalized.includes("servioeste") ||
+    normalized.includes("oeste") ||
+    normalized.includes("5 hermano")
+  ) {
+    return "Arraiján";
+  }
+  if (normalized.includes("pacora")) return "Panamá Este";
+  if (normalized.includes("tocumen") || normalized.includes("sparks")) return "Tocumen";
+  if (normalized.includes("juan diaz")) return "Juan Díaz";
+  if (
+    normalized.includes("rio abajo") ||
+    normalized.includes("gigante") ||
+    normalized.includes("servicentro")
+  ) {
+    return "Río Abajo";
+  }
+
+  return "Panamá Metro";
+}
+
+function createPresentationClient(
+  name: string,
+  index: number,
+  zoneIndex: number,
+  zone: PanamaPresentationZone
+): DemoMapClient {
+  const [baseLat, baseLng] = panamaZoneCenters[zone];
+  const latOffset = ((zoneIndex % 6) - 2.5) * 0.008 + (Math.floor(zoneIndex / 6) % 3) * 0.003;
+  const lngOffset = ((zoneIndex % 5) - 2) * 0.01 + (Math.floor(zoneIndex / 5) % 4) * 0.004;
+
+  return {
+    _id: `real-${String(index + 1).padStart(3, "0")}`,
+    name,
+    zone,
+    buyerName: zoneIndex % 3 === 1 ? "Kenny" : "Richard",
+    lat: Number((baseLat + latOffset).toFixed(4)),
+    lng: Number((baseLng + lngOffset).toFixed(4)),
+    address: `${zone}, Panamá`,
+  };
+}
 
 export const presentacionSlides: PresentationSlide[] = [
   {
@@ -153,354 +229,46 @@ export const presentacionSlides: PresentationSlide[] = [
     summary:
       "Lo importante no es la interfaz: es la empresa trabajando detrás de ella.",
     paragraphs: [
-      "No competimos por comprar una pieza más. Construimos una red de abastecimiento basada en información, relaciones comerciales y procesos.",
+      "Cada catalizador comprado alimenta una base de conocimiento. Cada registro fortalece la operación. Cada relación comercial hace crecer la empresa.",
     ],
     visual: "closing",
   },
 ];
 
-export const demoMapClients: DemoMapClient[] = [
-  {
-    _id: "cli-01",
-    name: "Taller Vía Brasil",
-    contactName: "Carlos Mena",
-    buyerName: "Richard",
-    phone: "+507 6721 9834",
-    lat: 8.9829,
-    lng: -79.5197,
-    address: "Vía Brasil, Panamá",
-    cedula: "8-912-144",
-  },
-  {
-    _id: "cli-02",
-    name: "Soldaduras Pacífico",
-    contactName: "Joel Ramos",
-    buyerName: "Richard",
-    phone: "+507 6673 1091",
-    lat: 8.9898,
-    lng: -79.5342,
-    address: "Pueblo Nuevo, Panamá",
-    cedula: "8-881-552",
-  },
-  {
-    _id: "cli-03",
-    name: "Recicladora Arraiján",
-    contactName: "Marta López",
-    buyerName: "Kenny",
-    phone: "+507 6502 6120",
-    lat: 8.9512,
-    lng: -79.6614,
-    address: "Arraiján Cabecera",
-    cedula: "8-744-281",
-  },
-  {
-    _id: "cli-04",
-    name: "Chatarrería Colón Norte",
-    contactName: "Raúl Pitti",
-    buyerName: "Kenny",
-    phone: "+507 6962 3314",
-    lat: 9.3579,
-    lng: -79.901,
-    address: "Colón",
-    cedula: "3-155-990",
-  },
-  {
-    _id: "cli-05",
-    name: "Centro de Escape Chorrera",
-    contactName: "Javier Díaz",
-    buyerName: "Richard",
-    phone: "+507 6229 5531",
-    lat: 8.8802,
-    lng: -79.7842,
-    address: "La Chorrera",
-    cedula: "8-778-310",
-  },
-  {
-    _id: "cli-06",
-    name: "Taller Tocumen Diesel",
-    contactName: "Luis Paredes",
-    buyerName: "Richard",
-    phone: "+507 6466 2012",
-    lat: 9.0789,
-    lng: -79.3847,
-    address: "Tocumen, Panamá",
-    cedula: "8-801-102",
-  },
-  {
-    _id: "cli-07",
-    name: "Repuestos San Miguelito",
-    contactName: "Diana Castillo",
-    buyerName: "Richard",
-    phone: "+507 6542 7710",
-    lat: 9.0315,
-    lng: -79.5034,
-    address: "San Miguelito, Panamá",
-    cedula: "8-623-511",
-  },
-  {
-    _id: "cli-08",
-    name: "Centro de Escape Juan Díaz",
-    contactName: "Pedro Ortega",
-    buyerName: "Richard",
-    phone: "+507 6611 8920",
-    lat: 9.0164,
-    lng: -79.4492,
-    address: "Juan Díaz, Panamá",
-    cedula: "8-709-902",
-  },
-  {
-    _id: "cli-09",
-    name: "Metalúrgica Vista Alegre",
-    contactName: "Nadia Gómez",
-    buyerName: "Kenny",
-    phone: "+507 6264 4418",
-    lat: 8.8876,
-    lng: -79.7327,
-    address: "Vista Alegre, Panamá Oeste",
-    cedula: "8-588-337",
-  },
-  {
-    _id: "cli-10",
-    name: "Patio Industrial Chilibre",
-    contactName: "Efraín Arosemena",
-    buyerName: "Kenny",
-    phone: "+507 6688 1027",
-    lat: 9.1564,
-    lng: -79.6178,
-    address: "Chilibre, Panamá Norte",
-    cedula: "8-431-775",
-  },
-  {
-    _id: "cli-11",
-    name: "Auto Center Pacora",
-    contactName: "Yadira González",
-    buyerName: "Richard",
-    phone: "+507 6554 9012",
-    lat: 9.0846,
-    lng: -79.2865,
-    address: "Pacora, Panamá Este",
-    cedula: "8-932-441",
-  },
-  {
-    _id: "cli-12",
-    name: "Autoservicio Cruce",
-    contactName: "Manuel Ríos",
-    buyerName: "Richard",
-    phone: "+507 6328 1550",
-    lat: 9.0118,
-    lng: -79.4511,
-    address: "Cerro Viento, Panamá",
-    cedula: "8-721-390",
-  },
-  {
-    _id: "cli-13",
-    name: "Taller Central",
-    contactName: "Marco Cedeño",
-    buyerName: "Kenny",
-    phone: "+507 6432 1099",
-    lat: 9.0418,
-    lng: -79.5004,
-    address: "Pueblo Nuevo, Panamá",
-    cedula: "8-654-208",
-  },
-  {
-    _id: "cli-14",
-    name: "Servicentro El Gigante",
-    contactName: "Álvaro Batista",
-    buyerName: "Richard",
-    phone: "+507 6678 4401",
-    lat: 9.0036,
-    lng: -79.4806,
-    address: "Río Abajo, Panamá",
-    cedula: "8-603-774",
-  },
-  {
-    _id: "cli-15",
-    name: "Nueva Era",
-    contactName: "Nicolás Rodríguez",
-    buyerName: "Richard",
-    phone: "+507 6548 2207",
-    lat: 8.9971,
-    lng: -79.5482,
-    address: "Bethania, Panamá",
-    cedula: "8-711-520",
-  },
-  {
-    _id: "cli-16",
-    name: "Sparks Motors",
-    contactName: "Osvaldo Gómez",
-    buyerName: "Richard",
-    phone: "+507 6389 7440",
-    lat: 9.0706,
-    lng: -79.3748,
-    address: "Tocumen, Panamá",
-    cedula: "8-843-111",
-  },
-  {
-    _id: "cli-17",
-    name: "Rastro Autopartes",
-    contactName: "Kevin Arosemena",
-    buyerName: "Kenny",
-    phone: "+507 6619 9033",
-    lat: 9.0384,
-    lng: -79.5272,
-    address: "Vía España, Panamá",
-    cedula: "8-574-920",
-  },
-  {
-    _id: "cli-18",
-    name: "Mechanical Workshop",
-    contactName: "David Price",
-    buyerName: "Richard",
-    phone: "+507 6225 1147",
-    lat: 9.0675,
-    lng: -79.4203,
-    address: "Parque Lefevre, Panamá",
-    cedula: "PE-441-90",
-  },
-  {
-    _id: "cli-19",
-    name: "Luis Pueblo Nuevo",
-    contactName: "Luis Moreno",
-    buyerName: "Richard",
-    phone: "+507 6451 8870",
-    lat: 9.0412,
-    lng: -79.4872,
-    address: "Pueblo Nuevo, Panamá",
-    cedula: "8-517-226",
-  },
-  {
-    _id: "cli-20",
-    name: "5 Hermanos",
-    contactName: "Orlando Vega",
-    buyerName: "Kenny",
-    phone: "+507 6640 3328",
-    lat: 8.9671,
-    lng: -79.6718,
-    address: "Arraiján, Panamá Oeste",
-    cedula: "8-689-510",
-  },
-];
+const panamaProviderNames = [...new Set(
+  panamaPresentationSnapshot.rows
+    .map((row) => row.client?.trim())
+    .filter((value): value is string => Boolean(value))
+)].sort((a, b) => panamaClientNameCollator.compare(a, b));
 
-export const demoCommercialRows: DemoCommercialRow[] = [
-  {
-    name: "Taller Vía Brasil",
-    zone: "Panamá Metro",
-    contact: "Carlos Mena",
-    type: "Taller / catalizadores",
-    buyer: "Richard",
-    status: "Seguimiento activo",
-    history: "4 compras registradas",
-  },
-  {
-    name: "Soldaduras Pacífico",
-    zone: "Panamá Metro",
-    contact: "Joel Ramos",
-    type: "Soldador",
-    buyer: "Richard",
-    status: "Visita programada",
-    history: "2 compras registradas",
-  },
-  {
-    name: "Taller Tocumen Diesel",
-    zone: "Tocumen",
-    contact: "Luis Paredes",
-    type: "Taller / diésel",
-    buyer: "Richard",
-    status: "Ruta activa",
-    history: "3 compras registradas",
-  },
-  {
-    name: "Repuestos San Miguelito",
-    zone: "San Miguelito",
-    contact: "Diana Castillo",
-    type: "Repuestos / catalizadores",
-    buyer: "Richard",
-    status: "Seguimiento semanal",
-    history: "5 compras registradas",
-  },
-  {
-    name: "Centro de Escape Juan Díaz",
-    zone: "Juan Díaz",
-    contact: "Pedro Ortega",
-    type: "Centro de escape",
-    buyer: "Richard",
-    status: "Proveedor recurrente",
-    history: "6 compras registradas",
-  },
-  {
-    name: "Metalúrgica Vista Alegre",
-    zone: "Vista Alegre",
-    contact: "Nadia Gómez",
-    type: "Reciclador",
-    buyer: "Kenny",
-    status: "Visita cerrada",
-    history: "2 compras registradas",
-  },
-  {
-    name: "Patio Industrial Chilibre",
-    zone: "Panamá Norte",
-    contact: "Efraín Arosemena",
-    type: "Patio industrial",
-    buyer: "Kenny",
-    status: "Nuevo frente activo",
-    history: "1 compra registrada",
-  },
-  {
-    name: "Auto Center Pacora",
-    zone: "Pacora",
-    contact: "Yadira González",
-    type: "Taller / Hyundai",
-    buyer: "Richard",
-    status: "Compra reciente",
-    history: "2 compras registradas",
-  },
-  {
-    name: "Autoservicio Cruce",
-    zone: "Cerro Viento",
-    contact: "Manuel Ríos",
-    type: "Taller / Toyota",
-    buyer: "Richard",
-    status: "Ruta activa",
-    history: "1 compra registrada",
-  },
-  {
-    name: "Servicentro El Gigante",
-    zone: "Río Abajo",
-    contact: "Álvaro Batista",
-    type: "Centro de servicio",
-    buyer: "Richard",
-    status: "Seguimiento operativo",
-    history: "1 compra registrada",
-  },
-  {
-    name: "Nueva Era",
-    zone: "Bethania",
-    contact: "Nicolás Rodríguez",
-    type: "Recompra / material suelto",
-    buyer: "Richard",
-    status: "Proveedor recurrente",
-    history: "3 compras registradas",
-  },
-  {
-    name: "Rastro Autopartes",
-    zone: "Panamá Metro",
-    contact: "Kevin Arosemena",
-    type: "Autopartes / piezas",
-    buyer: "Kenny",
-    status: "Múltiples referencias",
-    history: "5 compras registradas",
-  },
-  {
-    name: "5 Hermanos",
-    zone: "Arraiján",
-    contact: "Orlando Vega",
-    type: "Material suelto",
-    buyer: "Kenny",
-    status: "Volumen alto",
-    history: "2 compras registradas",
-  },
-];
+export const demoMapClients: DemoMapClient[] = (() => {
+  const zoneCounts = new Map<PanamaPresentationZone, number>();
+
+  return panamaProviderNames.map((name, index) => {
+    const zone = inferPanamaPresentationZone(name);
+    const zoneIndex = zoneCounts.get(zone) ?? 0;
+    zoneCounts.set(zone, zoneIndex + 1);
+
+    return createPresentationClient(name, index, zoneIndex, zone);
+  });
+})();
+
+export const demoCommercialRows: DemoCommercialRow[] = demoMapClients.map((client, index) => ({
+  name: client.name,
+  zone: client.zone ?? "Panamá Metro",
+  contact: "Registro PMG",
+  type:
+    client.zone === "Colón"
+      ? "Ruta comercial"
+      : client.zone === "Arraiján"
+        ? "Proveedor recurrente"
+        : client.zone === "Tocumen" || client.zone === "Panamá Este"
+          ? "Frente activo"
+          : "Proveedor registrado",
+  buyer: client.buyerName ?? "Richard",
+  status: index % 4 === 0 ? "Seguimiento activo" : index % 4 === 1 ? "Ruta activa" : index % 4 === 2 ? "Recompra abierta" : "Proveedor visible",
+  history: `${(index % 6) + 1} ${index % 6 === 0 ? "registro" : "registros"} vinculados`,
+}));
 
 export const demoPurchaseRows: DemoPurchaseRow[] = [
   {
