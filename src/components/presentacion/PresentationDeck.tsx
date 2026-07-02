@@ -7,13 +7,13 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  Building2,
   ChevronDown,
   CircleDot,
   Cpu,
   FolderKanban,
   MapPin,
   MessageCircle,
-  Recycle,
   Route,
   ShoppingCart,
   Wallet,
@@ -1144,8 +1144,8 @@ function TechnologyScene({
       icon: Cpu,
     },
     {
-      title: "Desechos electrónicos",
-      icon: Recycle,
+      title: "Empresas, Recicladores",
+      icon: Building2,
     },
     {
       title: "Oportunidad para Panamá",
@@ -1196,7 +1196,7 @@ function TechnologyScene({
               initial={false}
               animate={{ opacity: active ? 1 : 0.82, y: active ? 0 : 10 }}
               transition={{ duration: 0.4, delay: 0.06 }}
-              className="grid max-w-[640px] gap-5 text-[17px] leading-8 text-white/82"
+              className="grid max-w-[640px] gap-5 rounded-lg border border-white/10 bg-black/16 px-5 py-5 text-[17px] leading-8 text-white [text-shadow:0_1px_14px_rgba(0,0,0,0.38)]"
             >
               <p>
                 El crecimiento sostenible también depende de cómo gestionamos los materiales electrónicos que el mundo descarta y que hoy representan una oportunidad estratégica para el país.
