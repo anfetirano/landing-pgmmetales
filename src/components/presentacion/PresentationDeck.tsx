@@ -11,11 +11,15 @@ import {
   ChevronDown,
   CircleDot,
   Cpu,
+  Factory,
   FolderKanban,
+  Globe2,
+  Leaf,
   MapPin,
   MessageCircle,
   Route,
   ShoppingCart,
+  Target,
   Wallet,
   Waypoints,
 } from "lucide-react";
@@ -48,6 +52,7 @@ type DeckVisualKey =
   | "campaigns"
   | "database"
   | "technology"
+  | "growth"
   | "closing";
 
 type DeckSlide = PresentationSlide & { visual: DeckVisualKey };
@@ -63,6 +68,7 @@ const visualIcons = {
   campaigns: MessageCircle,
   database: MapPin,
   technology: Cpu,
+  growth: Target,
   closing: Waypoints,
 };
 
@@ -1232,6 +1238,165 @@ function TechnologyScene({
   );
 }
 
+function GrowthScene({
+  slide,
+  active,
+}: {
+  slide: DeckSlide;
+  active: boolean;
+}) {
+  const capabilities = [
+    {
+      title: "Infraestructura operativa",
+      copy: "Procesos preparados para aumentar el volumen de operación.",
+      icon: Factory,
+      className: "col-start-2 row-start-1 justify-self-center",
+    },
+    {
+      title: "Tecnología y datos",
+      copy: "Información centralizada y trazabilidad en tiempo real.",
+      icon: Cpu,
+      className: "col-start-1 row-start-2 justify-self-end",
+    },
+    {
+      title: "Red comercial",
+      copy: "Proveedores, compradores y aliados trabajando dentro de una misma plataforma.",
+      icon: Building2,
+      className: "col-start-3 row-start-2 justify-self-start",
+    },
+    {
+      title: "Expansión regional",
+      copy: "Panamá como plataforma estratégica para nuevos mercados y oportunidades.",
+      icon: Globe2,
+      className: "col-start-1 row-start-3 justify-self-end",
+    },
+    {
+      title: "Crecimiento sostenible",
+      copy: "Escalamos manteniendo el control operativo, la trazabilidad y la calidad del servicio.",
+      icon: Leaf,
+      className: "col-start-3 row-start-3 justify-self-start",
+    },
+  ];
+
+  return (
+    <Stage>
+      <img
+        src="/images/fondo2pre.png"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover object-center"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(250,252,251,0.95)_0%,rgba(250,252,251,0.93)_34%,rgba(250,252,251,0.82)_56%,rgba(250,252,251,0.52)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(255,255,255,0.86),transparent_24%),radial-gradient(circle_at_72%_26%,rgba(91,152,130,0.12),transparent_20%)]" />
+
+      <div className="relative grid h-full grid-cols-1 gap-8 px-8 py-8 md:px-12 md:py-10 xl:grid-cols-[minmax(340px,0.4fr)_minmax(0,0.6fr)] xl:items-stretch">
+        <div className="flex h-full flex-col">
+          <img
+            src="/images/Logos/pmg-logo-wordmark-desktop.svg"
+            alt="PMG Metales"
+            className="h-12 w-auto md:h-14"
+          />
+
+          <div className="mt-10 text-sm text-[#5a756f]">
+            {slide.step} / {String(deckSlides.length).padStart(2, "0")}
+          </div>
+
+          <motion.div
+            initial={false}
+            animate={{ opacity: active ? 1 : 0.86, y: active ? 0 : 10 }}
+            transition={{ duration: 0.4 }}
+            className="mt-6 max-w-[520px]"
+          >
+            <h2 className="text-[56px] font-semibold leading-[0.95] tracking-[-0.06em] text-[#102826] md:text-[74px]">
+              <span className="block">Estamos listos</span>
+              <span className="mt-2 block text-[#5f997f]">para expandirnos</span>
+              <span className="block text-[#5f997f]">y crecer juntos.</span>
+            </h2>
+
+            <p className="mt-8 max-w-[480px] text-[19px] leading-8 text-[#314b46]">
+              {slide.summary}
+            </p>
+            <p className="mt-6 max-w-[500px] text-[17px] leading-8 text-[#516a64]">
+              {slide.paragraphs?.[0]}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={false}
+            animate={{ opacity: active ? 1 : 0.84, y: active ? 0 : 10 }}
+            transition={{ duration: 0.42, delay: 0.08 }}
+            className="mt-auto max-w-[560px] rounded-xl border border-[#d9e5df] bg-white/88 p-5 shadow-[0_16px_36px_rgba(22,44,39,0.10)] backdrop-blur-[2px]"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#5f997f]/14">
+                <Target className="h-7 w-7 text-[#5f997f]" />
+              </div>
+              <div>
+                <div className="text-[22px] font-semibold tracking-[-0.03em] text-[#102826]">
+                  Nuestra visión es clara
+                </div>
+                <p className="mt-2 text-[16px] leading-7 text-[#4c6660]">
+                  Convertirnos en el socio estratégico de referencia para la gestión de metales, catalizadores y materiales electrónicos en Panamá y la región.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        <div className="relative flex min-h-[640px] items-center justify-center overflow-hidden rounded-[28px] border border-white/50 bg-white/24 px-6 py-10 shadow-[0_20px_50px_rgba(21,44,39,0.08)] backdrop-blur-[3px]">
+          <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#dfe8e3]" />
+          <div className="absolute left-1/2 top-1/2 h-[470px] w-[470px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e8efeb]" />
+          <div className="absolute left-1/2 top-[15%] h-[17%] w-px -translate-x-1/2 bg-[linear-gradient(180deg,rgba(95,153,127,0),rgba(95,153,127,0.45),rgba(95,153,127,0))]" />
+          <div className="absolute left-[16%] top-1/2 h-px w-[21%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
+          <div className="absolute right-[16%] top-1/2 h-px w-[21%] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
+          <div className="absolute left-[34%] top-[59%] h-px w-[19%] origin-left rotate-[38deg] bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
+          <div className="absolute right-[34%] top-[59%] h-px w-[19%] origin-right -rotate-[38deg] bg-[linear-gradient(90deg,rgba(95,153,127,0),rgba(95,153,127,0.42),rgba(95,153,127,0))]" />
+
+          <div className="relative grid w-full max-w-[860px] grid-cols-[1fr_280px_1fr] grid-rows-[auto_300px_auto] items-center gap-x-8 gap-y-9">
+            {capabilities.map((capability, index) => {
+              const Icon = capability.icon;
+
+              return (
+                <motion.div
+                  key={capability.title}
+                  initial={false}
+                  animate={{ opacity: active ? 1 : 0.82, y: active ? 0 : 12 }}
+                  transition={{ duration: 0.38, delay: active ? 0.06 * index : 0 }}
+                  className={`${capability.className} w-full max-w-[238px] rounded-2xl border border-[#dce7e1] bg-white/90 p-5 shadow-[0_14px_30px_rgba(18,40,38,0.08)]`}
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#5f997f]/12">
+                    <Icon className="h-5 w-5 text-[#5f997f]" />
+                  </div>
+                  <div className="mt-4 text-[22px] font-semibold leading-7 tracking-[-0.03em] text-[#122b28]">
+                    {capability.title}
+                  </div>
+                  <p className="mt-3 text-[14px] leading-6 text-[#58706a]">
+                    {capability.copy}
+                  </p>
+                </motion.div>
+              );
+            })}
+
+            <motion.div
+              initial={false}
+              animate={{ opacity: active ? 1 : 0.86, scale: active ? 1 : 0.98 }}
+              transition={{ duration: 0.45 }}
+              className="col-start-2 row-start-2 flex h-[280px] w-[280px] flex-col items-center justify-center rounded-full border border-[#d7e5de] bg-white/94 text-center shadow-[0_20px_40px_rgba(18,40,38,0.10)]"
+            >
+              <div className="text-[54px] font-semibold tracking-[-0.05em] text-[#234c4b]">
+                PMG
+              </div>
+              <div className="mt-3 max-w-[190px] text-[22px] font-medium leading-8 tracking-[-0.03em] text-[#5f997f]">
+                Capacidad para crecer y liderar.
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </Stage>
+  );
+}
+
 function renderScene(
   slide: DeckSlide,
   active: boolean,
@@ -1254,6 +1419,8 @@ function renderScene(
       return <MemoryScene slide={slide} active={active} />;
     case "technology":
       return <TechnologyScene slide={slide} active={active} />;
+    case "growth":
+      return <GrowthScene slide={slide} active={active} />;
     case "closing":
       return <ClosingScene slide={slide} active={active} />;
     default:

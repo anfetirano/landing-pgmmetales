@@ -8,6 +8,7 @@ export type PresentationVisualKey =
   | "campaigns"
   | "electronics"
   | "technology"
+  | "growth"
   | "closing";
 
 export type PresentationSlide = {
@@ -313,11 +314,22 @@ export const presentacionSlides: PresentationSlide[] = [
     step: "09",
     title: "Expansión a Tarjetas Electrónicas.",
     summary:
-      "Adicional a la compra de catalizadores consideramos a Panamá con un gran potencial para la tarjeta electrónica.",
+      "Panamá también presenta una oportunidad importante en el mercado de tarjetas electrónicas y materiales tecnológicos con valor recuperable.",
     paragraphs: [
-      "Nuestra experiencia en metales nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y residuos tecnológicos con trazabilidad, clasificación y procesos profesionales.",
+      "Nuestra experiencia en Panamá nos permite ampliar la operación hacia tarjetas electrónicas, componentes de alto valor y relaciones con empresas y recicladores dentro de una estructura trazable y profesional.",
     ],
     visual: "technology",
+  },
+  {
+    id: "growth",
+    step: "10",
+    title: "Estamos listos para expandirnos y crecer juntos.",
+    summary:
+      "Contamos con la experiencia, la infraestructura y la tecnología necesarias para escalar operaciones con eficiencia, trazabilidad y control.",
+    paragraphs: [
+      "Nuestro objetivo no es únicamente comprar más materiales; es construir una plataforma de abastecimiento sólida, capaz de crecer junto a nuestros clientes y responder a las nuevas oportunidades del mercado.",
+    ],
+    visual: "growth",
   },
 ];
 
