@@ -133,6 +133,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   const { user } = useUser();
+  const { signOut } = useClerk();
   const pathname = usePathname();
   const router = useRouter();
   const syncFromClerk = useMutation(api.users.syncFromClerk);
@@ -170,6 +171,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [role, pathname, router]);
 
   const title = useMemo(() => (isAdmin ? "Dashboard administrador" : "Dashboard comprador"), [isAdmin]);
+
+  if (dbUser?.active === false) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f8fb] px-6">
+        <div className="w-full max-w-md rounded-2xl border bg-white p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-bold text-[#234c4b]">Acceso temporalmente bloqueado</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Tu usuario fue desactivado momentáneamente mientras el administrador revisa la operación.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Si necesitas claridad sobre el estado de tu cuenta, comunícate con administración.
+          </p>
+          <Button
+            className="mt-6 bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+            onClick={() => signOut({ redirectUrl: "/" })}
+          >
+            Cerrar sesión
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f8fb]">

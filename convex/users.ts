@@ -153,6 +153,38 @@ export const getByClerkId = query({
   },
 });
 
+export const setActiveStatus = mutation({
+  args: {
+    adminId: v.id("users"),
+    userId: v.id("users"),
+    active: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const [admin, targetUser] = await Promise.all([
+      ctx.db.get(args.adminId),
+      ctx.db.get(args.userId),
+    ]);
+
+    if (!admin || admin.role !== "admin") {
+      throw new Error("No autorizado.");
+    }
+    if (!targetUser) {
+      throw new Error("Usuario no encontrado.");
+    }
+
+    const tenantKey = normalizeTenantKey(admin.tenantKey);
+    if (!sameTenantKey(targetUser.tenantKey, tenantKey)) {
+      throw new Error("No autorizado.");
+    }
+
+    await ctx.db.patch(args.userId, {
+      active: args.active,
+    });
+
+    return { ok: true };
+  },
+});
+
 // NUEVO: listar compradores
 export const listBuyers = query({
   args: { adminId: v.id("users") },
