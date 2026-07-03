@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { normalizeTenantKey, sameTenantKey } from "./tenants";
+import { assertUserIsActive, normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const createClosing = mutation({
   args: {
@@ -16,6 +16,7 @@ export const createClosing = mutation({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) throw new Error("Comprador no encontrado.");
+    assertUserIsActive(buyer);
     const lot = await ctx.db.get(args.lotId);
     if (!lot) throw new Error("Lote no encontrado.");
     const tenantKey = normalizeTenantKey(buyer.tenantKey);

@@ -43,6 +43,7 @@ export default function AdminDashboardPage() {
 
   const buyerId: Id<"users"> | null = selectedBuyerId ?? buyers[0]?._id ?? null;
   const selectedBuyer = buyers.find((b) => String(b._id) === String(buyerId));
+  const selectedBuyerIsActive = selectedBuyer?.active !== false;
   const selectedBuyerHasExpenses = Array.isArray(selectedBuyer?.features)
     && selectedBuyer.features.includes("buyer_expenses");
   const activeLot = useQuery(
@@ -50,20 +51,26 @@ export default function AdminDashboardPage() {
     dbUser ? { tenantKey: dbUser.tenantKey ?? "co" } : "skip"
   );
 
-  const balance = useQuery(api.cashMovements.getBalanceByBuyer, buyerId ? { buyerId } : "skip");
-  const movements = useQuery(api.cashMovements.listByBuyer, buyerId ? { buyerId } : "skip") ?? [];
+  const balance = useQuery(
+    api.cashMovements.getBalanceByBuyer,
+    buyerId && selectedBuyerIsActive ? { buyerId } : "skip"
+  );
+  const movements = useQuery(
+    api.cashMovements.listByBuyer,
+    buyerId && selectedBuyerIsActive ? { buyerId } : "skip"
+  ) ?? [];
   const latest = useQuery(
     api.purchases.listLatestByBuyer,
-    buyerId ? { buyerId, limit: 5 } : "skip"
+    buyerId && selectedBuyerIsActive ? { buyerId, limit: 5 } : "skip"
   ) ?? [];
   const allPurchases = useQuery(
     api.purchases.listLatestByBuyer,
-    buyerId ? { buyerId, limit: 1000 } : "skip"
+    buyerId && selectedBuyerIsActive ? { buyerId, limit: 1000 } : "skip"
   ) ?? [];
   const pendingClosings = useQuery(api.closings.listPending, adminArgs) ?? [];
   const expenseSummary = useQuery(
     api.buyerExpenses.getExpenseSummaryByBuyer,
-    buyerId && selectedBuyerHasExpenses && dbUser
+    buyerId && selectedBuyerIsActive && selectedBuyerHasExpenses && dbUser
       ? { buyerId, viewerId: dbUser._id }
       : "skip"
   );
@@ -81,11 +88,13 @@ export default function AdminDashboardPage() {
   const updateExpense = useMutation(api.buyerExpenses.updateExpense);
   const deleteExpense = useMutation(api.buyerExpenses.deleteExpense);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const setActiveStatus = useMutation(api.users.setActiveStatus);
 
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [togglingBuyerStatus, setTogglingBuyerStatus] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [approvingClosingId, setApprovingClosingId] = useState<string | null>(null);
   const [selectedApprovals, setSelectedApprovals] = useState<Record<string, string[]>>({});
@@ -145,6 +154,7 @@ export default function AdminDashboardPage() {
   const handleMovement = async (type: "fund" | "adjustment" | "expense") => {
     if (!dbUser) return alert("Usuario no registrado.");
     if (!buyerId) return alert("Selecciona un comprador.");
+    if (!selectedBuyerIsActive) return alert("Este comprador está bloqueado temporalmente.");
     if (!amount) return alert("Ingresa un monto.");
 
     const numeric = Number(amount);
@@ -173,6 +183,7 @@ export default function AdminDashboardPage() {
   const handleOpenBase = async () => {
     if (!dbUser) return alert("Usuario no registrado.");
     if (!buyerId) return alert("Selecciona un comprador.");
+    if (!selectedBuyerIsActive) return alert("Este comprador está bloqueado temporalmente.");
     if (!amount) return alert("Ingresa un monto base.");
 
     const numeric = Number(amount);
@@ -384,6 +395,39 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleToggleBuyerStatus = async () => {
+    if (!dbUser) return alert("Usuario no registrado.");
+    if (!buyerId || !selectedBuyer) return alert("Selecciona un comprador.");
+
+    const nextActive = !selectedBuyerIsActive;
+    const actionLabel = nextActive ? "reactivar" : "bloquear";
+    const ok = confirm(`¿Seguro que quieres ${actionLabel} a ${selectedBuyer.name}?`);
+    if (!ok) return;
+
+    setTogglingBuyerStatus(true);
+    try {
+      await setActiveStatus({
+        adminId: dbUser._id,
+        userId: buyerId,
+        active: nextActive,
+      });
+      alert(
+        nextActive
+          ? `${selectedBuyer.name} fue reactivado y puede volver a operar normalmente.`
+          : `${selectedBuyer.name} fue bloqueado temporalmente.`
+      );
+      setAmount("");
+      setNotes("");
+      setShowAllPurchases(false);
+      resetExpenseForm();
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo cambiar el estado del comprador.");
+    } finally {
+      setTogglingBuyerStatus(false);
+    }
+  };
+
   if (!dbUser) {
     return <div className="max-w-6xl">Cargando...</div>;
   }
@@ -421,7 +465,20 @@ export default function AdminDashboardPage() {
                   setShowAllPurchases(false);
                 }}
               >
-                {b.name}
+                <div className="flex items-center justify-between gap-2">
+                  <span>{b.name}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] ${
+                      b.active === false
+                        ? "bg-red-100 text-red-700"
+                        : b._id === buyerId
+                        ? "bg-white/15 text-white"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {b.active === false ? "Bloqueado" : "Activo"}
+                  </span>
+                </div>
               </button>
             ))}
             {buyers.length === 0 && (
@@ -433,22 +490,52 @@ export default function AdminDashboardPage() {
         <div className="grid gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Saldo operativo de {buyerName}</CardTitle>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <CardTitle>Saldo operativo de {buyerName}</CardTitle>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Estado: {selectedBuyerIsActive ? "Activo" : "Bloqueado temporalmente"}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={selectedBuyerIsActive ? "destructive" : "outline"}
+                  onClick={handleToggleBuyerStatus}
+                  disabled={!selectedBuyer || togglingBuyerStatus}
+                >
+                  {togglingBuyerStatus
+                    ? selectedBuyerIsActive
+                      ? "Bloqueando..."
+                      : "Reactivando..."
+                    : selectedBuyerIsActive
+                    ? "Bloquear comprador"
+                    : "Reactivar comprador"}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-              <div>Base + movimientos desde última apertura: {formatMoney(balance?.totalFunds ?? 0)}</div>
-              <div>
-                Gastado aprobado (pagado + comisión): {formatMoney(balance?.totalSpent ?? 0)}
-              </div>
-              <div>Pendiente por aprobar: {formatMoney(balance?.pendingSpent ?? 0)}</div>
-              {selectedBuyerHasExpenses ? (
-                <div>Gastos operativos: {formatMoney(balance?.totalExpenses ?? 0)}</div>
-              ) : null}
-              <div className="text-lg font-semibold">Saldo actual: {formatMoney(balance?.balance ?? 0)}</div>
+              {!selectedBuyerIsActive ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                  Este comprador está bloqueado. Puedes reactivarlo desde este mismo panel cuando
+                  decidas devolverle el acceso.
+                </div>
+              ) : (
+                <>
+                  <div>Base + movimientos desde última apertura: {formatMoney(balance?.totalFunds ?? 0)}</div>
+                  <div>
+                    Gastado aprobado (pagado + comisión): {formatMoney(balance?.totalSpent ?? 0)}
+                  </div>
+                  <div>Pendiente por aprobar: {formatMoney(balance?.pendingSpent ?? 0)}</div>
+                  {selectedBuyerHasExpenses ? (
+                    <div>Gastos operativos: {formatMoney(balance?.totalExpenses ?? 0)}</div>
+                  ) : null}
+                  <div className="text-lg font-semibold">Saldo actual: {formatMoney(balance?.balance ?? 0)}</div>
+                </>
+              )}
             </CardContent>
           </Card>
 
-          {selectedBuyerHasExpenses ? (
+          {selectedBuyerHasExpenses && selectedBuyerIsActive ? (
             <Card>
               <CardHeader>
                 <CardTitle>Gastos operativos de {buyerName}</CardTitle>
@@ -631,25 +718,29 @@ export default function AdminDashboardPage() {
                 <Button
                   className="bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
                   onClick={() => handleMovement("fund")}
-                  disabled={loading || opening}
+                  disabled={loading || opening || !selectedBuyerIsActive}
                 >
                   Agregar base
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => handleMovement("adjustment")}
-                  disabled={loading || opening}
+                  disabled={loading || opening || !selectedBuyerIsActive}
                 >
                   Ajustar saldo (-)
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => handleMovement("expense")}
-                  disabled={loading || opening}
+                  disabled={loading || opening || !selectedBuyerIsActive}
                 >
                   Registrar gasto (-)
                 </Button>
-                <Button variant="destructive" onClick={handleOpenBase} disabled={loading || opening}>
+                <Button
+                  variant="destructive"
+                  onClick={handleOpenBase}
+                  disabled={loading || opening || !selectedBuyerIsActive}
+                >
                   {opening ? "Abriendo..." : "Abrir base nueva"}
                 </Button>
               </div>
@@ -664,15 +755,21 @@ export default function AdminDashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAllPurchases((prev) => !prev)}
+                disabled={!selectedBuyerIsActive}
               >
                 {showAllPurchases ? "Ver últimas 5" : "Ver todas"}
               </Button>
             </CardHeader>
             <CardContent className="grid gap-3">
-              {purchaseList.length === 0 && (
+              {!selectedBuyerIsActive ? (
+                <div className="text-sm text-muted-foreground">
+                  Las compras quedan ocultas mientras el comprador está bloqueado.
+                </div>
+              ) : null}
+              {selectedBuyerIsActive && purchaseList.length === 0 && (
                 <div className="text-sm text-muted-foreground">No hay compras recientes.</div>
               )}
-              {purchaseList.map((p) => (
+              {selectedBuyerIsActive && purchaseList.map((p) => (
                 <div key={p._id} className="flex items-center gap-3 border-b pb-2 last:border-b-0">
                   <div className="h-10 w-10 overflow-hidden rounded border bg-muted">
                     {p.photoUrl ? (
@@ -708,7 +805,13 @@ export default function AdminDashboardPage() {
               {sortedMovements.length === 0 && (
                 <div className="text-muted-foreground">No hay movimientos.</div>
               )}
-              {sortedMovements.map((m) => (
+              {!selectedBuyerIsActive ? (
+                <div className="text-muted-foreground">
+                  El historial operativo queda congelado en esta vista mientras el comprador está
+                  bloqueado.
+                </div>
+              ) : null}
+              {selectedBuyerIsActive && sortedMovements.map((m) => (
                 <div key={m._id} className="flex items-center justify-between border-b pb-2 last:border-b-0">
                   <div>
                     <div className="font-medium">
@@ -745,7 +848,12 @@ export default function AdminDashboardPage() {
               <CardTitle>Cierres pendientes (aprobación admin)</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm">
-              {visiblePendingClosings.length === 0 && (
+              {!selectedBuyerIsActive ? (
+                <div className="text-muted-foreground">
+                  No se pueden gestionar cierres de este comprador mientras está bloqueado.
+                </div>
+              ) : null}
+              {selectedBuyerIsActive && visiblePendingClosings.length === 0 && (
                 <div className="text-muted-foreground">
                   {buyerId
                     ? "No hay cierres pendientes para este comprador."
@@ -753,7 +861,7 @@ export default function AdminDashboardPage() {
                 </div>
               )}
 
-              {visiblePendingClosings.map((closing) => (
+              {selectedBuyerIsActive && visiblePendingClosings.map((closing) => (
                 <div
                   key={closing._id}
                   className="flex flex-col gap-2 rounded-md border p-3 md:flex-row md:items-center md:justify-between"

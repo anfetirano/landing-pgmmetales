@@ -1,0 +1,101 @@
+{"kind":"deck","id":"pr/vkbzu3","name":"Deck"}
+{"kind":"layout","layoutId":"05282a97-9529-4295-a14a-edc5a8021a38","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"dc0a5c0c-8f2e-44ba-81b9-703899265afa","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/a84f2m","slide":1,"title":"PMG METALES","textShapes":5}
+{"kind":"shape","id":"sh/k3q5o7qp","slide":1,"bbox":[868,0,412,720]}
+{"kind":"shape","id":"sh/vixczed8","slide":1,"bbox":[836,0,16,720]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":1,"text":"PMG METALES","textPreview":"PMG METALES","textChars":11,"textLines":1,"bbox":[72,92,230,24]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":1,"text":"Recupera el valor de tus\nmetales preciosos","textPreview":"Recupera el valor de tus | metales preciosos","textChars":42,"textLines":2,"bbox":[72,152,650,210]}
+{"kind":"textbox","id":"sh/kre1w7mp","slide":1,"text":"Compra de catalizadores usados y ceramica con valorizacion basada en Pt, Pd y Rh. Mejor precio, proceso claro y pago rapido para talleres y recolectores.","textPreview":"Compra de catalizadores usados y ceramica con valorizacion basada en Pt, Pd y Rh. Mejor precio, proceso claro y pago rapido para talleres...","textChars":153,"textLines":1,"bbox":[72,392,610,120]}
+{"kind":"shape","id":"sh/val87ed8","slide":1,"bbox":[72,540,160,8]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":1,"text":"Presentacion comercial\nColombia","textPreview":"Presentacion comercial | Colombia","textChars":31,"textLines":2,"bbox":[72,592,360,48]}
+{"kind":"textbox","id":"sh/knih4byh","slide":1,"text":"Cotizacion rapida.\nValidacion clara.\nPago inmediato.","textPreview":"Cotizacion rapida. | Validacion clara. | Pago inmediato.","textChars":52,"textLines":3,"bbox":[906,448,250,96]}
+{"kind":"image","id":"im/g3ex0nux","slide":1,"name":"","alt":"Catalizador usado","bbox":[930,180,220,220]}
+{"kind":"notes","id":"nt/a84f2m","slide":1,"text":""}
+{"kind":"slide","id":"sl/90raca","slide":2,"title":"2","textShapes":9}
+{"kind":"textbox","id":"sh/ahoza1gv","slide":2,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[1180,660,46,22]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":2,"text":"Que compramos y como valorizamos","textPreview":"Que compramos y como valorizamos","textChars":32,"textLines":1,"bbox":[72,48,620,96]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":2,"text":"Trabajamos con material completo o procesado, y cotizamos segun el contenido estimado de metales preciosos.","textPreview":"Trabajamos con material completo o procesado, y cotizamos segun el contenido estimado de metales preciosos.","textChars":107,"textLines":1,"bbox":[72,152,500,58]}
+{"kind":"shape","id":"sh/3ex0nuxc","slide":2,"bbox":[72,230,490,378]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":2,"text":"Material que recibimos","textPreview":"Material que recibimos","textChars":22,"textLines":1,"bbox":[104,262,210,34]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":2,"text":"Catalizadores completos OEM o aftermarket.\nCeramica triturada o entera tipo honeycomb.\nLotes pequenos o volumenes recurrentes.","textPreview":"Catalizadores completos OEM o aftermarket. | Ceramica triturada o entera tipo honeycomb. | Lotes pequenos o volumenes recurrentes.","textChars":126,"textLines":3,"bbox":[104,322,400,220]}
+{"kind":"shape","id":"sh/szqtcj6t","slide":2,"bbox":[628,230,580,168]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":2,"text":"Base de valorizacion","textPreview":"Base de valorizacion","textChars":20,"textLines":1,"bbox":[660,260,490,42]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":2,"text":"Cotizamos en funcion del contenido de platino, paladio y rodio.","textPreview":"Cotizamos en funcion del contenido de platino, paladio y rodio.","textChars":63,"textLines":1,"bbox":[660,314,500,48]}
+{"kind":"shape","id":"sh/wfyxobm5","slide":2,"bbox":[628,440,580,168]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":2,"text":"Clientes ideales","textPreview":"Clientes ideales","textChars":16,"textLines":1,"bbox":[660,470,490,42]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":2,"text":"Talleres, recolectores y particulares vinculados que necesitan precio, respaldo y trazabilidad.","textPreview":"Talleres, recolectores y particulares vinculados que necesitan precio, respaldo y trazabilidad.","textChars":95,"textLines":1,"bbox":[660,524,500,54]}
+{"kind":"notes","id":"nt/90raca","slide":2,"text":""}
+{"kind":"slide","id":"sl/ggzga2","slide":3,"title":"3","textShapes":12}
+{"kind":"textbox","id":"sh/kjm1cfa9","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[1180,660,46,22]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":3,"text":"Por que PMG Metales","textPreview":"Por que PMG Metales","textChars":19,"textLines":1,"bbox":[72,48,500,56]}
+{"kind":"textbox","id":"sh/2hwfyxob","slide":3,"text":"Mejor precio,\nproceso formal\ny respuesta agil","textPreview":"Mejor precio, | proceso formal | y respuesta agil","textChars":45,"textLines":3,"bbox":[72,132,430,196]}
+{"kind":"textbox","id":"sh/9gr2p8nq","slide":3,"text":"El mensaje central del sitio es simple: PMG combina valoracion seria, pago rapido y una relacion formal sostenida con refineria.","textPreview":"El mensaje central del sitio es simple: PMG combina valoracion seria, pago rapido y una relacion formal sostenida con refineria.","textChars":128,"textLines":1,"bbox":[72,360,430,120]}
+{"kind":"shape","id":"sh/gvy90je9","slide":3,"bbox":[570,136,254,180]}
+{"kind":"shape","id":"sh/ra5gbq1o","slide":3,"bbox":[570,136,254,10]}
+{"kind":"textbox","id":"sh/2p8nqxs7","slide":3,"text":"Mejor precio garantizado","textPreview":"Mejor precio garantizado","textChars":24,"textLines":1,"bbox":[590,164,210,50]}
+{"kind":"textbox","id":"sh/9knih4by","slide":3,"text":"Acuerdo exclusivo con refineria para pagar de forma mas competitiva y consistente.","textPreview":"Acuerdo exclusivo con refineria para pagar de forma mas competitiva y consistente.","textChars":82,"textLines":1,"bbox":[590,228,214,66]}
+{"kind":"shape","id":"sh/kzupwb2h","slide":3,"bbox":[894,136,254,180]}
+{"kind":"shape","id":"sh/ulwval87","slide":3,"bbox":[894,136,254,10]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":3,"text":"Pago inmediato","textPreview":"Pago inmediato","textChars":14,"textLines":1,"bbox":[914,164,210,50]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":3,"text":"Transferencia rapida una vez recibido y validado el material.","textPreview":"Transferencia rapida una vez recibido y validado el material.","textChars":61,"textLines":1,"bbox":[914,228,214,66]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":3,"bbox":[570,372,254,180]}
+{"kind":"shape","id":"sh/uxc3ylc7","slide":3,"bbox":[570,372,254,10]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":3,"text":"Trazabilidad y respaldo","textPreview":"Trazabilidad y respaldo","textChars":23,"textLines":1,"bbox":[590,400,210,50]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":3,"text":"Recepcion documentada, comprobantes y certificados para control del cliente.","textPreview":"Recepcion documentada, comprobantes y certificados para control del cliente.","textChars":76,"textLines":1,"bbox":[590,464,214,66]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":3,"bbox":[894,372,254,180]}
+{"kind":"shape","id":"sh/q5o7qpg3","slide":3,"bbox":[894,372,254,10]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":3,"text":"Acompanamiento real","textPreview":"Acompanamiento real","textChars":19,"textLines":1,"bbox":[914,400,210,50]}
+{"kind":"textbox","id":"sh/bulwval8","slide":3,"text":"Atencion por WhatsApp o email durante la cotizacion, entrega y pago.","textPreview":"Atencion por WhatsApp o email durante la cotizacion, entrega y pago.","textChars":68,"textLines":1,"bbox":[914,464,214,66]}
+{"kind":"notes","id":"nt/ggzga2","slide":3,"text":""}
+{"kind":"slide","id":"sl/hekplc","slide":4,"title":"4","textShapes":15}
+{"kind":"textbox","id":"sh/d8bat47y","slide":4,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[1180,660,46,22]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":4,"text":"Nuestro proceso de compra","textPreview":"Nuestro proceso de compra","textChars":25,"textLines":1,"bbox":[72,48,500,96]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":4,"text":"Cotizas, coordinamos, validamos y pagamos. El flujo esta pensado para ser rapido y trazable.","textPreview":"Cotizas, coordinamos, validamos y pagamos. El flujo esta pensado para ser rapido y trazable.","textChars":92,"textLines":1,"bbox":[72,154,700,44]}
+{"kind":"shape","id":"sh/kf6dcbul","slide":4,"bbox":[72,222,554,184]}
+{"kind":"textbox","id":"sh/d0z61032","slide":4,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[96,242,74,36]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":4,"text":"Cotiza tu material","textPreview":"Cotiza tu material","textChars":18,"textLines":1,"bbox":[96,286,470,42]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":4,"text":"Envias fotos del catalizador y, si existe, el codigo o referencia.","textPreview":"Envias fotos del catalizador y, si existe, el codigo o referencia.","textChars":66,"textLines":1,"bbox":[96,336,492,48]}
+{"kind":"shape","id":"sh/k3q5o7qp","slide":4,"bbox":[654,222,554,184]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":4,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[678,242,74,36]}
+{"kind":"textbox","id":"sh/p0bi9s36","slide":4,"text":"Coordinamos entrega","textPreview":"Coordinamos entrega","textChars":19,"textLines":1,"bbox":[678,286,470,42]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":4,"text":"Definimos recoleccion en tu taller o punto de recepcion segun volumen y ubicacion.","textPreview":"Definimos recoleccion en tu taller o punto de recepcion segun volumen y ubicacion.","textChars":82,"textLines":1,"bbox":[678,336,492,48]}
+{"kind":"shape","id":"sh/bulwval8","slide":4,"bbox":[72,450,554,184]}
+{"kind":"textbox","id":"sh/i9s36hcr","slide":4,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[96,470,74,36]}
+{"kind":"textbox","id":"sh/tovahoza","slide":4,"text":"Validacion rapida","textPreview":"Validacion rapida","textChars":17,"textLines":1,"bbox":[96,514,470,42]}
+{"kind":"textbox","id":"sh/032lszqt","slide":4,"text":"Revisamos el material con trazabilidad y confirmamos la valorizacion acordada.","textPreview":"Revisamos el material con trazabilidad y confirmamos la valorizacion acordada.","textChars":78,"textLines":1,"bbox":[96,564,492,48]}
+{"kind":"shape","id":"sh/bi9s36hc","slide":4,"bbox":[654,450,554,184]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[678,470,74,36]}
+{"kind":"textbox","id":"sh/tcj6tova","slide":4,"text":"Pago y certificado","textPreview":"Pago y certificado","textChars":18,"textLines":1,"bbox":[678,514,470,42]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":4,"text":"Transferimos de inmediato y emitimos soporte o certificado de compra.","textPreview":"Transferimos de inmediato y emitimos soporte o certificado de compra.","textChars":69,"textLines":1,"bbox":[678,564,492,48]}
+{"kind":"notes","id":"nt/hekplc","slide":4,"text":""}
+{"kind":"slide","id":"sl/z89a18","slide":5,"title":"5","textShapes":12}
+{"kind":"textbox","id":"sh/donyd0z6","slide":5,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1180,660,46,22]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":5,"text":"Confianza y diferenciales operativos","textPreview":"Confianza y diferenciales operativos","textChars":36,"textLines":1,"bbox":[72,48,640,96]}
+{"kind":"textbox","id":"sh/vixczed8","slide":5,"text":"La propuesta del sitio se sostiene sobre experiencia, medicion tecnica y una operacion que privilegia velocidad con respaldo.","textPreview":"La propuesta del sitio se sostiene sobre experiencia, medicion tecnica y una operacion que privilegia velocidad con respaldo.","textChars":125,"textLines":1,"bbox":[72,156,1080,48]}
+{"kind":"shape","id":"sh/kre1w7mp","slide":5,"bbox":[72,252,252,238]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":5,"text":"10+","textPreview":"10+","textChars":3,"textLines":1,"bbox":[94,284,208,84]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":5,"text":"anos de experiencia","textPreview":"anos de experiencia","textChars":19,"textLines":1,"bbox":[94,388,208,56]}
+{"kind":"shape","id":"sh/val87ed8","slide":5,"bbox":[366,252,252,238]}
+{"kind":"textbox","id":"sh/knih4byh","slide":5,"text":"XRF","textPreview":"XRF","textChars":3,"textLines":1,"bbox":[388,284,208,84]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":5,"text":"analisis preciso","textPreview":"analisis preciso","textChars":16,"textLines":1,"bbox":[388,388,208,56]}
+{"kind":"shape","id":"sh/pkzupwb2","slide":5,"bbox":[660,252,252,238]}
+{"kind":"textbox","id":"sh/0z61032l","slide":5,"text":"Pago","textPreview":"Pago","textChars":4,"textLines":1,"bbox":[682,284,208,84]}
+{"kind":"textbox","id":"sh/7ed8bat4","slide":5,"text":"inmediato","textPreview":"inmediato","textChars":9,"textLines":1,"bbox":[682,388,208,56]}
+{"kind":"shape","id":"sh/itgfmlkj","slide":5,"bbox":[954,252,252,238]}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":5,"text":"COL","textPreview":"COL","textChars":3,"textLines":1,"bbox":[976,284,208,84]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":5,"text":"cobertura nacional","textPreview":"cobertura nacional","textChars":18,"textLines":1,"bbox":[976,388,208,56]}
+{"kind":"shape","id":"sh/72x4nap4","slide":5,"bbox":[72,542,1134,104]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":5,"text":"Talleres aliados destacan pagos inmediatos, atencion por WhatsApp y cumplimiento en lo acordado como razones de recompra.","textPreview":"Talleres aliados destacan pagos inmediatos, atencion por WhatsApp y cumplimiento en lo acordado como razones de recompra.","textChars":121,"textLines":1,"bbox":[104,570,1050,42]}
+{"kind":"notes","id":"nt/z89a18","slide":5,"text":""}
+{"kind":"slide","id":"sl/a67vmf","slide":6,"title":"6","textShapes":6}
+{"kind":"textbox","id":"sh/psfil0rq","slide":6,"text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[1180,660,46,22]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":6,"bbox":[0,520,1280,200]}
+{"kind":"shape","id":"sh/7mp0bi9s","slide":6,"bbox":[72,94,180,10]}
+{"kind":"textbox","id":"sh/wval87ed","slide":6,"text":"Listo para cotizar tu material?","textPreview":"Listo para cotizar tu material?","textChars":31,"textLines":1,"bbox":[72,130,480,122]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":6,"text":"Adjunta una foto del catalizador, comparte tu nombre y WhatsApp, y PMG responde con una cotizacion basada en Pt, Pd y Rh.","textPreview":"Adjunta una foto del catalizador, comparte tu nombre y WhatsApp, y PMG responde con una cotizacion basada en Pt, Pd y Rh.","textChars":121,"textLines":1,"bbox":[72,282,500,84]}
+{"kind":"textbox","id":"sh/epkzupwb","slide":6,"text":"Contacto","textPreview":"Contacto","textChars":8,"textLines":1,"bbox":[658,136,230,26]}
+{"kind":"shape","id":"sh/7adsji5s","slide":6,"bbox":[658,176,480,2]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":6,"text":"WhatsApp: +57 323 710 7051\nEmail: info@pmgmetales.com\nCobertura: Colombia\nCanal principal: cotizacion por WhatsApp","textPreview":"WhatsApp: +57 323 710 7051 | Email: info@pmgmetales.com | Cobertura: Colombia | Canal principal: cotizacion por WhatsApp","textChars":114,"textLines":4,"bbox":[658,208,500,162]}
+{"kind":"textbox","id":"sh/lc7u54zi","slide":6,"text":"PMG Metales combina precio competitivo, trazabilidad y pagos rapidos para una relacion comercial sostenible.","textPreview":"PMG Metales combina precio competitivo, trazabilidad y pagos rapidos para una relacion comercial sostenible.","textChars":108,"textLines":1,"bbox":[72,570,640,60]}
+{"kind":"notes","id":"nt/a67vmf","slide":6,"text":""}

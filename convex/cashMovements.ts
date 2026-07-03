@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { normalizeTenantKey, sameTenantKey } from "./tenants";
+import { assertUserIsActive, normalizeTenantKey, sameTenantKey } from "./tenants";
 
 export const addMovement = mutation({
   args: {
@@ -16,6 +16,7 @@ export const addMovement = mutation({
     if (!buyer || !actor) {
       throw new Error("No autorizado.");
     }
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
     if (!sameTenantKey(actor.tenantKey, tenantKey)) {
       throw new Error("No autorizado.");
@@ -50,6 +51,7 @@ export const openBase = mutation({
     }
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) throw new Error("Comprador no encontrado.");
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(admin.tenantKey);
     if (!sameTenantKey(buyer.tenantKey, tenantKey)) {
       throw new Error("No autorizado.");
@@ -75,6 +77,7 @@ export const listByBuyer = query({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) return [];
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const items = await ctx.db
@@ -102,6 +105,7 @@ export const getBalanceByBuyer = query({
         lastOpeningAt: 0,
       };
     }
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const movements = (await ctx.db

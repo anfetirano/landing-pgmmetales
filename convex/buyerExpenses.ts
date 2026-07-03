@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { normalizeTenantKey, sameTenantKey } from "./tenants";
+import { isUserActive, normalizeTenantKey, sameTenantKey } from "./tenants";
 
 const BUYER_EXPENSE_FEATURE = "buyer_expenses";
 
@@ -28,6 +28,7 @@ const canManageBuyerExpenses = ({
   buyer: any;
 }) => {
   if (!actor || !buyer) return false;
+  if (!isUserActive(buyer) || !isUserActive(actor)) return false;
   if (!hasBuyerExpenseFeature(buyer.features)) return false;
   const tenantKey = normalizeTenantKey(buyer.tenantKey);
   if (!sameTenantKey(actor.tenantKey, tenantKey)) return false;

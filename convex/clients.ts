@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { normalizeTenantKey, sameTenantKey } from "./tenants";
+import { assertUserIsActive, normalizeTenantKey, sameTenantKey } from "./tenants";
 import {
   CLIENT_ZONE_LABELS,
   inferPanamaZoneFromCoordinates,
@@ -34,6 +34,7 @@ export const createClient = mutation({
     if (!buyer) {
       throw new Error("Comprador no encontrado.");
     }
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
     const safeName = args.name.trim();
 
@@ -63,6 +64,7 @@ export const listByBuyer = query({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) return [];
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const items =
@@ -140,6 +142,7 @@ export const updateClient = mutation({
     if (!buyer) {
       throw new Error("Comprador no encontrado.");
     }
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
     const canEdit =
       tenantKey === "pa"

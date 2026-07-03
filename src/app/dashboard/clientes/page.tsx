@@ -195,18 +195,41 @@ export default function ClientesPage() {
       return;
     }
 
+    const applyPosition = (pos: GeolocationPosition) => {
+      setLat(pos.coords.latitude.toFixed(6));
+      setLng(pos.coords.longitude.toFixed(6));
+      setLocating(false);
+    };
+
+    const showLocationError = (error: GeolocationPositionError) => {
+      if (error.code === error.PERMISSION_DENIED) {
+        alert("No pudimos usar la ubicación porque el navegador la tiene bloqueada. Activa permisos de ubicación para esta app o navegador e inténtalo de nuevo.");
+      } else if (error.code === error.TIMEOUT) {
+        alert("La ubicación tardó demasiado en responder. Revisa que tengas señal y GPS activos e inténtalo otra vez.");
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        alert("No pudimos determinar tu ubicación actual. Revisa señal, GPS o intenta moverte a una zona con mejor cobertura.");
+      } else {
+        alert("No se pudo obtener la ubicación.");
+      }
+      setLocating(false);
+    };
+
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLng(pos.coords.longitude.toFixed(6));
-        setLocating(false);
+      applyPosition,
+      (firstError) => {
+        if (firstError.code !== firstError.TIMEOUT) {
+          showLocationError(firstError);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          applyPosition,
+          showLocationError,
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
+        );
       },
-      () => {
-        alert("No se pudo obtener la ubicación.");
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 

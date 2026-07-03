@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { normalizeTenantKey, sameTenantKey } from "./tenants";
+import { assertUserIsActive, normalizeTenantKey, sameTenantKey } from "./tenants";
 
 const normalizeClientNameKey = (value: string | undefined | null) =>
   (value ?? "")
@@ -27,6 +27,7 @@ export const createPurchase = mutation({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) throw new Error("Comprador no encontrado.");
+    assertUserIsActive(buyer);
     const client = await ctx.db.get(args.clientId);
     if (!client) throw new Error("Cliente no encontrado.");
     const lot = await ctx.db.get(args.lotId);
@@ -65,6 +66,7 @@ export const deleteOpenPurchase = mutation({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) throw new Error("No autorizado.");
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const purchase = await ctx.db.get(args.purchaseId);
@@ -113,6 +115,7 @@ export const listOpenByBuyer = query({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) return [];
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const items = await ctx.db
@@ -143,6 +146,7 @@ export const listByBuyerAndDate = query({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) return [];
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const items = await ctx.db
@@ -172,6 +176,7 @@ export const listLatestByBuyer = query({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) return [];
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const items = await ctx.db
@@ -203,6 +208,7 @@ export const getClientSheetByBuyer = query({
   handler: async (ctx, args) => {
     const buyer = await ctx.db.get(args.buyerId);
     if (!buyer) throw new Error("Comprador no encontrado.");
+    assertUserIsActive(buyer);
     const tenantKey = normalizeTenantKey(buyer.tenantKey);
 
     const client = await ctx.db.get(args.clientId);

@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { normalizeTenantKey, sameTenantKey, type TenantKey } from "./tenants";
+import { assertUserIsActive, normalizeTenantKey, sameTenantKey, type TenantKey } from "./tenants";
 
 const CO_ADMIN_EMAILS = new Set(["admin@pmgmetales.com"]);
 const CO_BUYER_EMAILS = new Set(["marlen@pmgmetales.com", "kenny@pmgmetales.com"]);
@@ -115,6 +115,7 @@ export const syncFromClerk = mutation({
     }
 
     if (existing) {
+      assertUserIsActive(existing);
       const nextName = args.name?.trim() || existing.name;
       await ctx.db.patch(existing._id, {
         name: nextName,
@@ -146,10 +147,12 @@ export const syncFromClerk = mutation({
 export const getByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
       .unique();
+
+    return user?.active === false ? null : user;
   },
 });
 

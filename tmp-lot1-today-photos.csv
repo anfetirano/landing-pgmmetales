@@ -1,0 +1,6 @@
+index,buyer,client,type,brand,model,grams,lotNumber,total,pricePaid,commission,createdAt,photoUrl
+"1","Richard","Nueva era","pieza","Toyota","Gg2","","1","80","70","10","2026-06-22T15:15:49","https://reminiscent-dolphin-481.convex.cloud/api/storage/16884375-448d-40f5-b0eb-f92d539ed419"
+"2","Richard","Nueva era","pieza","Toyota","","","1","50","40","10","2026-06-22T15:16:40","https://reminiscent-dolphin-481.convex.cloud/api/storage/eab9a850-6724-4e99-991d-c612fd5be14c"
+"3","Richard","Nueva era","pieza","Generico","2000","","1","45","35","10","2026-06-22T15:17:22","https://reminiscent-dolphin-481.convex.cloud/api/storage/d0980522-bb0a-4145-a3ff-b578489c7ebb"
+"4","Richard","Taller chu","suelto","Toyota","","997","1","64","52","12","2026-06-22T15:25:58","https://reminiscent-dolphin-481.convex.cloud/api/storage/422f6f2d-a7b1-4213-9cd2-ecc0e0138b7e"
+"5","Richard","Jesús tallerr","suelto","Generico","","771","1","41","32","9","2026-06-22T15:28:47","https://reminiscent-dolphin-481.convex.cloud/api/storage/ee86700c-3659-416c-a9b3-f7c8ad442bcc"
