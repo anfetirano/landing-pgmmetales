@@ -18,6 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const ANDRES_COMPRA_EMAIL = "andrescompra@pmgmetales.com";
+
+const isAndresCompraEmail = (email?: string | null) =>
+  (email ?? "").trim().toLowerCase() === ANDRES_COMPRA_EMAIL;
+
 const BuyerLinks = ({
   onNavigate,
   showExpenses,
@@ -165,8 +170,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const showBuyerQuotations =
     dbUser?.role === "buyer" &&
     dbUser?.tenantKey === "pa" &&
-    Array.isArray(dbUser?.features) &&
-    dbUser.features.includes("buyer_quotations");
+    (
+      (Array.isArray(dbUser?.features) && dbUser.features.includes("buyer_quotations")) ||
+      isAndresCompraEmail(dbUser?.email) ||
+      isAndresCompraEmail(user?.primaryEmailAddress?.emailAddress)
+    );
 
   useEffect(() => {
     setMounted(true);

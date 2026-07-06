@@ -3,9 +3,13 @@ import { v } from "convex/values";
 import { isUserActive, normalizeTenantKey, sameTenantKey } from "./tenants";
 
 const BUYER_QUOTATION_FEATURE = "buyer_quotations";
+const ANDRES_COMPRA_EMAIL = "andrescompra@pmgmetales.com";
 
 const hasBuyerQuotationFeature = (features?: string[]) =>
   Array.isArray(features) && features.includes(BUYER_QUOTATION_FEATURE);
+
+const isAndresCompraEmail = (email?: string | null) =>
+  (email ?? "").trim().toLowerCase() === ANDRES_COMPRA_EMAIL;
 
 const getQuotationActorOrThrow = async (ctx: any, actorId: any) => {
   const actor = await ctx.db.get(actorId);
@@ -17,7 +21,7 @@ const getQuotationActorOrThrow = async (ctx: any, actorId: any) => {
   const isPanamaQuotationBuyer =
     actor.role === "buyer" &&
     tenantKey === "pa" &&
-    hasBuyerQuotationFeature(actor.features);
+    (hasBuyerQuotationFeature(actor.features) || isAndresCompraEmail(actor.email));
 
   if (actor.role !== "admin" && !isPanamaQuotationBuyer) {
     throw new Error("No autorizado.");

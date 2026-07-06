@@ -32,6 +32,11 @@ const STATUS_LABELS: Record<QuotationStatus, string> = {
 const hasBuyerQuotationFeature = (features?: string[]) =>
   Array.isArray(features) && features.includes("buyer_quotations");
 
+const ANDRES_COMPRA_EMAIL = "andrescompra@pmgmetales.com";
+
+const isAndresCompraEmail = (email?: string | null) =>
+  (email ?? "").trim().toLowerCase() === ANDRES_COMPRA_EMAIL;
+
 export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
@@ -39,7 +44,11 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const hasBuyerAccess =
     dbUser?.role === "buyer" &&
     dbUser?.tenantKey === "pa" &&
-    hasBuyerQuotationFeature(dbUser.features);
+    (
+      hasBuyerQuotationFeature(dbUser.features) ||
+      isAndresCompraEmail(dbUser.email) ||
+      isAndresCompraEmail(user?.primaryEmailAddress?.emailAddress)
+    );
 
   const quotations =
     useQuery(api.quotations.listByAdmin, dbUser?._id ? { adminId: dbUser._id } : "skip") ?? [];
