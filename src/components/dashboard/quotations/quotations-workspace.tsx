@@ -39,7 +39,6 @@ const isAndresCompraEmail = (email?: string | null) =>
 
 type PriceDraft = {
   clientPrice: string;
-  quotedPrice: string;
 };
 
 export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
@@ -96,7 +95,6 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const [model, setModel] = useState("");
   const [reference, setReference] = useState("");
   const [clientPrice, setClientPrice] = useState("");
-  const [quotedPrice, setQuotedPrice] = useState("");
   const [itemNotes, setItemNotes] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -134,7 +132,6 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
         const existing = current[String(item._id)];
         next[String(item._id)] = existing ?? {
           clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
-          quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
         };
       }
       return next;
@@ -155,7 +152,6 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     setModel("");
     setReference("");
     setClientPrice("");
-    setQuotedPrice("");
     setItemNotes("");
     setPhotoPreview(null);
     setPhotoFile(null);
@@ -241,7 +237,6 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     setModel(item.model ?? "");
     setReference(item.reference ?? "");
     setClientPrice(typeof item.clientPrice === "number" ? String(item.clientPrice) : "");
-    setQuotedPrice(typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "");
     setItemNotes(item.notes ?? "");
     setPhotoPreview(item.photoUrl ?? null);
     setPhotoFile(null);
@@ -253,14 +248,8 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
 
     const parsedClientPrice =
       editingItemId && clientPrice.trim() ? Number(clientPrice) : undefined;
-    const parsedQuotedPrice =
-      editingItemId && quotedPrice.trim() ? Number(quotedPrice) : undefined;
     if (editingItemId && typeof parsedClientPrice === "number" && Number.isNaN(parsedClientPrice)) {
       alert("Precio del cliente inválido.");
-      return;
-    }
-    if (editingItemId && typeof parsedQuotedPrice === "number" && Number.isNaN(parsedQuotedPrice)) {
-      alert("Precio cotizado inválido.");
       return;
     }
 
@@ -284,14 +273,17 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
         model: model.trim() || undefined,
         reference: reference.trim() || undefined,
         clientPrice: parsedClientPrice,
-        quotedPrice: parsedQuotedPrice,
         notes: itemNotes.trim() || undefined,
         photoId: uploadedPhotoId,
       };
 
       if (editingItemId) {
+        const currentItem = quotationDetail.items.find(
+          (item: NonNullable<typeof quotationDetail>["items"][number]) => item._id === editingItemId
+        );
         await updateQuotationItem({
           itemId: editingItemId,
+          quotedPrice: currentItem?.quotedPrice ?? undefined,
           ...payload,
         });
         alert("Pieza actualizada.");
@@ -370,9 +362,8 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     setPriceDrafts((current) => ({
       ...current,
       [String(itemId)]: {
-        clientPrice: current[String(itemId)]?.clientPrice ?? "",
-        quotedPrice: current[String(itemId)]?.quotedPrice ?? "",
-        [field]: value,
+        clientPrice:
+          field === "clientPrice" ? value : current[String(itemId)]?.clientPrice ?? "",
       },
     }));
   };
@@ -384,18 +375,12 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
 
     const draft = priceDrafts[String(item._id)] ?? {
       clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
-      quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
     };
 
     const parsedClientPrice = draft.clientPrice.trim() ? Number(draft.clientPrice) : undefined;
-    const parsedQuotedPrice = draft.quotedPrice.trim() ? Number(draft.quotedPrice) : undefined;
 
     if (typeof parsedClientPrice === "number" && Number.isNaN(parsedClientPrice)) {
       alert("Precio del cliente inválido.");
-      return;
-    }
-    if (typeof parsedQuotedPrice === "number" && Number.isNaN(parsedQuotedPrice)) {
-      alert("Precio cotizado inválido.");
       return;
     }
 
@@ -409,12 +394,12 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
         reference: item.reference ?? undefined,
         notes: item.notes ?? undefined,
         clientPrice: parsedClientPrice,
-        quotedPrice: parsedQuotedPrice,
+        quotedPrice: item.quotedPrice ?? undefined,
       });
-      alert("Precios guardados.");
+      alert("Precio guardado.");
     } catch (error) {
       console.error(error);
-      alert("No se pudieron guardar los precios.");
+      alert("No se pudo guardar el precio.");
     } finally {
       setSavingPriceItemId(null);
     }
@@ -530,8 +515,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                         </span>
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {quotation.itemCount} piezas · cliente {formatMoney(quotation.totalClientPrice ?? 0)} · cotizado{" "}
-                        {formatMoney(quotation.totalQuotedPrice ?? 0)}
+                        {quotation.itemCount} piezas · cliente {formatMoney(quotation.totalClientPrice ?? 0)}
                       </div>
                     </button>
 
@@ -593,22 +577,14 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                     <Textarea value={quotationNotes} onChange={(e) => setQuotationNotes(e.target.value)} />
                   </label>
 
-                  <div className="grid gap-3 md:grid-cols-4">
+                  <div className="grid gap-3 md:grid-cols-2">
                     <div className="rounded-lg border bg-white px-4 py-3">
                       <div className="text-xs text-muted-foreground">Piezas</div>
                       <div className="mt-2 text-2xl font-semibold">{quotationDetail.summary.itemCount}</div>
                     </div>
                     <div className="rounded-lg border bg-white px-4 py-3">
-                      <div className="text-xs text-muted-foreground">Cotizadas</div>
-                      <div className="mt-2 text-2xl font-semibold">{quotationDetail.summary.quotedItemsCount}</div>
-                    </div>
-                    <div className="rounded-lg border bg-white px-4 py-3">
                       <div className="text-xs text-muted-foreground">Precio cliente</div>
                       <div className="mt-2 text-2xl font-semibold">{formatMoney(quotationDetail.summary.totalClientPrice)}</div>
-                    </div>
-                    <div className="rounded-lg border bg-white px-4 py-3">
-                      <div className="text-xs text-muted-foreground">Precio cotizado</div>
-                      <div className="mt-2 text-2xl font-semibold">{formatMoney(quotationDetail.summary.totalQuotedPrice)}</div>
                     </div>
                   </div>
 
@@ -750,7 +726,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                           Referencia: {item.reference ?? "-"}
                         </div>
                         <div className="grid gap-3 rounded-lg bg-muted/30 p-3">
-                          <div className="grid gap-3 md:grid-cols-2">
+                          <div className="grid gap-3">
                             <label className="grid gap-2 text-xs font-medium text-muted-foreground">
                               Precio del cliente
                               <Input
@@ -760,23 +736,12 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                                 placeholder="USD"
                               />
                             </label>
-                            <label className="grid gap-2 text-xs font-medium text-muted-foreground">
-                              Precio cotizado
-                              <Input
-                                value={priceDrafts[String(item._id)]?.quotedPrice ?? ""}
-                                onChange={(e) => handlePriceDraftChange(item._id, "quotedPrice", e.target.value)}
-                                type="number"
-                                placeholder="USD"
-                              />
-                            </label>
                           </div>
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-xs text-muted-foreground">
-                              {typeof item.clientPrice === "number" || typeof item.quotedPrice === "number"
+                              {typeof item.clientPrice === "number"
                                 ? `Guardado: cliente ${
                                     typeof item.clientPrice === "number" ? formatMoney(item.clientPrice) : "-"
-                                  } · cotizado ${
-                                    typeof item.quotedPrice === "number" ? formatMoney(item.quotedPrice) : "-"
                                   }`
                                 : "Precios pendientes"}
                             </div>
@@ -786,7 +751,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                               onClick={() => handleSaveItemPrices(item)}
                               disabled={savingPriceItemId === String(item._id)}
                             >
-                              {savingPriceItemId === String(item._id) ? "Guardando..." : "Guardar precios"}
+                              {savingPriceItemId === String(item._id) ? "Guardando..." : "Guardar precio"}
                             </Button>
                           </div>
                         </div>
