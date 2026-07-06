@@ -18,6 +18,7 @@ import type * as pmr from "../pmr.js";
 import type * as priceCheckSessions from "../priceCheckSessions.js";
 import type * as priceChecks from "../priceChecks.js";
 import type * as purchases from "../purchases.js";
+import type * as quotations from "../quotations.js";
 import type * as storage from "../storage.js";
 import type * as supplierMovements from "../supplierMovements.js";
 import type * as supplierPurchases from "../supplierPurchases.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   priceCheckSessions: typeof priceCheckSessions;
   priceChecks: typeof priceChecks;
   purchases: typeof purchases;
+  quotations: typeof quotations;
   storage: typeof storage;
   supplierMovements: typeof supplierMovements;
   supplierPurchases: typeof supplierPurchases;

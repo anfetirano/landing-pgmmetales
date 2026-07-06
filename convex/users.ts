@@ -10,6 +10,7 @@ const PANAMA_BUYER_EMAILS = new Set([
   "andrescompra@pmgmetales.com",
 ]);
 const BUYER_EXPENSE_FEATURE_EMAILS = new Set(["andrescompra@pmgmetales.com"]);
+const BUYER_QUOTATION_FEATURE_EMAILS = new Set(["andrescompra@pmgmetales.com"]);
 
 const inferFeaturesFromEmail = (email?: string): string[] | undefined => {
   const normalized = (email ?? "").trim().toLowerCase();
@@ -17,6 +18,10 @@ const inferFeaturesFromEmail = (email?: string): string[] | undefined => {
 
   if (BUYER_EXPENSE_FEATURE_EMAILS.has(normalized)) {
     features.push("buyer_expenses");
+  }
+
+  if (BUYER_QUOTATION_FEATURE_EMAILS.has(normalized)) {
+    features.push("buyer_quotations");
   }
 
   return features.length ? features : undefined;

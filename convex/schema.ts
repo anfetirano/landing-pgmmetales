@@ -197,6 +197,40 @@ export default defineSchema({
     .index("by_lotId", ["lotId"])
     .index("by_createdAt", ["createdAt"]),
 
+  quotations: defineTable({
+    clientName: v.string(),
+    clientId: v.optional(v.id("clients")),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("pricing"),
+      v.literal("ready")
+    ),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
+  })
+    .index("by_createdBy", ["createdBy"])
+    .index("by_updatedAt", ["updatedAt"]),
+
+  quotationItems: defineTable({
+    quotationId: v.id("quotations"),
+    brand: v.optional(v.string()),
+    model: v.optional(v.string()),
+    reference: v.optional(v.string()),
+    clientPrice: v.optional(v.number()),
+    quotedPrice: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.id("users"),
+    tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
+  })
+    .index("by_quotationId", ["quotationId"])
+    .index("by_createdAt", ["createdAt"]),
+
   catalogPieces: defineTable({
     tenantKey: v.union(v.literal("co"), v.literal("pa")),
     reference: v.optional(v.string()),

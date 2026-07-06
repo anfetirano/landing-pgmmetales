@@ -21,9 +21,11 @@ import {
 const BuyerLinks = ({
   onNavigate,
   showExpenses,
+  showQuotations,
 }: {
   onNavigate?: () => void;
   showExpenses?: boolean;
+  showQuotations?: boolean;
 }) => (
   <nav className="flex flex-col gap-2 text-sm">
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard" onClick={onNavigate}>
@@ -40,6 +42,11 @@ const BuyerLinks = ({
         Gastos
       </Link>
     ) : null}
+    {showQuotations ? (
+      <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/cotizaciones" onClick={onNavigate}>
+        Cotizaciones
+      </Link>
+    ) : null}
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/cierre" onClick={onNavigate}>
       Cierre del día
     </Link>
@@ -49,9 +56,11 @@ const BuyerLinks = ({
 const AdminLinks = ({
   onNavigate,
   showCampaigns,
+  showQuotations,
 }: {
   onNavigate?: () => void;
   showCampaigns?: boolean;
+  showQuotations?: boolean;
 }) => (
   <nav className="flex flex-col gap-2 text-sm">
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/control" onClick={onNavigate}>
@@ -69,6 +78,11 @@ const AdminLinks = ({
     <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/catalogo" onClick={onNavigate}>
       Catalogo
     </Link>
+    {showQuotations ? (
+      <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/cotizaciones" onClick={onNavigate}>
+        Cotizaciones
+      </Link>
+    ) : null}
     {showCampaigns ? (
       <Link className="rounded-lg px-3 py-2 hover:bg-muted" href="/dashboard/admin/campanas" onClick={onNavigate}>
         Campañas
@@ -142,11 +156,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const role = dbUser?.role;
   const isAdmin = role === "admin";
   const showPanamaCampaigns = dbUser?.role === "admin" && dbUser?.tenantKey === "pa";
+  const showPanamaQuotations = dbUser?.role === "admin" && dbUser?.tenantKey === "pa";
   const showBuyerExpenses =
     dbUser?.role === "buyer" &&
     dbUser?.tenantKey === "pa" &&
     Array.isArray(dbUser?.features) &&
     dbUser.features.includes("buyer_expenses");
+  const showBuyerQuotations =
+    dbUser?.role === "buyer" &&
+    dbUser?.tenantKey === "pa" &&
+    Array.isArray(dbUser?.features) &&
+    dbUser.features.includes("buyer_quotations");
 
   useEffect(() => {
     setMounted(true);
@@ -202,7 +222,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <h2 className="text-lg font-bold text-[#234c4b]">PMG Metales</h2>
             <p className="text-xs text-muted-foreground">{title}</p>
           </div>
-          {isAdmin ? <AdminLinks showCampaigns={showPanamaCampaigns} /> : <BuyerLinks showExpenses={showBuyerExpenses} />}
+          {isAdmin ? (
+            <AdminLinks showCampaigns={showPanamaCampaigns} showQuotations={showPanamaQuotations} />
+          ) : (
+            <BuyerLinks showExpenses={showBuyerExpenses} showQuotations={showBuyerQuotations} />
+          )}
           {mounted ? (
             <SidebarUser />
           ) : (
@@ -226,9 +250,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="text-xs text-muted-foreground">{title}</p>
                   </div>
                   {isAdmin ? (
-                    <AdminLinks onNavigate={() => setOpen(false)} showCampaigns={showPanamaCampaigns} />
+                    <AdminLinks onNavigate={() => setOpen(false)} showCampaigns={showPanamaCampaigns} showQuotations={showPanamaQuotations} />
                   ) : (
-                    <BuyerLinks onNavigate={() => setOpen(false)} showExpenses={showBuyerExpenses} />
+                    <BuyerLinks
+                      onNavigate={() => setOpen(false)}
+                      showExpenses={showBuyerExpenses}
+                      showQuotations={showBuyerQuotations}
+                    />
                   )}
                   <div className="mt-auto pt-6">
                     <SidebarUser />
