@@ -223,13 +223,15 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const handleSaveItem = async () => {
     if (!dbUser?._id || !quotationDetail?._id) return;
 
-    const parsedClientPrice = clientPrice.trim() ? Number(clientPrice) : undefined;
-    const parsedQuotedPrice = quotedPrice.trim() ? Number(quotedPrice) : undefined;
-    if (typeof parsedClientPrice === "number" && Number.isNaN(parsedClientPrice)) {
+    const parsedClientPrice =
+      editingItemId && clientPrice.trim() ? Number(clientPrice) : undefined;
+    const parsedQuotedPrice =
+      editingItemId && quotedPrice.trim() ? Number(quotedPrice) : undefined;
+    if (editingItemId && typeof parsedClientPrice === "number" && Number.isNaN(parsedClientPrice)) {
       alert("Precio del cliente inválido.");
       return;
     }
-    if (typeof parsedQuotedPrice === "number" && Number.isNaN(parsedQuotedPrice)) {
+    if (editingItemId && typeof parsedQuotedPrice === "number" && Number.isNaN(parsedQuotedPrice)) {
       alert("Precio cotizado inválido.");
       return;
     }
@@ -331,7 +333,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     <div className="max-w-7xl">
       <h1 className="text-2xl font-bold text-[#234c4b]">Cotizaciones</h1>
       <p className="mt-2 text-muted-foreground">
-        Toma piezas en ruta, guarda fotos y referencias, y completa el precio cotizado después.
+        Toma piezas en ruta, guarda fotos y referencias, y luego completa los precios con calma.
       </p>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[360px_1fr]">
@@ -496,6 +498,12 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                   <CardTitle>{editingItemId ? "Editar pieza" : "Agregar pieza"}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
+                  {!editingItemId ? (
+                    <div className="rounded-lg border border-dashed bg-[#f7fbfa] px-4 py-3 text-sm text-muted-foreground">
+                      Primero registra la pieza con foto y datos. Los precios los agregas después al editarla.
+                    </div>
+                  ) : null}
+
                   <div className="flex justify-center md:justify-start">
                     <div className="w-fit">
                       <input
@@ -555,15 +563,30 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                       Referencia
                       <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Código o referencia visible" />
                     </label>
-                    <label className="grid gap-2 text-sm">
-                      Precio del cliente
-                      <Input value={clientPrice} onChange={(e) => setClientPrice(e.target.value)} type="number" placeholder="USD" />
-                    </label>
-                    <label className="grid gap-2 text-sm md:col-span-2">
-                      Precio cotizado
-                      <Input value={quotedPrice} onChange={(e) => setQuotedPrice(e.target.value)} type="number" placeholder="Lo llenas después al consultar" />
-                    </label>
                   </div>
+
+                  {editingItemId ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="grid gap-2 text-sm">
+                        Precio del cliente
+                        <Input
+                          value={clientPrice}
+                          onChange={(e) => setClientPrice(e.target.value)}
+                          type="number"
+                          placeholder="USD"
+                        />
+                      </label>
+                      <label className="grid gap-2 text-sm">
+                        Precio cotizado
+                        <Input
+                          value={quotedPrice}
+                          onChange={(e) => setQuotedPrice(e.target.value)}
+                          type="number"
+                          placeholder="Lo llenas después al consultar"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
 
                   <label className="grid gap-2 text-sm">
                     Notas
@@ -619,10 +642,14 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                         <div className="text-muted-foreground">
                           Referencia: {item.reference ?? "-"}
                         </div>
-                        <div className="text-muted-foreground">
-                          Cliente: {typeof item.clientPrice === "number" ? formatMoney(item.clientPrice) : "-"} · Cotizado:{" "}
-                          {typeof item.quotedPrice === "number" ? formatMoney(item.quotedPrice) : "-"}
-                        </div>
+                        {typeof item.clientPrice === "number" || typeof item.quotedPrice === "number" ? (
+                          <div className="text-muted-foreground">
+                            Cliente: {typeof item.clientPrice === "number" ? formatMoney(item.clientPrice) : "-"} · Cotizado:{" "}
+                            {typeof item.quotedPrice === "number" ? formatMoney(item.quotedPrice) : "-"}
+                          </div>
+                        ) : (
+                          <div className="text-muted-foreground">Precios pendientes</div>
+                        )}
                         {item.notes ? <div className="text-muted-foreground">{item.notes}</div> : null}
                       </div>
 
