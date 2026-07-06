@@ -37,6 +37,11 @@ const ANDRES_COMPRA_EMAIL = "andrescompra@pmgmetales.com";
 const isAndresCompraEmail = (email?: string | null) =>
   (email ?? "").trim().toLowerCase() === ANDRES_COMPRA_EMAIL;
 
+type PriceDraft = {
+  clientPrice: string;
+  quotedPrice: string;
+};
+
 export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
@@ -97,6 +102,8 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, PriceDraft>>({});
+  const [savingPriceItemId, setSavingPriceItemId] = useState<string | null>(null);
   const [deletingQuotationId, setDeletingQuotationId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -114,6 +121,25 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     setQuotationNotes(quotationDetail.notes ?? "");
     setQuotationStatus((quotationDetail.status as QuotationStatus) ?? "draft");
   }, [quotationDetail?._id, quotationDetail?.clientName, quotationDetail?.notes, quotationDetail?.status]);
+
+  useEffect(() => {
+    if (!quotationDetail?.items) {
+      setPriceDrafts({});
+      return;
+    }
+
+    setPriceDrafts((current) => {
+      const next: Record<string, PriceDraft> = {};
+      for (const item of quotationDetail.items) {
+        const existing = current[String(item._id)];
+        next[String(item._id)] = existing ?? {
+          clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
+          quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
+        };
+      }
+      return next;
+    });
+  }, [quotationDetail?.items]);
 
   const clientOptions = useMemo(
     () =>
@@ -333,6 +359,64 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
       alert("No se pudo eliminar la cotización.");
     } finally {
       setDeletingQuotationId(null);
+    }
+  };
+
+  const handlePriceDraftChange = (
+    itemId: Id<"quotationItems">,
+    field: keyof PriceDraft,
+    value: string
+  ) => {
+    setPriceDrafts((current) => ({
+      ...current,
+      [String(itemId)]: {
+        clientPrice: current[String(itemId)]?.clientPrice ?? "",
+        quotedPrice: current[String(itemId)]?.quotedPrice ?? "",
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveItemPrices = async (
+    item: NonNullable<typeof quotationDetail>["items"][number]
+  ) => {
+    if (!dbUser?._id) return;
+
+    const draft = priceDrafts[String(item._id)] ?? {
+      clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
+      quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
+    };
+
+    const parsedClientPrice = draft.clientPrice.trim() ? Number(draft.clientPrice) : undefined;
+    const parsedQuotedPrice = draft.quotedPrice.trim() ? Number(draft.quotedPrice) : undefined;
+
+    if (typeof parsedClientPrice === "number" && Number.isNaN(parsedClientPrice)) {
+      alert("Precio del cliente inválido.");
+      return;
+    }
+    if (typeof parsedQuotedPrice === "number" && Number.isNaN(parsedQuotedPrice)) {
+      alert("Precio cotizado inválido.");
+      return;
+    }
+
+    setSavingPriceItemId(String(item._id));
+    try {
+      await updateQuotationItem({
+        adminId: dbUser._id,
+        itemId: item._id,
+        brand: item.brand ?? undefined,
+        model: item.model ?? undefined,
+        reference: item.reference ?? undefined,
+        notes: item.notes ?? undefined,
+        clientPrice: parsedClientPrice,
+        quotedPrice: parsedQuotedPrice,
+      });
+      alert("Precios guardados.");
+    } catch (error) {
+      console.error(error);
+      alert("No se pudieron guardar los precios.");
+    } finally {
+      setSavingPriceItemId(null);
     }
   };
 
@@ -611,29 +695,6 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                     </label>
                   </div>
 
-                  {editingItemId ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="grid gap-2 text-sm">
-                        Precio del cliente
-                        <Input
-                          value={clientPrice}
-                          onChange={(e) => setClientPrice(e.target.value)}
-                          type="number"
-                          placeholder="USD"
-                        />
-                      </label>
-                      <label className="grid gap-2 text-sm">
-                        Precio cotizado
-                        <Input
-                          value={quotedPrice}
-                          onChange={(e) => setQuotedPrice(e.target.value)}
-                          type="number"
-                          placeholder="Lo llenas después al consultar"
-                        />
-                      </label>
-                    </div>
-                  ) : null}
-
                   <label className="grid gap-2 text-sm">
                     Notas
                     <Textarea
@@ -688,14 +749,47 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                         <div className="text-muted-foreground">
                           Referencia: {item.reference ?? "-"}
                         </div>
-                        {typeof item.clientPrice === "number" || typeof item.quotedPrice === "number" ? (
-                          <div className="text-muted-foreground">
-                            Cliente: {typeof item.clientPrice === "number" ? formatMoney(item.clientPrice) : "-"} · Cotizado:{" "}
-                            {typeof item.quotedPrice === "number" ? formatMoney(item.quotedPrice) : "-"}
+                        <div className="grid gap-3 rounded-lg bg-muted/30 p-3">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <label className="grid gap-2 text-xs font-medium text-muted-foreground">
+                              Precio del cliente
+                              <Input
+                                value={priceDrafts[String(item._id)]?.clientPrice ?? ""}
+                                onChange={(e) => handlePriceDraftChange(item._id, "clientPrice", e.target.value)}
+                                type="number"
+                                placeholder="USD"
+                              />
+                            </label>
+                            <label className="grid gap-2 text-xs font-medium text-muted-foreground">
+                              Precio cotizado
+                              <Input
+                                value={priceDrafts[String(item._id)]?.quotedPrice ?? ""}
+                                onChange={(e) => handlePriceDraftChange(item._id, "quotedPrice", e.target.value)}
+                                type="number"
+                                placeholder="USD"
+                              />
+                            </label>
                           </div>
-                        ) : (
-                          <div className="text-muted-foreground">Precios pendientes</div>
-                        )}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-xs text-muted-foreground">
+                              {typeof item.clientPrice === "number" || typeof item.quotedPrice === "number"
+                                ? `Guardado: cliente ${
+                                    typeof item.clientPrice === "number" ? formatMoney(item.clientPrice) : "-"
+                                  } · cotizado ${
+                                    typeof item.quotedPrice === "number" ? formatMoney(item.quotedPrice) : "-"
+                                  }`
+                                : "Precios pendientes"}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleSaveItemPrices(item)}
+                              disabled={savingPriceItemId === String(item._id)}
+                            >
+                              {savingPriceItemId === String(item._id) ? "Guardando..." : "Guardar precios"}
+                            </Button>
+                          </div>
+                        </div>
                         {item.notes ? <div className="text-muted-foreground">{item.notes}</div> : null}
                       </div>
 
