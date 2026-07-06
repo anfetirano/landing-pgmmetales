@@ -9,6 +9,12 @@ import { Camera, Pencil, Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -104,8 +110,10 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const [savingPriceItemId, setSavingPriceItemId] = useState<string | null>(null);
   const [deletingQuotationId, setDeletingQuotationId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const itemFormRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!selectedQuotationId && quotations[0]?._id) {
@@ -241,6 +249,9 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     setPhotoPreview(item.photoUrl ?? null);
     setPhotoFile(null);
     setShowPhotoOptions(false);
+    requestAnimationFrame(() => {
+      itemFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleSaveItem = async () => {
@@ -599,6 +610,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                 </CardContent>
               </Card>
 
+              <div ref={itemFormRef}>
               <Card>
                 <CardHeader>
                   <CardTitle>{editingItemId ? "Editar pieza" : "Agregar pieza"}</CardTitle>
@@ -695,6 +707,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -712,11 +725,16 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
 
                   {quotationDetail.items.map((item: NonNullable<typeof quotationDetail>["items"][number]) => (
                     <div key={item._id} className="grid gap-3 rounded-lg border p-4 md:grid-cols-[88px_1fr_auto] md:items-center">
-                      <div className="h-20 w-20 overflow-hidden rounded-md border bg-muted">
+                      <button
+                        type="button"
+                        className="h-20 w-20 overflow-hidden rounded-md border bg-muted"
+                        onClick={() => item.photoUrl ? setExpandedPhotoUrl(item.photoUrl) : null}
+                        disabled={!item.photoUrl}
+                      >
                         {item.photoUrl ? (
                           <img src={item.photoUrl} alt="Pieza" className="h-full w-full object-cover" />
                         ) : null}
-                      </div>
+                      </button>
 
                       <div className="grid gap-1 text-sm">
                         <div className="font-medium text-[#234c4b]">
@@ -777,6 +795,21 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                   ))}
                 </CardContent>
               </Card>
+
+              <Dialog open={expandedPhotoUrl !== null} onOpenChange={(open) => !open ? setExpandedPhotoUrl(null) : null}>
+                <DialogContent className="max-w-3xl border bg-white p-4">
+                  <DialogHeader>
+                    <DialogTitle>Foto de la pieza</DialogTitle>
+                  </DialogHeader>
+                  {expandedPhotoUrl ? (
+                    <img
+                      src={expandedPhotoUrl}
+                      alt="Foto ampliada de la pieza"
+                      className="max-h-[75vh] w-full rounded-md object-contain"
+                    />
+                  ) : null}
+                </DialogContent>
+              </Dialog>
             </>
           )}
         </div>
