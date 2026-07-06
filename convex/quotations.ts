@@ -194,6 +194,40 @@ export const updateQuotation = mutation({
   },
 });
 
+export const deleteQuotation = mutation({
+  args: {
+    adminId: v.id("users"),
+    quotationId: v.id("quotations"),
+  },
+  handler: async (ctx, args) => {
+    const { actor, tenantKey, isAdmin } = await getQuotationActorOrThrow(ctx, args.adminId);
+    const quotation = await getQuotationOrThrow(ctx, args.quotationId, tenantKey);
+    if (!isAdmin && String(quotation.createdBy) !== String(actor._id)) {
+      throw new Error("No autorizado.");
+    }
+
+    const items = await ctx.db
+      .query("quotationItems")
+      .withIndex("by_quotationId", (q) => q.eq("quotationId", args.quotationId))
+      .collect();
+
+    const tenantItems = items.filter((item) => sameTenantKey(item.tenantKey, tenantKey));
+
+    await Promise.all(
+      tenantItems.map(async (item) => {
+        if (item.photoId) {
+          await ctx.storage.delete(item.photoId);
+        }
+        await ctx.db.delete(item._id);
+      })
+    );
+
+    await ctx.db.delete(args.quotationId);
+
+    return { ok: true };
+  },
+});
+
 export const addQuotationItem = mutation({
   args: {
     adminId: v.id("users"),

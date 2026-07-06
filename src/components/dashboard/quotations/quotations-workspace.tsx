@@ -68,6 +68,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
 
   const createQuotation = useMutation(api.quotations.createQuotation);
   const updateQuotation = useMutation(api.quotations.updateQuotation);
+  const deleteQuotation = useMutation(api.quotations.deleteQuotation);
   const addQuotationItem = useMutation(api.quotations.addQuotationItem);
   const updateQuotationItem = useMutation(api.quotations.updateQuotationItem);
   const deleteQuotationItem = useMutation(api.quotations.deleteQuotationItem);
@@ -96,6 +97,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
+  const [deletingQuotationId, setDeletingQuotationId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
@@ -307,6 +309,33 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     }
   };
 
+  const handleDeleteQuotation = async (quotationId: Id<"quotations">) => {
+    if (!dbUser?._id) return;
+    const ok = confirm("¿Eliminar esta cotización completa? También se borrarán sus piezas y fotos.");
+    if (!ok) return;
+
+    setDeletingQuotationId(String(quotationId));
+    try {
+      await deleteQuotation({
+        adminId: dbUser._id,
+        quotationId,
+      });
+
+      if (selectedQuotationId === quotationId) {
+        const nextQuotation = quotations.find((quotation) => quotation._id !== quotationId);
+        setSelectedQuotationId(nextQuotation?._id ?? null);
+      }
+
+      resetItemForm();
+      alert("Cotización eliminada.");
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo eliminar la cotización.");
+    } finally {
+      setDeletingQuotationId(null);
+    }
+  };
+
   if (!dbUser) {
     return <div className="max-w-6xl">Cargando...</div>;
   }
@@ -398,25 +427,42 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                 <div className="text-sm text-muted-foreground">Todavía no hay cotizaciones registradas.</div>
               ) : null}
               {quotations.map((quotation) => (
-                <button
+                <div
                   key={quotation._id}
-                  type="button"
-                  onClick={() => setSelectedQuotationId(quotation._id)}
-                  className={`rounded-lg border px-3 py-3 text-left ${
+                  className={`rounded-lg border px-3 py-3 ${
                     quotation._id === selectedQuotationId ? "border-[#234c4b] bg-[#f7fbfa]" : "hover:bg-muted/40"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="font-medium text-[#234c4b]">{quotation.clientName}</div>
-                    <span className="text-xs text-muted-foreground">
-                      {STATUS_LABELS[quotation.status as QuotationStatus] ?? quotation.status}
-                    </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedQuotationId(quotation._id)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="font-medium text-[#234c4b]">{quotation.clientName}</div>
+                        <span className="text-xs text-muted-foreground">
+                          {STATUS_LABELS[quotation.status as QuotationStatus] ?? quotation.status}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {quotation.itemCount} piezas · cliente {formatMoney(quotation.totalClientPrice ?? 0)} · cotizado{" "}
+                        {formatMoney(quotation.totalQuotedPrice ?? 0)}
+                      </div>
+                    </button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0 text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteQuotation(quotation._id)}
+                      disabled={deletingQuotationId === String(quotation._id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {quotation.itemCount} piezas · cliente {formatMoney(quotation.totalClientPrice ?? 0)} · cotizado{" "}
-                    {formatMoney(quotation.totalQuotedPrice ?? 0)}
-                  </div>
-                </button>
+                </div>
               ))}
             </CardContent>
           </Card>
