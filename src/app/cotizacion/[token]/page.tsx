@@ -32,6 +32,7 @@ export default function SharedQuotationPage() {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, SharedPriceDraft>>({});
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
+  const [photoZoom, setPhotoZoom] = useState(1);
 
   const items = quotationData?.items ?? [];
 
@@ -83,6 +84,24 @@ export default function SharedQuotationPage() {
     }
   };
 
+  const handleOpenPhoto = (photoUrl: string | null) => {
+    if (!photoUrl) return;
+    setPhotoZoom(1);
+    setExpandedPhotoUrl(photoUrl);
+  };
+
+  const handleZoomIn = () => {
+    setPhotoZoom((current) => Math.min(current + 0.25, 4));
+  };
+
+  const handleZoomOut = () => {
+    setPhotoZoom((current) => Math.max(current - 0.25, 1));
+  };
+
+  const handleResetZoom = () => {
+    setPhotoZoom(1);
+  };
+
   if (!shareToken) {
     return <div className="mx-auto max-w-4xl px-5 py-8">Link inválido.</div>;
   }
@@ -92,7 +111,7 @@ export default function SharedQuotationPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-8">
+    <div className="mx-auto max-w-[1800px] px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#234c4b]">
           Cotización compartida
@@ -116,13 +135,18 @@ export default function SharedQuotationPage() {
             </div>
           ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div
+            className="grid gap-4"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            }}
+          >
             {items.map((item) => (
               <div key={item._id} className="flex h-full flex-col rounded-lg border bg-white p-4">
                 <button
                   type="button"
                   className="group relative aspect-square w-full overflow-hidden rounded-md border bg-muted"
-                  onClick={() => item.photoUrl ? setExpandedPhotoUrl(item.photoUrl) : null}
+                  onClick={() => handleOpenPhoto(item.photoUrl)}
                   disabled={!item.photoUrl}
                 >
                   {item.photoUrl ? (
@@ -179,17 +203,51 @@ export default function SharedQuotationPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={expandedPhotoUrl !== null} onOpenChange={(open) => !open ? setExpandedPhotoUrl(null) : null}>
+      <Dialog
+        open={expandedPhotoUrl !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExpandedPhotoUrl(null);
+            setPhotoZoom(1);
+          }
+        }}
+      >
         <DialogContent className="max-w-5xl border bg-white p-4">
           <DialogHeader>
             <DialogTitle>Foto de la pieza</DialogTitle>
           </DialogHeader>
           {expandedPhotoUrl ? (
-            <img
-              src={expandedPhotoUrl}
-              alt="Foto ampliada de la pieza"
-              className="max-h-[82vh] w-full rounded-md object-contain"
-            />
+            <div className="grid gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm text-muted-foreground">
+                  Zoom: {Math.round(photoZoom * 100)}%
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={handleZoomOut}>
+                    -
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleResetZoom}>
+                    100%
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleZoomIn}>
+                    +
+                  </Button>
+                </div>
+              </div>
+
+              <div className="max-h-[82vh] overflow-auto rounded-md border bg-[#f7f7f7] p-3">
+                <img
+                  src={expandedPhotoUrl}
+                  alt="Foto ampliada de la pieza"
+                  className="mx-auto origin-top rounded-md object-contain transition-transform"
+                  style={{
+                    maxHeight: photoZoom === 1 ? "78vh" : "none",
+                    maxWidth: photoZoom === 1 ? "100%" : "none",
+                    transform: `scale(${photoZoom})`,
+                  }}
+                />
+              </div>
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>
