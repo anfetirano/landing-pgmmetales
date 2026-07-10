@@ -153,6 +153,39 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     });
   }, [quotationDetail?.items]);
 
+  useEffect(() => {
+    const handleWindowPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      const isTypingField =
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select" ||
+        target?.isContentEditable;
+
+      if (isTypingField) {
+        return;
+      }
+
+      const clipboardItems = Array.from(event.clipboardData?.items ?? []);
+      const imageItem = clipboardItems.find((item) => item.type.startsWith("image/"));
+      if (!imageItem) {
+        return;
+      }
+
+      const file = imageItem.getAsFile();
+      if (!file) {
+        return;
+      }
+
+      event.preventDefault();
+      applyPhotoFile(file);
+    };
+
+    window.addEventListener("paste", handleWindowPaste);
+    return () => window.removeEventListener("paste", handleWindowPaste);
+  }, []);
+
   const clientOptions = useMemo(
     () =>
       clients
@@ -782,19 +815,21 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                         )}
                       </button>
 
-                      {showPhotoOptions ? (
-                        <div className="mt-2 grid gap-2">
+                      <div className="mt-2 grid gap-2">
+                        <Button type="button" variant="outline" onClick={handlePastePhotoClick}>
+                          Pegar foto
+                        </Button>
+                        {showPhotoOptions ? (
+                          <>
                           <Button type="button" variant="outline" onClick={() => cameraInputRef.current?.click()}>
                             Tomar foto
                           </Button>
                           <Button type="button" variant="outline" onClick={() => galleryInputRef.current?.click()}>
                             Elegir de galería
                           </Button>
-                          <Button type="button" variant="outline" onClick={handlePastePhotoClick}>
-                            Pegar foto
-                          </Button>
-                        </div>
-                      ) : null}
+                          </>
+                        ) : null}
+                      </div>
 
                       <p className="mt-2 max-w-32 text-center text-xs text-muted-foreground">
                         También puedes copiar una imagen y pegarla aquí con `Ctrl+V` o `Cmd+V`.
