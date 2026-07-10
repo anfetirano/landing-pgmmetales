@@ -200,6 +200,8 @@ export default defineSchema({
   quotations: defineTable({
     clientName: v.string(),
     clientId: v.optional(v.id("clients")),
+    shareToken: v.optional(v.string()),
+    sharedAt: v.optional(v.number()),
     status: v.union(
       v.literal("draft"),
       v.literal("pricing"),
@@ -212,6 +214,7 @@ export default defineSchema({
     tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_createdBy", ["createdBy"])
+    .index("by_shareToken", ["shareToken"])
     .index("by_updatedAt", ["updatedAt"]),
 
   quotationItems: defineTable({

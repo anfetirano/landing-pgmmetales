@@ -11,6 +11,9 @@ const hasBuyerQuotationFeature = (features?: string[]) =>
 const isAndresCompraEmail = (email?: string | null) =>
   (email ?? "").trim().toLowerCase() === ANDRES_COMPRA_EMAIL;
 
+const createShareToken = () =>
+  `${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, "")}`;
+
 const getQuotationActorOrThrow = async (ctx: any, actorId: any) => {
   const actor = await ctx.db.get(actorId);
   if (!actor || !isUserActive(actor)) {
@@ -188,6 +191,122 @@ export const updateQuotation = mutation({
       status: args.status,
       notes: args.notes?.trim() || undefined,
       updatedAt: Date.now(),
+    });
+
+    return { ok: true };
+  },
+});
+
+export const ensureShareLink = mutation({
+  args: {
+    adminId: v.id("users"),
+    quotationId: v.id("quotations"),
+  },
+  handler: async (ctx, args) => {
+    const { actor, tenantKey, isAdmin } = await getQuotationActorOrThrow(ctx, args.adminId);
+    const quotation = await getQuotationOrThrow(ctx, args.quotationId, tenantKey);
+    if (!isAdmin && String(quotation.createdBy) !== String(actor._id)) {
+      throw new Error("No autorizado.");
+    }
+
+    const shareToken = quotation.shareToken ?? createShareToken();
+    if (!quotation.shareToken) {
+      await ctx.db.patch(args.quotationId, {
+        shareToken,
+        sharedAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      shareToken,
+      path: `/cotizacion/${shareToken}`,
+    };
+  },
+});
+
+export const getSharedQuotation = query({
+  args: {
+    shareToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const quotation = await ctx.db
+      .query("quotations")
+      .withIndex("by_shareToken", (q) => q.eq("shareToken", args.shareToken))
+      .unique();
+
+    if (!quotation || !quotation.shareToken) {
+      throw new Error("Cotización no encontrada.");
+    }
+
+    const items = await ctx.db
+      .query("quotationItems")
+      .withIndex("by_quotationId", (q) => q.eq("quotationId", quotation._id))
+      .collect();
+
+    const rows = await Promise.all(
+      items
+        .filter((item) => sameTenantKey(item.tenantKey, normalizeTenantKey(quotation.tenantKey)))
+        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+        .map(async (item) => ({
+          ...item,
+          photoUrl: item.photoId ? await ctx.storage.getUrl(item.photoId) : null,
+        }))
+    );
+
+    return {
+      quotation: {
+        _id: quotation._id,
+        clientName: quotation.clientName,
+        status: quotation.status,
+        notes: quotation.notes ?? null,
+        updatedAt: quotation.updatedAt,
+      },
+      items: rows,
+      summary: {
+        itemCount: rows.length,
+        totalClientPrice: rows.reduce((sum, item) => sum + (item.clientPrice ?? 0), 0),
+      },
+    };
+  },
+});
+
+export const updateSharedQuotationItemPrice = mutation({
+  args: {
+    shareToken: v.string(),
+    itemId: v.id("quotationItems"),
+    clientPrice: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const quotation = await ctx.db
+      .query("quotations")
+      .withIndex("by_shareToken", (q) => q.eq("shareToken", args.shareToken))
+      .unique();
+
+    if (!quotation || !quotation.shareToken) {
+      throw new Error("Cotización no encontrada.");
+    }
+
+    const item = await ctx.db.get(args.itemId);
+    if (!item || String(item.quotationId) !== String(quotation._id)) {
+      throw new Error("Pieza no encontrada.");
+    }
+
+    if (
+      typeof args.clientPrice === "number" &&
+      (!Number.isFinite(args.clientPrice) || Number.isNaN(args.clientPrice))
+    ) {
+      throw new Error("Precio inválido.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(args.itemId, {
+      clientPrice: typeof args.clientPrice === "number" ? args.clientPrice : undefined,
+      updatedAt: now,
+    });
+
+    await ctx.db.patch(quotation._id, {
+      updatedAt: now,
     });
 
     return { ok: true };

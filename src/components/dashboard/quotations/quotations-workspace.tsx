@@ -79,6 +79,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const createQuotation = useMutation(api.quotations.createQuotation);
   const updateQuotation = useMutation(api.quotations.updateQuotation);
   const deleteQuotation = useMutation(api.quotations.deleteQuotation);
+  const ensureShareLink = useMutation(api.quotations.ensureShareLink);
   const addQuotationItem = useMutation(api.quotations.addQuotationItem);
   const updateQuotationItem = useMutation(api.quotations.updateQuotationItem);
   const deleteQuotationItem = useMutation(api.quotations.deleteQuotationItem);
@@ -111,6 +112,8 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const [deletingQuotationId, setDeletingQuotationId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
+  const [sharedLink, setSharedLink] = useState("");
+  const [sharingQuotation, setSharingQuotation] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const itemFormRef = useRef<HTMLDivElement | null>(null);
@@ -127,6 +130,10 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     setQuotationNotes(quotationDetail.notes ?? "");
     setQuotationStatus((quotationDetail.status as QuotationStatus) ?? "draft");
   }, [quotationDetail?._id, quotationDetail?.clientName, quotationDetail?.notes, quotationDetail?.status]);
+
+  useEffect(() => {
+    setSharedLink("");
+  }, [quotationDetail?._id]);
 
   useEffect(() => {
     if (!quotationDetail?.items) {
@@ -153,6 +160,16 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
         .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "es", { sensitivity: "base" })),
     [clients]
   );
+
+  const activeSharedLink = useMemo(() => {
+    if (sharedLink) {
+      return sharedLink;
+    }
+    if (!quotationDetail?.shareToken || typeof window === "undefined") {
+      return "";
+    }
+    return `${window.location.origin}/cotizacion/${quotationDetail.shareToken}`;
+  }, [quotationDetail?.shareToken, sharedLink]);
 
   const resetItemForm = () => {
     setEditingItemId(null);
@@ -362,6 +379,34 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
       alert("No se pudo eliminar la cotización.");
     } finally {
       setDeletingQuotationId(null);
+    }
+  };
+
+  const handleGenerateShareLink = async () => {
+    if (!dbUser?._id || !quotationDetail?._id) return;
+
+    setSharingQuotation(true);
+    try {
+      const result = await ensureShareLink({
+        adminId: dbUser._id,
+        quotationId: quotationDetail._id,
+      });
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const nextLink = `${origin}${result.path}`;
+      setSharedLink(nextLink);
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(nextLink);
+        alert("Link copiado. Ya lo puedes enviar para que te ayuden con los precios.");
+      } else {
+        alert("Link generado. Cópialo desde el campo que aparece abajo.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo generar el link compartido.");
+    } finally {
+      setSharingQuotation(false);
     }
   };
 
@@ -599,14 +644,43 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                     </div>
                   </div>
 
-                  <Button
-                    type="button"
-                    className="w-fit bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
-                    onClick={handleSaveQuotation}
-                    disabled={savingQuotation}
-                  >
-                    {savingQuotation ? "Guardando..." : "Guardar cabecera"}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      className="w-fit bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                      onClick={handleSaveQuotation}
+                      disabled={savingQuotation}
+                    >
+                      {savingQuotation ? "Guardando..." : "Guardar cabecera"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleGenerateShareLink}
+                      disabled={sharingQuotation}
+                    >
+                      {sharingQuotation ? "Generando link..." : "Copiar link para precios"}
+                    </Button>
+                  </div>
+
+                  {activeSharedLink ? (
+                    <label className="grid gap-2 text-sm">
+                      Link compartido
+                      <div className="flex flex-col gap-2 md:flex-row">
+                        <Input readOnly value={activeSharedLink} />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => window.open(activeSharedLink, "_blank", "noopener,noreferrer")}
+                        >
+                          Abrir link
+                        </Button>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Esta persona verá las piezas y podrá ir colocando precios aproximados.
+                      </span>
+                    </label>
+                  ) : null}
                 </CardContent>
               </Card>
 
