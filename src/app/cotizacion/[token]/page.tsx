@@ -149,6 +149,9 @@ export default function SharedQuotationPage() {
                   onClick={() => handleOpenPhoto(item.photoUrl)}
                   disabled={!item.photoUrl}
                 >
+                  <div className="absolute left-3 top-3 z-10 rounded-md bg-[#234c4b] px-2 py-1 text-xs font-semibold text-white">
+                    {item.pmgCode ?? "Sin código PMG"}
+                  </div>
                   {item.photoUrl ? (
                     <img
                       src={item.photoUrl}
@@ -164,9 +167,6 @@ export default function SharedQuotationPage() {
 
                 <div className="mt-4 flex flex-1 flex-col gap-3">
                   <div className="min-h-[72px]">
-                    <div className="text-xs font-medium text-muted-foreground">
-                      {item.pmgCode ?? "Sin código PMG"}
-                    </div>
                     <div className="font-semibold text-[#234c4b]">
                       {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
                     </div>
