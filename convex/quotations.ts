@@ -361,6 +361,56 @@ export const updateSharedQuotationItemPrice = mutation({
   },
 });
 
+export const updateSharedQuotationItem = mutation({
+  args: {
+    shareToken: v.string(),
+    itemId: v.id("quotationItems"),
+    brand: v.optional(v.string()),
+    model: v.optional(v.string()),
+    reference: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    clientPrice: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const quotation = await ctx.db
+      .query("quotations")
+      .withIndex("by_shareToken", (q) => q.eq("shareToken", args.shareToken))
+      .unique();
+
+    if (!quotation || !quotation.shareToken) {
+      throw new Error("Cotización no encontrada.");
+    }
+
+    const item = await ctx.db.get(args.itemId);
+    if (!item || String(item.quotationId) !== String(quotation._id)) {
+      throw new Error("Pieza no encontrada.");
+    }
+
+    if (
+      typeof args.clientPrice === "number" &&
+      (!Number.isFinite(args.clientPrice) || Number.isNaN(args.clientPrice))
+    ) {
+      throw new Error("Precio inválido.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(args.itemId, {
+      brand: args.brand?.trim() || undefined,
+      model: args.model?.trim() || undefined,
+      reference: args.reference?.trim() || undefined,
+      notes: args.notes?.trim() || undefined,
+      clientPrice: typeof args.clientPrice === "number" ? args.clientPrice : undefined,
+      updatedAt: now,
+    });
+
+    await ctx.db.patch(quotation._id, {
+      updatedAt: now,
+    });
+
+    return { ok: true };
+  },
+});
+
 export const deleteQuotation = mutation({
   args: {
     adminId: v.id("users"),

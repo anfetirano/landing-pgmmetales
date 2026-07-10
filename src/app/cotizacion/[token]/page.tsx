@@ -9,6 +9,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type SharedPriceDraft = {
+type SharedItemDraft = {
+  brand: string;
+  model: string;
+  reference: string;
+  notes: string;
   clientPrice: string;
 };
 
@@ -27,9 +32,9 @@ export default function SharedQuotationPage() {
     api.quotations.getSharedQuotation,
     shareToken ? { shareToken } : "skip"
   );
-  const updateSharedPrice = useMutation(api.quotations.updateSharedQuotationItemPrice);
+  const updateSharedItem = useMutation(api.quotations.updateSharedQuotationItem);
 
-  const [priceDrafts, setPriceDrafts] = useState<Record<string, SharedPriceDraft>>({});
+  const [itemDrafts, setItemDrafts] = useState<Record<string, SharedItemDraft>>({});
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
   const [photoZoom, setPhotoZoom] = useState(1);
@@ -37,30 +42,51 @@ export default function SharedQuotationPage() {
   const items = quotationData?.items ?? [];
 
   const mergedDrafts = useMemo(() => {
-    const next: Record<string, SharedPriceDraft> = { ...priceDrafts };
+    const next: Record<string, SharedItemDraft> = { ...itemDrafts };
     for (const item of items) {
       if (!next[String(item._id)]) {
         next[String(item._id)] = {
+          brand: item.brand ?? "",
+          model: item.model ?? "",
+          reference: item.reference ?? "",
+          notes: item.notes ?? "",
           clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
         };
       }
     }
     return next;
-  }, [items, priceDrafts]);
+  }, [items, itemDrafts]);
 
-  const handleDraftChange = (itemId: Id<"quotationItems">, value: string) => {
-    setPriceDrafts((current) => ({
+  const handleDraftChange = (
+    itemId: Id<"quotationItems">,
+    field: keyof SharedItemDraft,
+    value: string
+  ) => {
+    setItemDrafts((current) => ({
       ...current,
       [String(itemId)]: {
-        clientPrice: value,
+        ...(current[String(itemId)] ?? {
+          brand: "",
+          model: "",
+          reference: "",
+          notes: "",
+          clientPrice: "",
+        }),
+        [field]: value,
       },
     }));
   };
 
-  const handleSavePrice = async (item: (typeof items)[number]) => {
+  const handleSaveItem = async (item: (typeof items)[number]) => {
     if (!shareToken) return;
 
-    const draft = mergedDrafts[String(item._id)] ?? { clientPrice: "" };
+    const draft = mergedDrafts[String(item._id)] ?? {
+      brand: item.brand ?? "",
+      model: item.model ?? "",
+      reference: item.reference ?? "",
+      notes: item.notes ?? "",
+      clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
+    };
     const parsedPrice = draft.clientPrice.trim() ? Number(draft.clientPrice) : undefined;
 
     if (typeof parsedPrice === "number" && Number.isNaN(parsedPrice)) {
@@ -70,15 +96,19 @@ export default function SharedQuotationPage() {
 
     setSavingItemId(String(item._id));
     try {
-      await updateSharedPrice({
+      await updateSharedItem({
         shareToken,
         itemId: item._id,
+        brand: draft.brand,
+        model: draft.model,
+        reference: draft.reference,
+        notes: draft.notes,
         clientPrice: parsedPrice,
       });
-      alert("Precio guardado.");
+      alert("Cambios guardados.");
     } catch (error) {
       console.error(error);
-      alert("No se pudo guardar el precio.");
+      alert("No se pudieron guardar los cambios.");
     } finally {
       setSavingItemId(null);
     }
@@ -167,24 +197,49 @@ export default function SharedQuotationPage() {
                 </button>
 
                 <div className="mt-4 flex flex-1 flex-col gap-3">
-                  <div className="min-h-[72px]">
-                    <div className="font-semibold text-[#234c4b]">
-                      {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      Referencia: {item.reference ?? "-"}
-                    </div>
-                    {item.notes ? (
-                      <div className="mt-2 line-clamp-3 text-sm text-muted-foreground">{item.notes}</div>
-                    ) : null}
-                  </div>
-
                   <div className="mt-auto grid gap-3 border-t pt-3">
+                    <label className="grid gap-2 text-sm">
+                      Marca
+                      <Input
+                        value={mergedDrafts[String(item._id)]?.brand ?? ""}
+                        onChange={(e) => handleDraftChange(item._id, "brand", e.target.value)}
+                        placeholder="Marca"
+                      />
+                    </label>
+
+                    <label className="grid gap-2 text-sm">
+                      Modelo
+                      <Input
+                        value={mergedDrafts[String(item._id)]?.model ?? ""}
+                        onChange={(e) => handleDraftChange(item._id, "model", e.target.value)}
+                        placeholder="Modelo"
+                      />
+                    </label>
+
+                    <label className="grid gap-2 text-sm">
+                      Referencia
+                      <Input
+                        value={mergedDrafts[String(item._id)]?.reference ?? ""}
+                        onChange={(e) => handleDraftChange(item._id, "reference", e.target.value)}
+                        placeholder="Referencia"
+                      />
+                    </label>
+
+                    <label className="grid gap-2 text-sm">
+                      Notas
+                      <Textarea
+                        value={mergedDrafts[String(item._id)]?.notes ?? ""}
+                        onChange={(e) => handleDraftChange(item._id, "notes", e.target.value)}
+                        placeholder="Notas de la pieza"
+                        rows={3}
+                      />
+                    </label>
+
                     <label className="grid gap-2 text-sm">
                       Precio aproximado
                       <Input
                         value={mergedDrafts[String(item._id)]?.clientPrice ?? ""}
-                        onChange={(e) => handleDraftChange(item._id, e.target.value)}
+                        onChange={(e) => handleDraftChange(item._id, "clientPrice", e.target.value)}
                         type="number"
                         placeholder="USD"
                       />
@@ -193,11 +248,11 @@ export default function SharedQuotationPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => handleSavePrice(item)}
+                      onClick={() => handleSaveItem(item)}
                       disabled={savingItemId === String(item._id)}
                       className="w-full"
                     >
-                      {savingItemId === String(item._id) ? "Guardando..." : "Guardar precio"}
+                      {savingItemId === String(item._id) ? "Guardando..." : "Guardar cambios"}
                     </Button>
                   </div>
                 </div>
