@@ -164,6 +164,9 @@ export default function SharedQuotationPage() {
 
                 <div className="mt-4 flex flex-1 flex-col gap-3">
                   <div className="min-h-[72px]">
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {item.pmgCode ?? "Sin código PMG"}
+                    </div>
                     <div className="font-semibold text-[#234c4b]">
                       {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
                     </div>

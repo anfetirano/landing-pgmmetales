@@ -14,6 +14,52 @@ const isAndresCompraEmail = (email?: string | null) =>
 const createShareToken = () =>
   `${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, "")}`;
 
+const formatPmgCode = (sequence: number) =>
+  `PMG-${String(sequence).padStart(4, "0")}`;
+
+const parsePmgSequence = (pmgCode?: string | null) => {
+  const match = pmgCode?.match(/^PMG-(\d+)$/i);
+  return match ? Number(match[1]) : undefined;
+};
+
+const getQuotationItemSequence = (item: {
+  pmgSequence?: number;
+  pmgCode?: string;
+  createdAt?: number;
+}) =>
+  typeof item.pmgSequence === "number"
+    ? item.pmgSequence
+    : parsePmgSequence(item.pmgCode);
+
+const sortQuotationItems = <T extends { pmgSequence?: number; pmgCode?: string; createdAt?: number }>(
+  items: T[]
+) =>
+  [...items].sort((a, b) => {
+    const sequenceA = getQuotationItemSequence(a);
+    const sequenceB = getQuotationItemSequence(b);
+
+    if (typeof sequenceA === "number" && typeof sequenceB === "number" && sequenceA !== sequenceB) {
+      return sequenceA - sequenceB;
+    }
+    if (typeof sequenceA === "number") return -1;
+    if (typeof sequenceB === "number") return 1;
+    return (a.createdAt ?? 0) - (b.createdAt ?? 0);
+  });
+
+const getNextQuotationItemSequence = async (ctx: any, quotationId: any) => {
+  const items = await ctx.db
+    .query("quotationItems")
+    .withIndex("by_quotationId", (q: any) => q.eq("quotationId", quotationId))
+    .collect();
+
+  return (
+    items.reduce((max: number, item: any) => {
+      const sequence = getQuotationItemSequence(item) ?? 0;
+      return Math.max(max, sequence);
+    }, 0) + 1
+  );
+};
+
 const getQuotationActorOrThrow = async (ctx: any, actorId: any) => {
   const actor = await ctx.db.get(actorId);
   if (!actor || !isUserActive(actor)) {
@@ -143,9 +189,10 @@ export const getQuotationDetail = query({
       .collect();
 
     const rows = await Promise.all(
-      items
+      sortQuotationItems(
+        items
         .filter((item) => sameTenantKey(item.tenantKey, tenantKey))
-        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      )
         .map(async (item) => ({
           ...item,
           photoUrl: item.photoId ? await ctx.storage.getUrl(item.photoId) : null,
@@ -245,9 +292,10 @@ export const getSharedQuotation = query({
       .collect();
 
     const rows = await Promise.all(
-      items
+      sortQuotationItems(
+        items
         .filter((item) => sameTenantKey(item.tenantKey, normalizeTenantKey(quotation.tenantKey)))
-        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      )
         .map(async (item) => ({
           ...item,
           photoUrl: item.photoId ? await ctx.storage.getUrl(item.photoId) : null,
@@ -367,8 +415,11 @@ export const addQuotationItem = mutation({
     }
 
     const now = Date.now();
+    const pmgSequence = await getNextQuotationItemSequence(ctx, args.quotationId);
     const itemId = await ctx.db.insert("quotationItems", {
       quotationId: args.quotationId,
+      pmgCode: formatPmgCode(pmgSequence),
+      pmgSequence,
       brand: args.brand?.trim() || undefined,
       model: args.model?.trim() || undefined,
       reference: args.reference?.trim() || undefined,
@@ -387,6 +438,58 @@ export const addQuotationItem = mutation({
     });
 
     return itemId;
+  },
+});
+
+export const assignMissingQuotationItemCodes = mutation({
+  args: {
+    adminId: v.id("users"),
+    quotationId: v.id("quotations"),
+  },
+  handler: async (ctx, args) => {
+    const { actor, tenantKey, isAdmin } = await getQuotationActorOrThrow(ctx, args.adminId);
+    const quotation = await getQuotationOrThrow(ctx, args.quotationId, tenantKey);
+    if (!isAdmin && String(quotation.createdBy) !== String(actor._id)) {
+      throw new Error("No autorizado.");
+    }
+
+    const items = await ctx.db
+      .query("quotationItems")
+      .withIndex("by_quotationId", (q) => q.eq("quotationId", args.quotationId))
+      .collect();
+
+    const tenantItems = sortQuotationItems(
+      items.filter((item) => sameTenantKey(item.tenantKey, tenantKey))
+    );
+
+    let nextSequence = 1;
+    let assigned = 0;
+
+    for (const item of tenantItems) {
+      const currentSequence = getQuotationItemSequence(item);
+      if (typeof currentSequence === "number" && item.pmgCode) {
+        nextSequence = Math.max(nextSequence, currentSequence + 1);
+        continue;
+      }
+
+      await ctx.db.patch(item._id, {
+        pmgCode: formatPmgCode(nextSequence),
+        pmgSequence: nextSequence,
+        updatedAt: Date.now(),
+      });
+      nextSequence += 1;
+      assigned += 1;
+    }
+
+    await ctx.db.patch(args.quotationId, {
+      updatedAt: Date.now(),
+    });
+
+    return {
+      assigned,
+      total: tenantItems.length,
+      nextCode: formatPmgCode(nextSequence),
+    };
   },
 });
 

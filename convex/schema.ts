@@ -219,6 +219,8 @@ export default defineSchema({
 
   quotationItems: defineTable({
     quotationId: v.id("quotations"),
+    pmgCode: v.optional(v.string()),
+    pmgSequence: v.optional(v.number()),
     brand: v.optional(v.string()),
     model: v.optional(v.string()),
     reference: v.optional(v.string()),
@@ -232,6 +234,7 @@ export default defineSchema({
     tenantKey: v.optional(v.union(v.literal("co"), v.literal("pa"))),
   })
     .index("by_quotationId", ["quotationId"])
+    .index("by_quotationId_pmgSequence", ["quotationId", "pmgSequence"])
     .index("by_createdAt", ["createdAt"]),
 
   catalogPieces: defineTable({
