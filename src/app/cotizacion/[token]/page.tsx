@@ -92,7 +92,7 @@ export default function SharedQuotationPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-8">
+    <div className="mx-auto max-w-7xl px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#234c4b]">
           Cotización compartida
@@ -116,60 +116,71 @@ export default function SharedQuotationPage() {
             </div>
           ) : null}
 
-          {items.map((item) => (
-            <div key={item._id} className="grid gap-4 rounded-lg border p-4 md:grid-cols-[120px_1fr]">
-              <button
-                type="button"
-                className="h-28 w-28 overflow-hidden rounded-md border bg-muted"
-                onClick={() => item.photoUrl ? setExpandedPhotoUrl(item.photoUrl) : null}
-                disabled={!item.photoUrl}
-              >
-                {item.photoUrl ? (
-                  <img src={item.photoUrl} alt="Pieza" className="h-full w-full object-cover" />
-                ) : null}
-              </button>
-
-              <div className="grid gap-3">
-                <div>
-                  <div className="font-semibold text-[#234c4b]">
-                    {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Referencia: {item.reference ?? "-"}
-                  </div>
-                  {item.notes ? (
-                    <div className="mt-1 text-sm text-muted-foreground">{item.notes}</div>
-                  ) : null}
-                </div>
-
-                <div className="grid gap-3 rounded-lg bg-muted/30 p-3 md:grid-cols-[1fr_auto] md:items-end">
-                  <label className="grid gap-2 text-sm">
-                    Precio aproximado
-                    <Input
-                      value={mergedDrafts[String(item._id)]?.clientPrice ?? ""}
-                      onChange={(e) => handleDraftChange(item._id, e.target.value)}
-                      type="number"
-                      placeholder="USD"
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {items.map((item) => (
+              <div key={item._id} className="flex h-full flex-col rounded-lg border bg-white p-4">
+                <button
+                  type="button"
+                  className="group relative aspect-square w-full overflow-hidden rounded-md border bg-muted"
+                  onClick={() => item.photoUrl ? setExpandedPhotoUrl(item.photoUrl) : null}
+                  disabled={!item.photoUrl}
+                >
+                  {item.photoUrl ? (
+                    <img
+                      src={item.photoUrl}
+                      alt="Pieza"
+                      className="h-full w-full object-cover transition-opacity group-hover:opacity-95"
                     />
-                  </label>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                      Sin foto
+                    </div>
+                  )}
+                </button>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSavePrice(item)}
-                    disabled={savingItemId === String(item._id)}
-                  >
-                    {savingItemId === String(item._id) ? "Guardando..." : "Guardar precio"}
-                  </Button>
+                <div className="mt-4 flex flex-1 flex-col gap-3">
+                  <div className="min-h-[72px]">
+                    <div className="font-semibold text-[#234c4b]">
+                      {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      Referencia: {item.reference ?? "-"}
+                    </div>
+                    {item.notes ? (
+                      <div className="mt-2 line-clamp-3 text-sm text-muted-foreground">{item.notes}</div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-auto grid gap-3 border-t pt-3">
+                    <label className="grid gap-2 text-sm">
+                      Precio aproximado
+                      <Input
+                        value={mergedDrafts[String(item._id)]?.clientPrice ?? ""}
+                        onChange={(e) => handleDraftChange(item._id, e.target.value)}
+                        type="number"
+                        placeholder="USD"
+                      />
+                    </label>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleSavePrice(item)}
+                      disabled={savingItemId === String(item._id)}
+                      className="w-full"
+                    >
+                      {savingItemId === String(item._id) ? "Guardando..." : "Guardar precio"}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </CardContent>
       </Card>
 
       <Dialog open={expandedPhotoUrl !== null} onOpenChange={(open) => !open ? setExpandedPhotoUrl(null) : null}>
-        <DialogContent className="max-w-3xl border bg-white p-4">
+        <DialogContent className="max-w-5xl border bg-white p-4">
           <DialogHeader>
             <DialogTitle>Foto de la pieza</DialogTitle>
           </DialogHeader>
@@ -177,7 +188,7 @@ export default function SharedQuotationPage() {
             <img
               src={expandedPhotoUrl}
               alt="Foto ampliada de la pieza"
-              className="max-h-[75vh] w-full rounded-md object-contain"
+              className="max-h-[82vh] w-full rounded-md object-contain"
             />
           ) : null}
         </DialogContent>
