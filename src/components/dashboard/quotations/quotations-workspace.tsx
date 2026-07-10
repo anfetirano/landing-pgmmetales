@@ -192,8 +192,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     }
   };
 
-  const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+  const applyPhotoFile = (file: File | null) => {
     setPhotoFile(file);
     setShowPhotoOptions(false);
     if (!file) {
@@ -201,6 +200,59 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
       return;
     }
     setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const onPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    applyPhotoFile(file);
+  };
+
+  const handlePhotoPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const imageItem = Array.from(e.clipboardData.items).find((item) =>
+      item.type.startsWith("image/")
+    );
+
+    if (!imageItem) {
+      return;
+    }
+
+    const file = imageItem.getAsFile();
+    if (!file) {
+      return;
+    }
+
+    e.preventDefault();
+    applyPhotoFile(file);
+  };
+
+  const handlePastePhotoClick = async () => {
+    if (!navigator.clipboard?.read) {
+      alert("Tu navegador no permite pegar imágenes desde aquí. Usa cámara o galería.");
+      return;
+    }
+
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const clipboardItem of clipboardItems) {
+        const imageType = clipboardItem.types.find((type) => type.startsWith("image/"));
+        if (!imageType) {
+          continue;
+        }
+
+        const blob = await clipboardItem.getType(imageType);
+        const extension = imageType.split("/")[1] || "png";
+        const file = new File([blob], `pieza-portapapeles.${extension}`, {
+          type: imageType,
+        });
+        applyPhotoFile(file);
+        return;
+      }
+
+      alert("No encontré una imagen copiada en el portapapeles.");
+    } catch (error) {
+      console.error(error);
+      alert("No pude leer la imagen del portapapeles.");
+    }
   };
 
   const handleCreateQuotation = async () => {
@@ -697,7 +749,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                   ) : null}
 
                   <div className="flex justify-center md:justify-start">
-                    <div className="w-fit">
+                    <div className="w-fit" onPaste={handlePhotoPaste}>
                       <input
                         ref={cameraInputRef}
                         type="file"
@@ -718,6 +770,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                         type="button"
                         onClick={() => setShowPhotoOptions((value) => !value)}
                         className="h-32 w-32 overflow-hidden rounded-lg border border-dashed border-gray-300 bg-white text-gray-500"
+                        title="Puedes pegar una foto copiada aquí"
                       >
                         {photoPreview ? (
                           <img src={photoPreview} alt="Pieza" className="h-full w-full object-cover" />
@@ -737,8 +790,15 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                           <Button type="button" variant="outline" onClick={() => galleryInputRef.current?.click()}>
                             Elegir de galería
                           </Button>
+                          <Button type="button" variant="outline" onClick={handlePastePhotoClick}>
+                            Pegar foto
+                          </Button>
                         </div>
                       ) : null}
+
+                      <p className="mt-2 max-w-32 text-center text-xs text-muted-foreground">
+                        También puedes copiar una imagen y pegarla aquí con `Ctrl+V` o `Cmd+V`.
+                      </p>
                     </div>
                   </div>
 
