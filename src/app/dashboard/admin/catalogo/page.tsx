@@ -51,6 +51,7 @@ export default function AdminCatalogoPage() {
 
   const savePiece = useMutation(api.catalogPieces.saveCatalogPieceAsAdmin);
   const deletePiece = useMutation(api.catalogPieces.deleteCatalogPieceAsAdmin);
+  const assignMissingPmgCodes = useMutation(api.catalogPieces.assignMissingPmgCodes);
 
   const [editingId, setEditingId] = useState<Id<"catalogPieces"> | null>(null);
   const [reference, setReference] = useState("");
@@ -64,6 +65,7 @@ export default function AdminCatalogoPage() {
   const [confidence, setConfidence] = useState<CatalogConfidence>("probable");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [assigningCodes, setAssigningCodes] = useState(false);
 
   const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
 
@@ -146,6 +148,27 @@ export default function AdminCatalogoPage() {
     }
   };
 
+  const handleAssignPmgCodes = async () => {
+    if (!dbUser || dbUser.role !== "admin") return;
+
+    setAssigningCodes(true);
+    try {
+      const result = await assignMissingPmgCodes({
+        adminId: dbUser._id,
+      });
+      alert(
+        result.assigned > 0
+          ? `Listo. Se numeraron ${result.assigned} piezas del catálogo.`
+          : "Todas las piezas ya tenían numeración PMG."
+      );
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo numerar el catálogo.");
+    } finally {
+      setAssigningCodes(false);
+    }
+  };
+
   const summary = useMemo(() => {
     const exact = pieces.filter((piece) => piece.confidence === "exact").length;
     return {
@@ -173,6 +196,16 @@ export default function AdminCatalogoPage() {
       <p className="mt-2 text-muted-foreground">
         Base interna de piezas recurrentes para {dbUser.tenantKey === "pa" ? "Panamá" : "Colombia"}.
       </p>
+      <div className="mt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleAssignPmgCodes}
+          disabled={assigningCodes}
+        >
+          {assigningCodes ? "Numerando..." : "Numerar catálogo PMG"}
+        </Button>
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
         <Card className="h-fit">
@@ -312,6 +345,9 @@ export default function AdminCatalogoPage() {
                   </div>
                   <div className="flex-1 text-sm">
                     <div className="font-semibold text-[#234c4b]">{piece.canonicalName}</div>
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {piece.pmgCode ?? "Sin código PMG"}
+                    </div>
                     <div className="text-muted-foreground">
                       {piece.brand ?? "Marca pendiente"} · {piece.reference ?? "Sin referencia"}
                     </div>

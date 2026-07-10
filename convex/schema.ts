@@ -236,6 +236,8 @@ export default defineSchema({
 
   catalogPieces: defineTable({
     tenantKey: v.union(v.literal("co"), v.literal("pa")),
+    pmgCode: v.optional(v.string()),
+    pmgSequence: v.optional(v.number()),
     reference: v.optional(v.string()),
     altReferences: v.optional(v.array(v.string())),
     brand: v.optional(v.string()),
@@ -260,6 +262,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_tenantKey", ["tenantKey"])
+    .index("by_pmgCode", ["pmgCode"])
+    .index("by_pmgSequence", ["pmgSequence"])
     .index("by_reference", ["reference"]),
 
   priceCheckRequests: defineTable({
