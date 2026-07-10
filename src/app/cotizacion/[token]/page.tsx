@@ -142,16 +142,17 @@ export default function SharedQuotationPage() {
             }}
           >
             {items.map((item) => (
-              <div key={item._id} className="flex h-full flex-col rounded-lg border bg-white p-4">
+              <div key={item._id} className="flex h-full flex-col overflow-hidden rounded-lg border bg-white">
+                <div className="bg-[#234c4b] px-4 py-2 text-sm font-semibold text-white">
+                  {item.pmgCode ?? "Sin código PMG"}
+                </div>
+                <div className="flex flex-1 flex-col p-4">
                 <button
                   type="button"
                   className="group relative aspect-square w-full overflow-hidden rounded-md border bg-muted"
                   onClick={() => handleOpenPhoto(item.photoUrl)}
                   disabled={!item.photoUrl}
                 >
-                  <div className="absolute left-3 top-3 z-10 rounded-md bg-[#234c4b] px-2 py-1 text-xs font-semibold text-white">
-                    {item.pmgCode ?? "Sin código PMG"}
-                  </div>
                   {item.photoUrl ? (
                     <img
                       src={item.photoUrl}
@@ -199,6 +200,7 @@ export default function SharedQuotationPage() {
                       {savingItemId === String(item._id) ? "Guardando..." : "Guardar precio"}
                     </Button>
                   </div>
+                </div>
                 </div>
               </div>
             ))}
