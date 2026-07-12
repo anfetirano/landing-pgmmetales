@@ -260,7 +260,7 @@ export default function SharedQuotationPage() {
                     </div>
 
                     {isEditing ? (
-                      <div className="mt-auto grid gap-3 border-t pt-3">
+                      <div className="grid gap-3 border-t pt-3">
                         <label className="grid gap-2 text-sm">
                           Marca
                           <Input
@@ -298,16 +298,6 @@ export default function SharedQuotationPage() {
                           />
                         </label>
 
-                        <label className="grid gap-2 text-sm">
-                          Precio aproximado
-                          <Input
-                            value={mergedDrafts[itemId]?.clientPrice ?? ""}
-                            onChange={(e) => handleDraftChange(item._id, "clientPrice", e.target.value)}
-                            type="number"
-                            placeholder="USD"
-                          />
-                        </label>
-
                         <div className="flex gap-2">
                           <Button
                             type="button"
@@ -318,24 +308,33 @@ export default function SharedQuotationPage() {
                           >
                             Cancelar
                           </Button>
-                          <Button
-                            type="button"
-                            onClick={() => handleSaveItem(item)}
-                            disabled={savingItemId === itemId}
-                            className="flex-1 bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
-                          >
-                            {savingItemId === itemId ? "Guardando..." : "Guardar"}
-                          </Button>
                         </div>
                       </div>
-                    ) : (
-                      <div className="mt-auto grid gap-3 border-t pt-3">
-                        <div className="text-sm text-muted-foreground">Precio aproximado</div>
-                        <div className="text-sm font-medium text-[#234c4b]">
-                          {typeof item.clientPrice === "number" ? `$${item.clientPrice}` : "Sin precio"}
-                        </div>
-                      </div>
-                    )}
+                    ) : null}
+
+                    <div className="mt-auto grid gap-3 border-t pt-3">
+                      <label className="grid gap-2 text-sm">
+                        Precio aproximado
+                        <Input
+                          value={mergedDrafts[itemId]?.clientPrice ?? ""}
+                          onChange={(e) => handleDraftChange(item._id, "clientPrice", e.target.value)}
+                          type="number"
+                          placeholder="USD"
+                        />
+                      </label>
+                      <Button
+                        type="button"
+                        onClick={() => handleSaveItem(item)}
+                        disabled={savingItemId === itemId}
+                        className="w-full bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                      >
+                        {savingItemId === itemId
+                          ? "Guardando..."
+                          : isEditing
+                            ? "Guardar cambios"
+                            : "Guardar precio"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
