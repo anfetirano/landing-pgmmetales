@@ -59,6 +59,16 @@ export default function SharedQuotationPage() {
     return next;
   }, [items, itemDrafts]);
 
+  const totalDraftPrice = useMemo(
+    () =>
+      items.reduce((sum, item) => {
+        const rawValue = mergedDrafts[String(item._id)]?.clientPrice ?? "";
+        const parsedValue = rawValue.trim() ? Number(rawValue) : 0;
+        return sum + (Number.isFinite(parsedValue) ? parsedValue : 0);
+      }, 0),
+    [items, mergedDrafts]
+  );
+
   const handleDraftChange = (
     itemId: Id<"quotationItems">,
     field: keyof SharedItemDraft,
@@ -183,6 +193,28 @@ export default function SharedQuotationPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Aquí puedes revisar cada pieza y colocar un precio aproximado.
         </p>
+      </div>
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground">Cantidad de piezas</div>
+            <div className="mt-2 text-3xl font-semibold text-[#234c4b]">
+              {quotationData.summary.itemCount}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground">Suma de precios</div>
+            <div className="mt-2 text-3xl font-semibold text-[#234c4b]">
+              ${totalDraftPrice.toLocaleString("en-US", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
