@@ -26,6 +26,79 @@ type SharedItemDraft = {
   clientPrice: string;
 };
 
+type SharedViewMode = "pmg" | "brandReference" | "brand";
+
+type GroupableSharedItem = {
+  _id: Id<"quotationItems">;
+  brand?: string | null;
+  reference?: string | null;
+};
+
+type SharedItemGroup<TItem extends GroupableSharedItem> = {
+  key: string;
+  title: string;
+  items: TItem[];
+};
+
+const VIEW_MODE_OPTIONS: Array<{ value: SharedViewMode; label: string }> = [
+  { value: "pmg", label: "Orden PMG" },
+  { value: "brandReference", label: "Marca + referencia" },
+  { value: "brand", label: "Marca" },
+];
+
+const normalizeGroupValue = (value?: string | null) =>
+  (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+
+const formatGroupValue = (value: string | null | undefined, fallback: string) => {
+  const safeValue = (value ?? "").trim().replace(/\s+/g, " ");
+  return safeValue || fallback;
+};
+
+const buildSharedItemGroups = <TItem extends GroupableSharedItem>(
+  items: TItem[],
+  viewMode: SharedViewMode
+): SharedItemGroup<TItem>[] => {
+  if (viewMode === "pmg") {
+    return [
+      {
+        key: "pmg-order",
+        title: "Todas las piezas en orden PMG",
+        items,
+      },
+    ];
+  }
+
+  const groups = new Map<string, SharedItemGroup<TItem>>();
+
+  for (const item of items) {
+    const brandLabel = formatGroupValue(item.brand, "Sin marca");
+    const referenceLabel = formatGroupValue(item.reference, "Sin referencia");
+    const normalizedBrand = normalizeGroupValue(item.brand) || "__sin_marca__";
+    const normalizedReference = normalizeGroupValue(item.reference) || "__sin_referencia__";
+
+    const groupKey =
+      viewMode === "brandReference"
+        ? `${normalizedBrand}::${normalizedReference}`
+        : normalizedBrand;
+    const groupTitle =
+      viewMode === "brandReference" ? `${brandLabel} · ${referenceLabel}` : brandLabel;
+
+    const currentGroup = groups.get(groupKey);
+    if (currentGroup) {
+      currentGroup.items.push(item);
+      continue;
+    }
+
+    groups.set(groupKey, {
+      key: groupKey,
+      title: groupTitle,
+      items: [item],
+    });
+  }
+
+  return Array.from(groups.values());
+};
+
 export default function SharedQuotationPage() {
   const params = useParams<{ token: string }>();
   const shareToken = Array.isArray(params?.token) ? params.token[0] : params?.token;
@@ -40,6 +113,7 @@ export default function SharedQuotationPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
   const [photoZoom, setPhotoZoom] = useState(1);
+  const [viewMode, setViewMode] = useState<SharedViewMode>("pmg");
 
   const items = quotationData?.items ?? [];
 
@@ -67,6 +141,11 @@ export default function SharedQuotationPage() {
         return sum + (Number.isFinite(parsedValue) ? parsedValue : 0);
       }, 0),
     [items, mergedDrafts]
+  );
+
+  const groupedItems = useMemo(
+    () => buildSharedItemGroups(items, viewMode),
+    [items, viewMode]
   );
 
   const handleDraftChange = (
@@ -218,8 +297,33 @@ export default function SharedQuotationPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Piezas de la cotización</CardTitle>
+        <CardHeader className="gap-4">
+          <div>
+            <CardTitle>Piezas de la cotización</CardTitle>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Cambia la vista para encontrar piezas repetidas sin alterar el orden real guardado en la base de datos.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {VIEW_MODE_OPTIONS.map((option) => {
+              const isActive = viewMode === option.value;
+              return (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={isActive ? "default" : "outline"}
+                  onClick={() => setViewMode(option.value)}
+                  className={
+                    isActive
+                      ? "bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                      : "border-[#c9d8d4] text-[#234c4b] hover:bg-[#eef5f3]"
+                  }
+                >
+                  {option.label}
+                </Button>
+              );
+            })}
+          </div>
         </CardHeader>
         <CardContent className="grid gap-4">
           {items.length === 0 ? (
@@ -228,150 +332,175 @@ export default function SharedQuotationPage() {
             </div>
           ) : null}
 
-          <div
-            className="grid gap-4"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            }}
-          >
-            {items.map((item) => {
-              const itemId = String(item._id);
-              const isEditing = editingItemId === itemId;
+          {groupedItems.map((group) => (
+            <section
+              key={group.key}
+              className="grid gap-4 rounded-xl border border-[#dbe6e3] bg-[#f8fbfa] p-4"
+            >
+              {viewMode !== "pmg" ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dbe6e3] pb-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#234c4b]">
+                      {group.title}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {viewMode === "brandReference"
+                        ? "Misma marca y misma referencia"
+                        : "Misma marca"}
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-[#234c4b] px-3 py-1 text-sm font-semibold text-white">
+                    {group.items.length} piezas
+                  </div>
+                </div>
+              ) : null}
 
-              return (
-                <div
-                  key={item._id}
-                  className="flex h-full flex-col overflow-hidden rounded-lg border bg-white p-4"
-                >
-                  <button
-                    type="button"
-                    className="group relative aspect-square w-full overflow-hidden rounded-md border bg-muted"
-                    onClick={() => handleOpenPhoto(item.photoUrl)}
-                    disabled={!item.photoUrl}
-                  >
-                    <div className="absolute left-3 top-3 z-10 rounded-md bg-[#234c4b] px-2 py-1 text-xs font-semibold text-white">
-                      {item.pmgCode ?? "Sin código PMG"}
-                    </div>
-                    {item.photoUrl ? (
-                      <img
-                        src={item.photoUrl}
-                        alt="Pieza"
-                        className="h-full w-full object-cover transition-opacity group-hover:opacity-95"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Sin foto
-                      </div>
-                    )}
-                  </button>
+              <div
+                className="grid gap-4"
+                style={{
+                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                }}
+              >
+                {group.items.map((item) => {
+                  const itemId = String(item._id);
+                  const isEditing = editingItemId === itemId;
 
-                  <div className="mt-4 flex flex-1 flex-col gap-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-h-[72px]">
-                        <div className="font-semibold text-[#234c4b]">
-                          {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
-                        </div>
-                        <div className="mt-1 text-sm text-muted-foreground">
-                          Referencia: {item.reference ?? "-"}
-                        </div>
-                        {item.notes ? (
-                          <div className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                            {item.notes}
-                          </div>
-                        ) : null}
-                      </div>
-                      <Button
+                  return (
+                    <div
+                      key={item._id}
+                      className="flex h-full flex-col overflow-hidden rounded-lg border bg-white p-4"
+                    >
+                      <button
                         type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleStartEdit(item)}
-                        className="shrink-0"
+                        className="group relative aspect-square w-full overflow-hidden rounded-md border bg-muted"
+                        onClick={() => handleOpenPhoto(item.photoUrl)}
+                        disabled={!item.photoUrl}
                       >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {isEditing ? (
-                      <div className="grid gap-3 border-t pt-3">
-                        <label className="grid gap-2 text-sm">
-                          Marca
-                          <Input
-                            value={mergedDrafts[itemId]?.brand ?? ""}
-                            onChange={(e) => handleDraftChange(item._id, "brand", e.target.value)}
-                            placeholder="Marca"
+                        <div className="absolute left-3 top-3 z-10 rounded-md bg-[#234c4b] px-2 py-1 text-xs font-semibold text-white">
+                          {item.pmgCode ?? "Sin código PMG"}
+                        </div>
+                        {item.photoUrl ? (
+                          <img
+                            src={item.photoUrl}
+                            alt="Pieza"
+                            className="h-full w-full object-cover transition-opacity group-hover:opacity-95"
                           />
-                        </label>
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                            Sin foto
+                          </div>
+                        )}
+                      </button>
 
-                        <label className="grid gap-2 text-sm">
-                          Modelo
-                          <Input
-                            value={mergedDrafts[itemId]?.model ?? ""}
-                            onChange={(e) => handleDraftChange(item._id, "model", e.target.value)}
-                            placeholder="Modelo"
-                          />
-                        </label>
-
-                        <label className="grid gap-2 text-sm">
-                          Referencia
-                          <Input
-                            value={mergedDrafts[itemId]?.reference ?? ""}
-                            onChange={(e) => handleDraftChange(item._id, "reference", e.target.value)}
-                            placeholder="Referencia"
-                          />
-                        </label>
-
-                        <label className="grid gap-2 text-sm">
-                          Notas
-                          <Textarea
-                            value={mergedDrafts[itemId]?.notes ?? ""}
-                            onChange={(e) => handleDraftChange(item._id, "notes", e.target.value)}
-                            placeholder="Notas de la pieza"
-                            rows={3}
-                          />
-                        </label>
-
-                        <div className="flex gap-2">
+                      <div className="mt-4 flex flex-1 flex-col gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-h-[72px]">
+                            <div className="font-semibold text-[#234c4b]">
+                              {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
+                            </div>
+                            <div className="mt-1 text-sm text-muted-foreground">
+                              Referencia: {item.reference ?? "-"}
+                            </div>
+                            {item.notes ? (
+                              <div className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                                {item.notes}
+                              </div>
+                            ) : null}
+                          </div>
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => handleCancelEdit(item)}
-                            disabled={savingItemId === itemId}
-                            className="flex-1"
+                            size="icon"
+                            onClick={() => handleStartEdit(item)}
+                            className="shrink-0"
                           >
-                            Cancelar
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {isEditing ? (
+                          <div className="grid gap-3 border-t pt-3">
+                            <label className="grid gap-2 text-sm">
+                              Marca
+                              <Input
+                                value={mergedDrafts[itemId]?.brand ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "brand", e.target.value)}
+                                placeholder="Marca"
+                              />
+                            </label>
+
+                            <label className="grid gap-2 text-sm">
+                              Modelo
+                              <Input
+                                value={mergedDrafts[itemId]?.model ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "model", e.target.value)}
+                                placeholder="Modelo"
+                              />
+                            </label>
+
+                            <label className="grid gap-2 text-sm">
+                              Referencia
+                              <Input
+                                value={mergedDrafts[itemId]?.reference ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "reference", e.target.value)}
+                                placeholder="Referencia"
+                              />
+                            </label>
+
+                            <label className="grid gap-2 text-sm">
+                              Notas
+                              <Textarea
+                                value={mergedDrafts[itemId]?.notes ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "notes", e.target.value)}
+                                placeholder="Notas de la pieza"
+                                rows={3}
+                              />
+                            </label>
+
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleCancelEdit(item)}
+                                disabled={savingItemId === itemId}
+                                className="flex-1"
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-auto grid gap-3 border-t pt-3">
+                          <label className="grid gap-2 text-sm">
+                            Precio aproximado
+                            <Input
+                              value={mergedDrafts[itemId]?.clientPrice ?? ""}
+                              onChange={(e) => handleDraftChange(item._id, "clientPrice", e.target.value)}
+                              type="number"
+                              placeholder="USD"
+                            />
+                          </label>
+                          <Button
+                            type="button"
+                            onClick={() => handleSaveItem(item)}
+                            disabled={savingItemId === itemId}
+                            className="w-full bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
+                          >
+                            {savingItemId === itemId
+                              ? "Guardando..."
+                              : isEditing
+                                ? "Guardar cambios"
+                                : "Guardar precio"}
                           </Button>
                         </div>
                       </div>
-                    ) : null}
-
-                    <div className="mt-auto grid gap-3 border-t pt-3">
-                      <label className="grid gap-2 text-sm">
-                        Precio aproximado
-                        <Input
-                          value={mergedDrafts[itemId]?.clientPrice ?? ""}
-                          onChange={(e) => handleDraftChange(item._id, "clientPrice", e.target.value)}
-                          type="number"
-                          placeholder="USD"
-                        />
-                      </label>
-                      <Button
-                        type="button"
-                        onClick={() => handleSaveItem(item)}
-                        disabled={savingItemId === itemId}
-                        className="w-full bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
-                      >
-                        {savingItemId === itemId
-                          ? "Guardando..."
-                          : isEditing
-                            ? "Guardar cambios"
-                            : "Guardar precio"}
-                      </Button>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </CardContent>
       </Card>
 
