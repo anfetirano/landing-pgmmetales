@@ -358,7 +358,10 @@ export default function SharedQuotationPage() {
               <div
                 className="grid gap-4"
                 style={{
-                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                  gridTemplateColumns:
+                    viewMode === "pmg"
+                      ? "repeat(auto-fit, minmax(320px, 1fr))"
+                      : "repeat(auto-fill, minmax(320px, 360px))",
                 }}
               >
                 {group.items.map((item) => {
