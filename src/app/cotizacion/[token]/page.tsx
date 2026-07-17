@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Pencil } from "lucide-react";
+import { Pencil, Search } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,9 @@ const formatGroupValue = (value: string | null | undefined, fallback: string) =>
   const safeValue = (value ?? "").trim().replace(/\s+/g, " ");
   return safeValue || fallback;
 };
+
+const normalizeSearchValue = (value: string | null | undefined) =>
+  (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 
 const buildSharedItemGroups = <TItem extends GroupableSharedItem>(
   items: TItem[],
@@ -114,8 +117,10 @@ export default function SharedQuotationPage() {
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
   const [photoZoom, setPhotoZoom] = useState(1);
   const [viewMode, setViewMode] = useState<SharedViewMode>("pmg");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const items = quotationData?.items ?? [];
+  const normalizedSearchTerm = normalizeSearchValue(searchTerm);
 
   const mergedDrafts = useMemo(() => {
     const next: Record<string, SharedItemDraft> = { ...itemDrafts };
@@ -143,9 +148,30 @@ export default function SharedQuotationPage() {
     [items, mergedDrafts]
   );
 
+  const filteredItems = useMemo(() => {
+    if (!normalizedSearchTerm) {
+      return items;
+    }
+
+    return items.filter((item) => {
+      const searchBase = [
+        item.pmgCode,
+        item.brand,
+        item.model,
+        item.reference,
+        item.notes,
+      ]
+        .map((value) => normalizeSearchValue(value))
+        .filter(Boolean)
+        .join(" ");
+
+      return searchBase.includes(normalizedSearchTerm);
+    });
+  }, [items, normalizedSearchTerm]);
+
   const groupedItems = useMemo(
-    () => buildSharedItemGroups(items, viewMode),
-    [items, viewMode]
+    () => buildSharedItemGroups(filteredItems, viewMode),
+    [filteredItems, viewMode]
   );
 
   const handleDraftChange = (
@@ -304,6 +330,25 @@ export default function SharedQuotationPage() {
               Cambia la vista para encontrar piezas repetidas sin alterar el orden real guardado en la base de datos.
             </p>
           </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-[#234c4b]">
+              Buscar pieza
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Busca por PMG, marca, modelo, referencia o nota"
+                className="pl-9"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {normalizedSearchTerm
+                ? `${filteredItems.length} resultados encontrados`
+                : `${items.length} piezas disponibles`}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             {VIEW_MODE_OPTIONS.map((option) => {
               const isActive = viewMode === option.value;
@@ -329,6 +374,12 @@ export default function SharedQuotationPage() {
           {items.length === 0 ? (
             <div className="text-sm text-muted-foreground">
               Todavía no hay piezas registradas en esta cotización.
+            </div>
+          ) : null}
+
+          {items.length > 0 && filteredItems.length === 0 ? (
+            <div className="rounded-lg border border-dashed bg-[#f7fbfa] px-4 py-5 text-sm text-muted-foreground">
+              No encontré piezas con ese criterio. Prueba con otra marca, referencia o código PMG.
             </div>
           ) : null}
 
