@@ -367,11 +367,16 @@ export default function SharedQuotationPage() {
                 {group.items.map((item) => {
                   const itemId = String(item._id);
                   const isEditing = editingItemId === itemId;
+                  const hasSavedPrice = typeof item.clientPrice === "number";
 
                   return (
                     <div
                       key={item._id}
-                      className="flex h-full flex-col overflow-hidden rounded-lg border bg-white p-4"
+                      className={`flex h-full flex-col overflow-hidden rounded-lg border p-4 transition-colors ${
+                        hasSavedPrice
+                          ? "border-[#b9d8cb] bg-[#f3fbf6]"
+                          : "bg-white"
+                      }`}
                     >
                       <button
                         type="button"

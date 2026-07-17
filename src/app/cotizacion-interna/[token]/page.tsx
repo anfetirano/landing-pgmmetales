@@ -337,6 +337,7 @@ export default function InternalSharedQuotationPage() {
                   const buyerPriceVisible =
                     showComparison && typeof item.clientPrice === "number";
                   const buyerPrice = buyerPriceVisible ? item.clientPrice : undefined;
+                  const hasSavedInternalPrice = typeof item.quotedPrice === "number";
                   const parsedInternalPrice = internalPrice.trim()
                     ? Number(internalPrice)
                     : undefined;
@@ -350,7 +351,11 @@ export default function InternalSharedQuotationPage() {
                   return (
                     <div
                       key={item._id}
-                      className="flex h-full flex-col overflow-hidden rounded-lg border bg-white p-4"
+                      className={`flex h-full flex-col overflow-hidden rounded-lg border p-4 transition-colors ${
+                        hasSavedInternalPrice
+                          ? "border-[#b9d8cb] bg-[#f3fbf6]"
+                          : "bg-white"
+                      }`}
                     >
                       <button
                         type="button"
