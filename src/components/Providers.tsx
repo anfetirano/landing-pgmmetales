@@ -11,7 +11,8 @@ export default function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isClerkFreeRoute =
     pathname.startsWith("/presentacion") || pathname.startsWith("/pmr");
-  const isSharedQuotationRoute = pathname.startsWith("/cotizacion/");
+  const isSharedQuotationRoute =
+    pathname.startsWith("/cotizacion/") || pathname.startsWith("/cotizacion-interna/");
 
   if (isClerkFreeRoute) {
     return <>{children}</>;

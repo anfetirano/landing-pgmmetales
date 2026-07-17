@@ -272,6 +272,34 @@ export const ensureShareLink = mutation({
   },
 });
 
+export const ensureInternalShareLink = mutation({
+  args: {
+    adminId: v.id("users"),
+    quotationId: v.id("quotations"),
+  },
+  handler: async (ctx, args) => {
+    const { actor, tenantKey, isAdmin } = await getQuotationActorOrThrow(ctx, args.adminId);
+    const quotation = await getQuotationOrThrow(ctx, args.quotationId, tenantKey);
+    if (!isAdmin && String(quotation.createdBy) !== String(actor._id)) {
+      throw new Error("No autorizado.");
+    }
+
+    const internalShareToken = quotation.internalShareToken ?? createShareToken();
+    if (!quotation.internalShareToken) {
+      await ctx.db.patch(args.quotationId, {
+        internalShareToken,
+        internalSharedAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      internalShareToken,
+      path: `/cotizacion-interna/${internalShareToken}`,
+    };
+  },
+});
+
 export const getSharedQuotation = query({
   args: {
     shareToken: v.string(),
@@ -314,6 +342,73 @@ export const getSharedQuotation = query({
       summary: {
         itemCount: rows.length,
         totalClientPrice: rows.reduce((sum, item) => sum + (item.clientPrice ?? 0), 0),
+      },
+    };
+  },
+});
+
+export const getInternalSharedQuotation = query({
+  args: {
+    shareToken: v.string(),
+    includeComparison: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const quotation = await ctx.db
+      .query("quotations")
+      .withIndex("by_internalShareToken", (q) => q.eq("internalShareToken", args.shareToken))
+      .unique();
+
+    if (!quotation || !quotation.internalShareToken) {
+      throw new Error("Cotización interna no encontrada.");
+    }
+
+    const items = await ctx.db
+      .query("quotationItems")
+      .withIndex("by_quotationId", (q) => q.eq("quotationId", quotation._id))
+      .collect();
+
+    const includeComparison = args.includeComparison === true;
+    const rows = await Promise.all(
+      sortQuotationItems(
+        items.filter((item) => sameTenantKey(item.tenantKey, normalizeTenantKey(quotation.tenantKey)))
+      ).map(async (item) => ({
+        _id: item._id,
+        quotationId: item.quotationId,
+        pmgCode: item.pmgCode,
+        pmgSequence: item.pmgSequence,
+        brand: item.brand,
+        model: item.model,
+        reference: item.reference,
+        quotedPrice: item.quotedPrice,
+        clientPrice: includeComparison ? item.clientPrice : undefined,
+        notes: item.notes,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        photoUrl: item.photoId ? await ctx.storage.getUrl(item.photoId) : null,
+      }))
+    );
+
+    const totalInternalPrice = rows.reduce((sum, item) => sum + (item.quotedPrice ?? 0), 0);
+    const totalBuyerPrice = includeComparison
+      ? rows.reduce((sum, item) => sum + (item.clientPrice ?? 0), 0)
+      : undefined;
+
+    return {
+      quotation: {
+        _id: quotation._id,
+        clientName: quotation.clientName,
+        status: quotation.status,
+        notes: quotation.notes ?? null,
+        updatedAt: quotation.updatedAt,
+      },
+      items: rows,
+      summary: {
+        itemCount: rows.length,
+        totalInternalPrice,
+        totalBuyerPrice,
+        totalDifference:
+          typeof totalBuyerPrice === "number" ? totalInternalPrice - totalBuyerPrice : undefined,
+        includeComparison,
       },
     };
   },
@@ -400,6 +495,48 @@ export const updateSharedQuotationItem = mutation({
       reference: args.reference?.trim() || undefined,
       notes: args.notes?.trim() || undefined,
       clientPrice: typeof args.clientPrice === "number" ? args.clientPrice : undefined,
+      updatedAt: now,
+    });
+
+    await ctx.db.patch(quotation._id, {
+      updatedAt: now,
+    });
+
+    return { ok: true };
+  },
+});
+
+export const updateInternalSharedQuotationItemPrice = mutation({
+  args: {
+    shareToken: v.string(),
+    itemId: v.id("quotationItems"),
+    quotedPrice: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const quotation = await ctx.db
+      .query("quotations")
+      .withIndex("by_internalShareToken", (q) => q.eq("internalShareToken", args.shareToken))
+      .unique();
+
+    if (!quotation || !quotation.internalShareToken) {
+      throw new Error("Cotización interna no encontrada.");
+    }
+
+    const item = await ctx.db.get(args.itemId);
+    if (!item || String(item.quotationId) !== String(quotation._id)) {
+      throw new Error("Pieza no encontrada.");
+    }
+
+    if (
+      typeof args.quotedPrice === "number" &&
+      (!Number.isFinite(args.quotedPrice) || Number.isNaN(args.quotedPrice))
+    ) {
+      throw new Error("Precio inválido.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(args.itemId, {
+      quotedPrice: typeof args.quotedPrice === "number" ? args.quotedPrice : undefined,
       updatedAt: now,
     });
 

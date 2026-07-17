@@ -80,6 +80,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const updateQuotation = useMutation(api.quotations.updateQuotation);
   const deleteQuotation = useMutation(api.quotations.deleteQuotation);
   const ensureShareLink = useMutation(api.quotations.ensureShareLink);
+  const ensureInternalShareLink = useMutation(api.quotations.ensureInternalShareLink);
   const addQuotationItem = useMutation(api.quotations.addQuotationItem);
   const updateQuotationItem = useMutation(api.quotations.updateQuotationItem);
   const deleteQuotationItem = useMutation(api.quotations.deleteQuotationItem);
@@ -113,7 +114,9 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
   const [sharedLink, setSharedLink] = useState("");
+  const [internalSharedLink, setInternalSharedLink] = useState("");
   const [sharingQuotation, setSharingQuotation] = useState(false);
+  const [sharingInternalQuotation, setSharingInternalQuotation] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const itemFormRef = useRef<HTMLDivElement | null>(null);
@@ -133,6 +136,7 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
 
   useEffect(() => {
     setSharedLink("");
+    setInternalSharedLink("");
   }, [quotationDetail?._id]);
 
   useEffect(() => {
@@ -203,6 +207,16 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     }
     return `${window.location.origin}/cotizacion/${quotationDetail.shareToken}`;
   }, [quotationDetail?.shareToken, sharedLink]);
+
+  const activeInternalSharedLink = useMemo(() => {
+    if (internalSharedLink) {
+      return internalSharedLink;
+    }
+    if (!quotationDetail?.internalShareToken || typeof window === "undefined") {
+      return "";
+    }
+    return `${window.location.origin}/cotizacion-interna/${quotationDetail.internalShareToken}`;
+  }, [internalSharedLink, quotationDetail?.internalShareToken]);
 
   const resetItemForm = () => {
     setEditingItemId(null);
@@ -495,6 +509,34 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     }
   };
 
+  const handleGenerateInternalShareLink = async () => {
+    if (!dbUser?._id || !quotationDetail?._id) return;
+
+    setSharingInternalQuotation(true);
+    try {
+      const result = await ensureInternalShareLink({
+        adminId: dbUser._id,
+        quotationId: quotationDetail._id,
+      });
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const nextLink = `${origin}${result.path}`;
+      setInternalSharedLink(nextLink);
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(nextLink);
+        alert("Link interno copiado. Este es el link ciego para sus precios internos.");
+      } else {
+        alert("Link interno generado. Cópialo desde el campo que aparece abajo.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo generar el link interno.");
+    } finally {
+      setSharingInternalQuotation(false);
+    }
+  };
+
   const handlePriceDraftChange = (
     itemId: Id<"quotationItems">,
     field: keyof PriceDraft,
@@ -718,14 +760,18 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                     <Textarea value={quotationNotes} onChange={(e) => setQuotationNotes(e.target.value)} />
                   </label>
 
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-3">
                     <div className="rounded-lg border bg-white px-4 py-3">
                       <div className="text-xs text-muted-foreground">Piezas</div>
                       <div className="mt-2 text-2xl font-semibold">{quotationDetail.summary.itemCount}</div>
                     </div>
                     <div className="rounded-lg border bg-white px-4 py-3">
-                      <div className="text-xs text-muted-foreground">Precio cliente</div>
+                      <div className="text-xs text-muted-foreground">Precio comprador</div>
                       <div className="mt-2 text-2xl font-semibold">{formatMoney(quotationDetail.summary.totalClientPrice)}</div>
+                    </div>
+                    <div className="rounded-lg border bg-white px-4 py-3">
+                      <div className="text-xs text-muted-foreground">Precio interno</div>
+                      <div className="mt-2 text-2xl font-semibold">{formatMoney(quotationDetail.summary.totalQuotedPrice)}</div>
                     </div>
                   </div>
 
@@ -744,13 +790,21 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                       onClick={handleGenerateShareLink}
                       disabled={sharingQuotation}
                     >
-                      {sharingQuotation ? "Generando link..." : "Copiar link para precios"}
+                      {sharingQuotation ? "Generando link..." : "Copiar link comprador"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleGenerateInternalShareLink}
+                      disabled={sharingInternalQuotation}
+                    >
+                      {sharingInternalQuotation ? "Generando link interno..." : "Copiar link interno"}
                     </Button>
                   </div>
 
                   {activeSharedLink ? (
                     <label className="grid gap-2 text-sm">
-                      Link compartido
+                      Link comprador
                       <div className="flex flex-col gap-2 md:flex-row">
                         <Input readOnly value={activeSharedLink} />
                         <Button
@@ -762,7 +816,26 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                         </Button>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        Esta persona verá las piezas y podrá ir colocando precios aproximados.
+                        Este es el link que recibe el comprador para colocar sus precios.
+                      </span>
+                    </label>
+                  ) : null}
+
+                  {activeInternalSharedLink ? (
+                    <label className="grid gap-2 text-sm">
+                      Link interno ciego
+                      <div className="flex flex-col gap-2 md:flex-row">
+                        <Input readOnly value={activeInternalSharedLink} />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => window.open(activeInternalSharedLink, "_blank", "noopener,noreferrer")}
+                        >
+                          Abrir link
+                        </Button>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Este link es solo para ustedes. Aquí colocan el precio interno sin ver al inicio el precio del comprador.
                       </span>
                     </label>
                   ) : null}

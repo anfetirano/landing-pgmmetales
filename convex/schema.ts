@@ -202,6 +202,8 @@ export default defineSchema({
     clientId: v.optional(v.id("clients")),
     shareToken: v.optional(v.string()),
     sharedAt: v.optional(v.number()),
+    internalShareToken: v.optional(v.string()),
+    internalSharedAt: v.optional(v.number()),
     status: v.union(
       v.literal("draft"),
       v.literal("pricing"),
@@ -215,6 +217,7 @@ export default defineSchema({
   })
     .index("by_createdBy", ["createdBy"])
     .index("by_shareToken", ["shareToken"])
+    .index("by_internalShareToken", ["internalShareToken"])
     .index("by_updatedAt", ["updatedAt"]),
 
   quotationItems: defineTable({
