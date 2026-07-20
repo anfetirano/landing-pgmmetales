@@ -26,6 +26,8 @@ type SharedItemDraft = {
   clientPrice: string;
 };
 
+type SharedDraftDirtyState = Partial<Record<keyof SharedItemDraft, boolean>>;
+
 type SharedViewMode = "pmg" | "brandReference" | "brand";
 
 type GroupableSharedItem = {
@@ -56,6 +58,58 @@ const formatGroupValue = (value: string | null | undefined, fallback: string) =>
 
 const normalizeSearchValue = (value: string | null | undefined) =>
   (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+
+const PRICE_INPUT_HELP =
+  "Usa el valor en dolares sin separadores de miles. Ej: 157 o 157.5";
+
+const formatPriceDraft = (value?: number) =>
+  typeof value === "number" && Number.isFinite(value) ? String(value) : "";
+
+const parsePriceInput = (
+  value: string
+): { value?: number; error?: string } => {
+  const normalized = value.trim().replace(/\s+/g, "");
+
+  if (!normalized) {
+    return { value: undefined };
+  }
+
+  if (!/^[\d.,]+$/.test(normalized)) {
+    return { error: PRICE_INPUT_HELP };
+  }
+
+  const separators = normalized.match(/[.,]/g) ?? [];
+  if (separators.length > 1) {
+    return { error: PRICE_INPUT_HELP };
+  }
+
+  const usesComma = normalized.includes(",");
+  const usesDot = normalized.includes(".");
+  const decimalSeparator = usesComma ? "," : usesDot ? "." : null;
+
+  if (decimalSeparator) {
+    const [, decimals = ""] = normalized.split(decimalSeparator);
+    if (decimals.length === 3 || decimals.length > 2) {
+      return { error: PRICE_INPUT_HELP };
+    }
+  }
+
+  const numericValue = Number(usesComma ? normalized.replace(",", ".") : normalized);
+
+  if (!Number.isFinite(numericValue) || Number.isNaN(numericValue)) {
+    return { error: "Precio invalido." };
+  }
+
+  if (numericValue < 0) {
+    return { error: "El precio no puede ser negativo." };
+  }
+
+  if (numericValue > 100000) {
+    return { error: "El valor parece estar en pesos. Revisa que este en dolares." };
+  }
+
+  return { value: numericValue };
+};
 
 const buildSharedItemGroups = <TItem extends GroupableSharedItem>(
   items: TItem[],
@@ -112,6 +166,7 @@ export default function SharedQuotationPage() {
   const updateSharedItem = useMutation(api.quotations.updateSharedQuotationItem);
 
   const [itemDrafts, setItemDrafts] = useState<Record<string, SharedItemDraft>>({});
+  const [itemDirtyFields, setItemDirtyFields] = useState<Record<string, SharedDraftDirtyState>>({});
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState<string | null>(null);
@@ -123,27 +178,31 @@ export default function SharedQuotationPage() {
   const normalizedSearchTerm = normalizeSearchValue(searchTerm);
 
   const mergedDrafts = useMemo(() => {
-    const next: Record<string, SharedItemDraft> = { ...itemDrafts };
+    const next: Record<string, SharedItemDraft> = {};
     for (const item of items) {
-      if (!next[String(item._id)]) {
-        next[String(item._id)] = {
-          brand: item.brand ?? "",
-          model: item.model ?? "",
-          reference: item.reference ?? "",
-          notes: item.notes ?? "",
-          clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
-        };
-      }
+      const itemId = String(item._id);
+      const currentDraft = itemDrafts[itemId];
+      const dirtyFields = itemDirtyFields[itemId] ?? {};
+
+      next[itemId] = {
+        brand: dirtyFields.brand ? currentDraft?.brand ?? "" : item.brand ?? "",
+        model: dirtyFields.model ? currentDraft?.model ?? "" : item.model ?? "",
+        reference: dirtyFields.reference ? currentDraft?.reference ?? "" : item.reference ?? "",
+        notes: dirtyFields.notes ? currentDraft?.notes ?? "" : item.notes ?? "",
+        clientPrice: dirtyFields.clientPrice
+          ? currentDraft?.clientPrice ?? ""
+          : formatPriceDraft(item.clientPrice),
+      };
     }
     return next;
-  }, [items, itemDrafts]);
+  }, [items, itemDirtyFields, itemDrafts]);
 
   const totalDraftPrice = useMemo(
     () =>
       items.reduce((sum, item) => {
         const rawValue = mergedDrafts[String(item._id)]?.clientPrice ?? "";
-        const parsedValue = rawValue.trim() ? Number(rawValue) : 0;
-        return sum + (Number.isFinite(parsedValue) ? parsedValue : 0);
+        const parsedValue = parsePriceInput(rawValue).value ?? 0;
+        return sum + parsedValue;
       }, 0),
     [items, mergedDrafts]
   );
@@ -192,6 +251,13 @@ export default function SharedQuotationPage() {
         [field]: value,
       },
     }));
+    setItemDirtyFields((current) => ({
+      ...current,
+      [String(itemId)]: {
+        ...(current[String(itemId)] ?? {}),
+        [field]: true,
+      },
+    }));
   };
 
   const handleSaveItem = async (item: (typeof items)[number]) => {
@@ -204,12 +270,12 @@ export default function SharedQuotationPage() {
       notes: item.notes ?? "",
       clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
     };
-    const parsedPrice = draft.clientPrice.trim() ? Number(draft.clientPrice) : undefined;
-
-    if (typeof parsedPrice === "number" && Number.isNaN(parsedPrice)) {
-      alert("Precio inválido.");
+    const parsedPriceResult = parsePriceInput(draft.clientPrice);
+    if (parsedPriceResult.error) {
+      alert(parsedPriceResult.error);
       return;
     }
+    const parsedPrice = parsedPriceResult.value;
 
     setSavingItemId(String(item._id));
     try {
@@ -223,6 +289,10 @@ export default function SharedQuotationPage() {
         clientPrice: parsedPrice,
       });
       setEditingItemId(null);
+      setItemDirtyFields((current) => ({
+        ...current,
+        [String(item._id)]: {},
+      }));
       alert("Cambios guardados.");
     } catch (error) {
       console.error(error);
@@ -258,8 +328,12 @@ export default function SharedQuotationPage() {
         model: item.model ?? "",
         reference: item.reference ?? "",
         notes: item.notes ?? "",
-        clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
+        clientPrice: formatPriceDraft(item.clientPrice),
       },
+    }));
+    setItemDirtyFields((current) => ({
+      ...current,
+      [String(item._id)]: {},
     }));
     setEditingItemId(String(item._id));
   };
@@ -272,8 +346,12 @@ export default function SharedQuotationPage() {
         model: item.model ?? "",
         reference: item.reference ?? "",
         notes: item.notes ?? "",
-        clientPrice: typeof item.clientPrice === "number" ? String(item.clientPrice) : "",
+        clientPrice: formatPriceDraft(item.clientPrice),
       },
+    }));
+    setItemDirtyFields((current) => ({
+      ...current,
+      [String(item._id)]: {},
     }));
     setEditingItemId(null);
   };
@@ -538,7 +616,8 @@ export default function SharedQuotationPage() {
                             <Input
                               value={mergedDrafts[itemId]?.clientPrice ?? ""}
                               onChange={(e) => handleDraftChange(item._id, "clientPrice", e.target.value)}
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               placeholder="USD"
                             />
                           </label>
