@@ -443,6 +443,8 @@ export default function SharedQuotationPage() {
                             src={item.photoUrl}
                             alt="Pieza"
                             className="h-full w-full object-cover transition-opacity group-hover:opacity-95"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

@@ -5,11 +5,12 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { Search } from "lucide-react";
+import { Pencil, Search } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,10 @@ import {
 } from "@/components/ui/dialog";
 
 type InternalPriceDraft = {
+  brand: string;
+  model: string;
+  reference: string;
+  notes: string;
   quotedPrice: string;
 };
 
@@ -118,7 +123,7 @@ export default function InternalSharedQuotationPage() {
     api.quotations.getInternalSharedQuotation,
     shareToken ? { shareToken, includeComparison: showComparison } : "skip"
   );
-  const updateInternalPrice = useMutation(api.quotations.updateInternalSharedQuotationItemPrice);
+  const updateInternalItem = useMutation(api.quotations.updateInternalSharedQuotationItem);
 
   const items = quotationData?.items ?? [];
   const normalizedSearchTerm = normalizeSearchValue(searchTerm);
@@ -128,6 +133,10 @@ export default function InternalSharedQuotationPage() {
     for (const item of items) {
       if (!next[String(item._id)]) {
         next[String(item._id)] = {
+          brand: item.brand ?? "",
+          model: item.model ?? "",
+          reference: item.reference ?? "",
+          notes: item.notes ?? "",
           quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
         };
       }
@@ -171,19 +180,36 @@ export default function InternalSharedQuotationPage() {
     [filteredItems, viewMode]
   );
 
-  const handleDraftChange = (itemId: Id<"quotationItems">, value: string) => {
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+  const handleDraftChange = (
+    itemId: Id<"quotationItems">,
+    field: keyof InternalPriceDraft,
+    value: string
+  ) => {
     setItemDrafts((current) => ({
       ...current,
       [String(itemId)]: {
-        quotedPrice: value,
+        ...(current[String(itemId)] ?? {
+          brand: "",
+          model: "",
+          reference: "",
+          notes: "",
+          quotedPrice: "",
+        }),
+        [field]: value,
       },
     }));
   };
 
-  const handleSavePrice = async (item: (typeof items)[number]) => {
+  const handleSaveItem = async (item: (typeof items)[number]) => {
     if (!shareToken) return;
 
     const draft = mergedDrafts[String(item._id)] ?? {
+      brand: item.brand ?? "",
+      model: item.model ?? "",
+      reference: item.reference ?? "",
+      notes: item.notes ?? "",
       quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
     };
     const parsedPrice = draft.quotedPrice.trim() ? Number(draft.quotedPrice) : undefined;
@@ -195,18 +221,51 @@ export default function InternalSharedQuotationPage() {
 
     setSavingItemId(String(item._id));
     try {
-      await updateInternalPrice({
+      await updateInternalItem({
         shareToken,
         itemId: item._id,
+        brand: draft.brand,
+        model: draft.model,
+        reference: draft.reference,
+        notes: draft.notes,
         quotedPrice: parsedPrice,
       });
-      alert("Precio interno guardado.");
+      setEditingItemId(null);
+      alert("Cambios internos guardados.");
     } catch (error) {
       console.error(error);
-      alert("No se pudo guardar el precio interno.");
+      alert("No se pudieron guardar los cambios internos.");
     } finally {
       setSavingItemId(null);
     }
+  };
+
+  const handleStartEdit = (item: (typeof items)[number]) => {
+    setItemDrafts((current) => ({
+      ...current,
+      [String(item._id)]: {
+        brand: item.brand ?? "",
+        model: item.model ?? "",
+        reference: item.reference ?? "",
+        notes: item.notes ?? "",
+        quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
+      },
+    }));
+    setEditingItemId(String(item._id));
+  };
+
+  const handleCancelEdit = (item: (typeof items)[number]) => {
+    setItemDrafts((current) => ({
+      ...current,
+      [String(item._id)]: {
+        brand: item.brand ?? "",
+        model: item.model ?? "",
+        reference: item.reference ?? "",
+        notes: item.notes ?? "",
+        quotedPrice: typeof item.quotedPrice === "number" ? String(item.quotedPrice) : "",
+      },
+    }));
+    setEditingItemId(null);
   };
 
   const handleOpenPhoto = (photoUrl: string | null) => {
@@ -386,6 +445,7 @@ export default function InternalSharedQuotationPage() {
                 {group.items.map((item) => {
                   const itemId = String(item._id);
                   const internalPrice = mergedDrafts[itemId]?.quotedPrice ?? "";
+                  const isEditing = editingItemId === itemId;
                   const buyerPriceVisible =
                     showComparison && typeof item.clientPrice === "number";
                   const buyerPrice = buyerPriceVisible ? item.clientPrice : undefined;
@@ -423,6 +483,8 @@ export default function InternalSharedQuotationPage() {
                             src={item.photoUrl}
                             alt="Pieza"
                             className="h-full w-full object-cover transition-opacity group-hover:opacity-95"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -432,26 +494,90 @@ export default function InternalSharedQuotationPage() {
                       </button>
 
                       <div className="mt-4 flex flex-1 flex-col gap-3">
-                        <div className="min-h-[72px]">
-                          <div className="font-semibold text-[#234c4b]">
-                            {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
-                          </div>
-                          <div className="mt-1 text-sm text-muted-foreground">
-                            Referencia: {item.reference ?? "-"}
-                          </div>
-                          {item.notes ? (
-                            <div className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                              {item.notes}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-h-[72px]">
+                            <div className="font-semibold text-[#234c4b]">
+                              {[item.brand, item.model].filter(Boolean).join(" ") || "Pieza sin marca/modelo"}
                             </div>
-                          ) : null}
+                            <div className="mt-1 text-sm text-muted-foreground">
+                              Referencia: {item.reference ?? "-"}
+                            </div>
+                            {item.notes ? (
+                              <div className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                                {item.notes}
+                              </div>
+                            ) : null}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleStartEdit(item)}
+                            className="shrink-0"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </div>
+
+                        {isEditing ? (
+                          <div className="grid gap-3 border-t pt-3">
+                            <label className="grid gap-2 text-sm">
+                              Marca
+                              <Input
+                                value={mergedDrafts[itemId]?.brand ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "brand", e.target.value)}
+                                placeholder="Marca"
+                              />
+                            </label>
+
+                            <label className="grid gap-2 text-sm">
+                              Modelo
+                              <Input
+                                value={mergedDrafts[itemId]?.model ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "model", e.target.value)}
+                                placeholder="Modelo"
+                              />
+                            </label>
+
+                            <label className="grid gap-2 text-sm">
+                              Referencia
+                              <Input
+                                value={mergedDrafts[itemId]?.reference ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "reference", e.target.value)}
+                                placeholder="Referencia"
+                              />
+                            </label>
+
+                            <label className="grid gap-2 text-sm">
+                              Notas
+                              <Textarea
+                                value={mergedDrafts[itemId]?.notes ?? ""}
+                                onChange={(e) => handleDraftChange(item._id, "notes", e.target.value)}
+                                placeholder="Notas de la pieza"
+                                rows={3}
+                              />
+                            </label>
+
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleCancelEdit(item)}
+                                disabled={savingItemId === itemId}
+                                className="flex-1"
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
 
                         <div className="mt-auto grid gap-3 border-t pt-3">
                           <label className="grid gap-2 text-sm">
                             Precio interno
                             <Input
                               value={internalPrice}
-                              onChange={(e) => handleDraftChange(item._id, e.target.value)}
+                              onChange={(e) => handleDraftChange(item._id, "quotedPrice", e.target.value)}
                               type="number"
                               placeholder="USD"
                             />
@@ -484,11 +610,15 @@ export default function InternalSharedQuotationPage() {
 
                           <Button
                             type="button"
-                            onClick={() => handleSavePrice(item)}
+                            onClick={() => handleSaveItem(item)}
                             disabled={savingItemId === itemId}
                             className="w-full bg-[#234c4b] text-white hover:bg-[#1e3f3e]"
                           >
-                            {savingItemId === itemId ? "Guardando..." : "Guardar precio interno"}
+                            {savingItemId === itemId
+                              ? "Guardando..."
+                              : isEditing
+                                ? "Guardar cambios"
+                                : "Guardar precio interno"}
                           </Button>
                         </div>
                       </div>
