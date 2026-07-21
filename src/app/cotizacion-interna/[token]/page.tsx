@@ -28,7 +28,7 @@ type InternalPriceDraft = {
 
 type InternalDraftDirtyState = Partial<Record<keyof InternalPriceDraft, boolean>>;
 
-type SharedViewMode = "pmg" | "brandReference" | "brand";
+type SharedViewMode = "pmg" | "brandReference" | "brand" | "unpriced";
 
 type GroupableSharedItem = {
   _id: Id<"quotationItems">;
@@ -46,6 +46,7 @@ const VIEW_MODE_OPTIONS: Array<{ value: SharedViewMode; label: string }> = [
   { value: "pmg", label: "Orden PMG" },
   { value: "brandReference", label: "Marca + referencia" },
   { value: "brand", label: "Marca" },
+  { value: "unpriced", label: "Piezas sin precio" },
 ];
 
 const normalizeGroupValue = (value?: string | null) =>
@@ -115,11 +116,14 @@ const buildSharedItemGroups = <TItem extends GroupableSharedItem>(
   items: TItem[],
   viewMode: SharedViewMode
 ): SharedItemGroup<TItem>[] => {
-  if (viewMode === "pmg") {
+  if (viewMode === "pmg" || viewMode === "unpriced") {
     return [
       {
-        key: "pmg-order",
-        title: "Todas las piezas en orden PMG",
+        key: viewMode === "pmg" ? "pmg-order" : "unpriced-items",
+        title:
+          viewMode === "pmg"
+            ? "Todas las piezas en orden PMG"
+            : "Todas las piezas sin precio",
         items,
       },
     ];
@@ -214,11 +218,16 @@ export default function InternalSharedQuotationPage() {
   );
 
   const filteredItems = useMemo(() => {
+    const baseItems =
+      viewMode === "unpriced"
+        ? items.filter((item) => typeof item.quotedPrice !== "number")
+        : items;
+
     if (!normalizedSearchTerm) {
-      return items;
+      return baseItems;
     }
 
-    return items.filter((item) => {
+    return baseItems.filter((item) => {
       const searchBase = [
         item.pmgCode,
         item.brand,
@@ -232,7 +241,7 @@ export default function InternalSharedQuotationPage() {
 
       return searchBase.includes(normalizedSearchTerm);
     });
-  }, [items, normalizedSearchTerm]);
+  }, [items, normalizedSearchTerm, viewMode]);
 
   const groupedItems = useMemo(
     () => buildSharedItemGroups(filteredItems, viewMode),
@@ -451,7 +460,9 @@ export default function InternalSharedQuotationPage() {
             <p className="text-xs text-muted-foreground">
               {normalizedSearchTerm
                 ? `${filteredItems.length} resultados encontrados`
-                : `${items.length} piezas disponibles`}
+                : viewMode === "unpriced"
+                  ? `${filteredItems.length} piezas sin precio`
+                  : `${items.length} piezas disponibles`}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -484,7 +495,9 @@ export default function InternalSharedQuotationPage() {
 
           {items.length > 0 && filteredItems.length === 0 ? (
             <div className="rounded-lg border border-dashed bg-[#f7fbfa] px-4 py-5 text-sm text-muted-foreground">
-              No encontré piezas con ese criterio. Prueba con otra marca, referencia o código PMG.
+              {viewMode === "unpriced"
+                ? "No hay piezas sin precio con ese criterio. Prueba con otra marca, referencia o código PMG."
+                : "No encontré piezas con ese criterio. Prueba con otra marca, referencia o código PMG."}
             </div>
           ) : null}
 
@@ -493,7 +506,7 @@ export default function InternalSharedQuotationPage() {
               key={group.key}
               className="grid gap-4 rounded-xl border border-[#dbe6e3] bg-[#f8fbfa] p-4"
             >
-              {viewMode !== "pmg" ? (
+              {viewMode !== "pmg" && viewMode !== "unpriced" ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dbe6e3] pb-3">
                   <div>
                     <h3 className="text-base font-semibold text-[#234c4b]">
@@ -515,7 +528,7 @@ export default function InternalSharedQuotationPage() {
                 className="grid gap-4"
                 style={{
                   gridTemplateColumns:
-                    viewMode === "pmg"
+                    viewMode === "pmg" || viewMode === "unpriced"
                       ? "repeat(auto-fit, minmax(320px, 1fr))"
                       : "repeat(auto-fill, minmax(320px, 360px))",
                 }}
