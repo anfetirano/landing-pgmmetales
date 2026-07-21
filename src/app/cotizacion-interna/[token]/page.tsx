@@ -217,6 +217,23 @@ export default function InternalSharedQuotationPage() {
     [items, mergedDrafts]
   );
 
+  const pricedInternalItemsCount = useMemo(
+    () =>
+      items.reduce((count, item) => {
+        const rawValue = mergedDrafts[String(item._id)]?.quotedPrice ?? "";
+        return typeof parsePriceInput(rawValue).value === "number" ? count + 1 : count;
+      }, 0),
+    [items, mergedDrafts]
+  );
+
+  const averageInternalPrice = useMemo(
+    () =>
+      pricedInternalItemsCount > 0
+        ? totalInternalDraft / pricedInternalItemsCount
+        : 0,
+    [pricedInternalItemsCount, totalInternalDraft]
+  );
+
   const filteredItems = useMemo(() => {
     const baseItems =
       viewMode === "unpriced"
@@ -383,7 +400,7 @@ export default function InternalSharedQuotationPage() {
         </p>
       </div>
 
-      <div className="mb-6 grid gap-4 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Card>
           <CardContent className="p-5">
             <div className="text-sm text-muted-foreground">Cantidad de piezas</div>
@@ -397,6 +414,20 @@ export default function InternalSharedQuotationPage() {
             <div className="text-sm text-muted-foreground">Total interno</div>
             <div className="mt-2 text-3xl font-semibold text-[#234c4b]">
               {formatUsd(totalInternalDraft)}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              {pricedInternalItemsCount} piezas con precio
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground">Promedio por pieza</div>
+            <div className="mt-2 text-3xl font-semibold text-[#234c4b]">
+              {formatUsd(averageInternalPrice)}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Promedio de piezas ya cotizadas
             </div>
           </CardContent>
         </Card>

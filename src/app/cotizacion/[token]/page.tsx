@@ -211,6 +211,23 @@ export default function SharedQuotationPage() {
     [items, mergedDrafts]
   );
 
+  const pricedBuyerItemsCount = useMemo(
+    () =>
+      items.reduce((count, item) => {
+        const rawValue = mergedDrafts[String(item._id)]?.clientPrice ?? "";
+        return typeof parsePriceInput(rawValue).value === "number" ? count + 1 : count;
+      }, 0),
+    [items, mergedDrafts]
+  );
+
+  const averageBuyerPrice = useMemo(
+    () =>
+      pricedBuyerItemsCount > 0
+        ? totalDraftPrice / pricedBuyerItemsCount
+        : 0,
+    [pricedBuyerItemsCount, totalDraftPrice]
+  );
+
   const filteredItems = useMemo(() => {
     const baseItems =
       viewMode === "unpriced"
@@ -387,7 +404,7 @@ export default function SharedQuotationPage() {
         </p>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-5">
             <div className="text-sm text-muted-foreground">Cantidad de piezas</div>
@@ -404,6 +421,23 @@ export default function SharedQuotationPage() {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 2,
               })}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              {pricedBuyerItemsCount} piezas con precio
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground">Promedio por pieza</div>
+            <div className="mt-2 text-3xl font-semibold text-[#234c4b]">
+              ${averageBuyerPrice.toLocaleString("en-US", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Promedio de piezas ya cotizadas
             </div>
           </CardContent>
         </Card>
