@@ -90,6 +90,11 @@ const getQuotationOrThrow = async (ctx: any, quotationId: any, tenantKey: "co" |
   return quotation;
 };
 
+const normalizeCountryCode = (value?: string | null) => {
+  const normalized = (value ?? "").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(normalized) ? normalized : undefined;
+};
+
 export const createQuotation = mutation({
   args: {
     adminId: v.id("users"),
@@ -275,6 +280,7 @@ export const ensureShareLink = mutation({
 export const trackSharedQuotationView = mutation({
   args: {
     shareToken: v.string(),
+    countryCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const quotation = await ctx.db
@@ -287,10 +293,15 @@ export const trackSharedQuotationView = mutation({
     }
 
     const now = Date.now();
+    const countryCode = normalizeCountryCode(args.countryCode);
     await ctx.db.patch(quotation._id, {
       shareFirstViewedAt: quotation.shareFirstViewedAt ?? now,
       shareLastViewedAt: now,
       shareViewCount: (quotation.shareViewCount ?? 0) + 1,
+      shareLastViewedCountryCode: countryCode ?? quotation.shareLastViewedCountryCode,
+      shareViewCountryCodes: countryCode
+        ? Array.from(new Set([...(quotation.shareViewCountryCodes ?? []), countryCode]))
+        : quotation.shareViewCountryCodes,
     });
 
     return { ok: true };
@@ -328,6 +339,7 @@ export const ensureInternalShareLink = mutation({
 export const trackInternalSharedQuotationView = mutation({
   args: {
     shareToken: v.string(),
+    countryCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const quotation = await ctx.db
@@ -340,10 +352,16 @@ export const trackInternalSharedQuotationView = mutation({
     }
 
     const now = Date.now();
+    const countryCode = normalizeCountryCode(args.countryCode);
     await ctx.db.patch(quotation._id, {
       internalShareFirstViewedAt: quotation.internalShareFirstViewedAt ?? now,
       internalShareLastViewedAt: now,
       internalShareViewCount: (quotation.internalShareViewCount ?? 0) + 1,
+      internalShareLastViewedCountryCode:
+        countryCode ?? quotation.internalShareLastViewedCountryCode,
+      internalShareViewCountryCodes: countryCode
+        ? Array.from(new Set([...(quotation.internalShareViewCountryCodes ?? []), countryCode]))
+        : quotation.internalShareViewCountryCodes,
     });
 
     return { ok: true };

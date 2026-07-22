@@ -190,10 +190,33 @@ export default function SharedQuotationPage() {
     }
 
     window.sessionStorage.setItem(storageKey, "1");
-    void trackSharedView({ shareToken }).catch((error) => {
-      window.sessionStorage.removeItem(storageKey);
-      console.error(error);
-    });
+    void (async () => {
+      try {
+        const response = await fetch("/api/quotations/track-view", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          cache: "no-store",
+          body: JSON.stringify({
+            kind: "buyer",
+            shareToken,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudo registrar la apertura compartida.");
+        }
+      } catch (error) {
+        try {
+          await trackSharedView({ shareToken });
+        } catch (fallbackError) {
+          window.sessionStorage.removeItem(storageKey);
+          console.error(fallbackError);
+        }
+        console.error(error);
+      }
+    })();
   }, [shareToken, trackSharedView]);
 
   const items = quotationData?.items ?? [];

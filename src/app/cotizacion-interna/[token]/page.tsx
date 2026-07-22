@@ -196,10 +196,33 @@ export default function InternalSharedQuotationPage() {
     }
 
     window.sessionStorage.setItem(storageKey, "1");
-    void trackInternalView({ shareToken }).catch((error) => {
-      window.sessionStorage.removeItem(storageKey);
-      console.error(error);
-    });
+    void (async () => {
+      try {
+        const response = await fetch("/api/quotations/track-view", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          cache: "no-store",
+          body: JSON.stringify({
+            kind: "internal",
+            shareToken,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("No se pudo registrar la apertura interna.");
+        }
+      } catch (error) {
+        try {
+          await trackInternalView({ shareToken });
+        } catch (fallbackError) {
+          window.sessionStorage.removeItem(storageKey);
+          console.error(fallbackError);
+        }
+        console.error(error);
+      }
+    })();
   }, [shareToken, trackInternalView]);
 
   const items = quotationData?.items ?? [];

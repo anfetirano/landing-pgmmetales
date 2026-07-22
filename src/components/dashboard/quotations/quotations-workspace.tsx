@@ -58,6 +58,20 @@ const formatViewDateTime = (value?: number) => {
   });
 };
 
+const countryNameFormatter =
+  typeof Intl !== "undefined" && typeof Intl.DisplayNames === "function"
+    ? new Intl.DisplayNames(["es-PA", "es"], { type: "region" })
+    : null;
+
+const formatCountryCode = (value?: string) => {
+  const normalized = (value ?? "").trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) {
+    return "Sin país detectado";
+  }
+
+  return countryNameFormatter?.of(normalized) ?? normalized;
+};
+
 export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
@@ -117,6 +131,34 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
     const firstLabel = formatViewDateTime(firstViewedAt);
     const lastLabel = formatViewDateTime(lastViewedAt);
     return `${label}: ${viewCount} apertura${viewCount === 1 ? "" : "s"} · primera ${firstLabel} · última ${lastLabel}`;
+  };
+
+  const formatViewCountryStatus = ({
+    lastCountryCode,
+    countryCodes,
+  }: {
+    lastCountryCode?: string;
+    countryCodes?: string[];
+  }) => {
+    const normalizedCountries = Array.from(
+      new Set(
+        (countryCodes ?? [])
+          .map((code) => code.trim().toUpperCase())
+          .filter((code) => /^[A-Z]{2}$/.test(code))
+      )
+    );
+
+    if (!lastCountryCode && normalizedCountries.length === 0) {
+      return "País aproximado: sin registro todavía.";
+    }
+
+    const lastCountryLabel = formatCountryCode(lastCountryCode);
+    const countriesLabel =
+      normalizedCountries.length > 0
+        ? normalizedCountries.map((code) => formatCountryCode(code)).join(", ")
+        : lastCountryLabel;
+
+    return `País aproximado: última apertura desde ${lastCountryLabel} · países detectados ${countriesLabel}`;
   };
 
   const [newClientName, setNewClientName] = useState("");
@@ -857,6 +899,12 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                           viewCount: quotationDetail.shareViewCount,
                         })}
                       </span>
+                      <span className="text-xs text-[#234c4b]">
+                        {formatViewCountryStatus({
+                          lastCountryCode: quotationDetail.shareLastViewedCountryCode,
+                          countryCodes: quotationDetail.shareViewCountryCodes,
+                        })}
+                      </span>
                     </label>
                   ) : null}
 
@@ -882,6 +930,12 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                           firstViewedAt: quotationDetail.internalShareFirstViewedAt,
                           lastViewedAt: quotationDetail.internalShareLastViewedAt,
                           viewCount: quotationDetail.internalShareViewCount,
+                        })}
+                      </span>
+                      <span className="text-xs text-[#234c4b]">
+                        {formatViewCountryStatus({
+                          lastCountryCode: quotationDetail.internalShareLastViewedCountryCode,
+                          countryCodes: quotationDetail.internalShareViewCountryCodes,
                         })}
                       </span>
                     </label>
