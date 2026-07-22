@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -183,24 +183,6 @@ export default function InternalSharedQuotationPage() {
     shareToken ? { shareToken, includeComparison: showComparison } : "skip"
   );
   const updateInternalItem = useMutation(api.quotations.updateInternalSharedQuotationItem);
-  const trackInternalView = useMutation(api.quotations.trackInternalSharedQuotationView);
-
-  useEffect(() => {
-    if (!shareToken || typeof window === "undefined") {
-      return;
-    }
-
-    const storageKey = `pmg:quotation-viewed:internal:${shareToken}`;
-    if (window.sessionStorage.getItem(storageKey) === "1") {
-      return;
-    }
-
-    window.sessionStorage.setItem(storageKey, "1");
-    void trackInternalView({ shareToken }).catch((error) => {
-      window.sessionStorage.removeItem(storageKey);
-      console.error(error);
-    });
-  }, [shareToken, trackInternalView]);
 
   const items = quotationData?.items ?? [];
   const normalizedSearchTerm = normalizeSearchValue(searchTerm);
