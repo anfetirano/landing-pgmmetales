@@ -47,6 +47,17 @@ type PriceDraft = {
   clientPrice: string;
 };
 
+const formatViewDateTime = (value?: number) => {
+  if (typeof value !== "number") {
+    return "Sin registro";
+  }
+
+  return new Date(value).toLocaleString("es-PA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+};
+
 export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const { user } = useUser();
   const dbUser = useQuery(api.users.getByClerkId, user?.id ? { clerkId: user.id } : "skip");
@@ -87,6 +98,26 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
   const formatMoney = (value: number) => formatMoneyByTenant(value, dbUser?.tenantKey);
+
+  const formatViewStatus = ({
+    label,
+    firstViewedAt,
+    lastViewedAt,
+    viewCount,
+  }: {
+    label: string;
+    firstViewedAt?: number;
+    lastViewedAt?: number;
+    viewCount?: number;
+  }) => {
+    if (typeof viewCount !== "number" || viewCount <= 0) {
+      return `${label}: todavía no abierta.`;
+    }
+
+    const firstLabel = formatViewDateTime(firstViewedAt);
+    const lastLabel = formatViewDateTime(lastViewedAt);
+    return `${label}: ${viewCount} apertura${viewCount === 1 ? "" : "s"} · primera ${firstLabel} · última ${lastLabel}`;
+  };
 
   const [newClientName, setNewClientName] = useState("");
   const [newClientId, setNewClientId] = useState<string>("none");
@@ -818,6 +849,14 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                       <span className="text-xs text-muted-foreground">
                         Este es el link que recibe el comprador para colocar sus precios.
                       </span>
+                      <span className="text-xs text-[#234c4b]">
+                        {formatViewStatus({
+                          label: "Seguimiento comprador",
+                          firstViewedAt: quotationDetail.shareFirstViewedAt,
+                          lastViewedAt: quotationDetail.shareLastViewedAt,
+                          viewCount: quotationDetail.shareViewCount,
+                        })}
+                      </span>
                     </label>
                   ) : null}
 
@@ -836,6 +875,14 @@ export function QuotationsWorkspace({ mode }: { mode: WorkspaceMode }) {
                       </div>
                       <span className="text-xs text-muted-foreground">
                         Este link es solo para ustedes. Aquí colocan el precio interno sin ver al inicio el precio del comprador.
+                      </span>
+                      <span className="text-xs text-[#234c4b]">
+                        {formatViewStatus({
+                          label: "Seguimiento interno",
+                          firstViewedAt: quotationDetail.internalShareFirstViewedAt,
+                          lastViewedAt: quotationDetail.internalShareLastViewedAt,
+                          viewCount: quotationDetail.internalShareViewCount,
+                        })}
                       </span>
                     </label>
                   ) : null}

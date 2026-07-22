@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -168,6 +168,7 @@ export default function SharedQuotationPage() {
     shareToken ? { shareToken } : "skip"
   );
   const updateSharedItem = useMutation(api.quotations.updateSharedQuotationItem);
+  const trackSharedView = useMutation(api.quotations.trackSharedQuotationView);
 
   const [itemDrafts, setItemDrafts] = useState<Record<string, SharedItemDraft>>({});
   const [itemDirtyFields, setItemDirtyFields] = useState<Record<string, SharedDraftDirtyState>>({});
@@ -177,6 +178,23 @@ export default function SharedQuotationPage() {
   const [photoZoom, setPhotoZoom] = useState(1);
   const [viewMode, setViewMode] = useState<SharedViewMode>("pmg");
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (!shareToken || typeof window === "undefined") {
+      return;
+    }
+
+    const storageKey = `pmg:quotation-viewed:buyer:${shareToken}`;
+    if (window.sessionStorage.getItem(storageKey) === "1") {
+      return;
+    }
+
+    window.sessionStorage.setItem(storageKey, "1");
+    void trackSharedView({ shareToken }).catch((error) => {
+      window.sessionStorage.removeItem(storageKey);
+      console.error(error);
+    });
+  }, [shareToken, trackSharedView]);
 
   const items = quotationData?.items ?? [];
   const normalizedSearchTerm = normalizeSearchValue(searchTerm);

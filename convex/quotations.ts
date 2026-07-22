@@ -272,6 +272,31 @@ export const ensureShareLink = mutation({
   },
 });
 
+export const trackSharedQuotationView = mutation({
+  args: {
+    shareToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const quotation = await ctx.db
+      .query("quotations")
+      .withIndex("by_shareToken", (q) => q.eq("shareToken", args.shareToken))
+      .unique();
+
+    if (!quotation || !quotation.shareToken) {
+      throw new Error("Cotización no encontrada.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(quotation._id, {
+      shareFirstViewedAt: quotation.shareFirstViewedAt ?? now,
+      shareLastViewedAt: now,
+      shareViewCount: (quotation.shareViewCount ?? 0) + 1,
+    });
+
+    return { ok: true };
+  },
+});
+
 export const ensureInternalShareLink = mutation({
   args: {
     adminId: v.id("users"),
@@ -297,6 +322,31 @@ export const ensureInternalShareLink = mutation({
       internalShareToken,
       path: `/cotizacion-interna/${internalShareToken}`,
     };
+  },
+});
+
+export const trackInternalSharedQuotationView = mutation({
+  args: {
+    shareToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const quotation = await ctx.db
+      .query("quotations")
+      .withIndex("by_internalShareToken", (q) => q.eq("internalShareToken", args.shareToken))
+      .unique();
+
+    if (!quotation || !quotation.internalShareToken) {
+      throw new Error("Cotización interna no encontrada.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(quotation._id, {
+      internalShareFirstViewedAt: quotation.internalShareFirstViewedAt ?? now,
+      internalShareLastViewedAt: now,
+      internalShareViewCount: (quotation.internalShareViewCount ?? 0) + 1,
+    });
+
+    return { ok: true };
   },
 });
 
